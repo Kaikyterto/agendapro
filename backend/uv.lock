@@ -26,6 +26,7 @@ dependencies = [
     { name = "flask-jwt-extended" },
     { name = "flask-migrate" },
     { name = "flask-sqlalchemy" },
+    { name = "gunicorn" },
     { name = "mercadopago" },
     { name = "psycopg2-binary" },
     { name = "python-dotenv" },
@@ -39,6 +40,7 @@ requires-dist = [
     { name = "flask-jwt-extended", specifier = ">=4.7.1" },
     { name = "flask-migrate", specifier = ">=4.1.0" },
     { name = "flask-sqlalchemy", specifier = ">=3.1.1" },
+    { name = "gunicorn", specifier = "==21.2.0" },
     { name = "mercadopago", specifier = ">=2.4.0" },
     { name = "psycopg2-binary", specifier = ">=2.9.12" },
     { name = "python-dotenv", specifier = ">=1.2.2" },
@@ -244,6 +246,18 @@ wheels = [
 ]
 
 [[package]]
+name = "gunicorn"
+version = "21.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "packaging" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/06/89/acd9879fa6a5309b4bf16a5a8855f1e58f26d38e0c18ede9b3a70996b021/gunicorn-21.2.0.tar.gz", hash = "sha256:88ec8bff1d634f98e61b9f65bc4bf3cd918a90806c6f5c48bc5603849ec81033", size = 3632557, upload-time = "2023-07-19T11:46:46.917Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0e/2a/c3a878eccb100ccddf45c50b6b8db8cf3301a6adede6e31d48e8531cab13/gunicorn-21.2.0-py3-none-any.whl", hash = "sha256:3213aa5e8c24949e792bcacfc176fef362e7aac80b76c56f6b5122bf350722f0", size = 80176, upload-time = "2023-07-19T11:46:44.51Z" },
+]
+
+[[package]]
 name = "idna"
 version = "3.13"
 source = { registry = "https://pypi.org/simple" }
@@ -347,6 +361,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/79/d9/698f538896728da7fc45a5930c9d8f93340d61caefbf06a9e3e8c6e6e652/mercadopago-2.4.0.tar.gz", hash = "sha256:d18fa8589a88b3847629cfb79d020e054c3c668830ddefcad591a20b1f28b3d6", size = 24549, upload-time = "2026-04-17T18:47:04.243Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a1/b3/86b8f603349783f522ac80a83eeaffb6c5b5dcc4e084fc3ebf66ffe57aab/mercadopago-2.4.0-py3-none-any.whl", hash = "sha256:839a9612b99d50cb40a8ffda5f311753ceedae3b2b95a70bf4941adcd2a62ecd", size = 36353, upload-time = "2026-04-17T18:47:03.284Z" },
+]
+
+[[package]]
+name = "packaging"
+version = "26.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/d7/f1/e7a6dd94a8d4a5626c03e4e99c87f241ba9e350cd9e6d75123f992427270/packaging-26.2.tar.gz", hash = "sha256:ff452ff5a3e828ce110190feff1178bb1f2ea2281fa2075aadb987c2fb221661", size = 228134, upload-time = "2026-04-24T20:15:23.917Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/df/b2/87e62e8c3e2f4b32e5fe99e0b86d576da1312593b39f47d8ceef365e95ed/packaging-26.2-py3-none-any.whl", hash = "sha256:5fc45236b9446107ff2415ce77c807cee2862cb6fac22b8a73826d0693b0980e", size = 100195, upload-time = "2026-04-24T20:15:22.081Z" },
 ]
 
 [[package]]

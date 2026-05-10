@@ -28,7 +28,7 @@ def create_app():
 
 
     CORS(app, resources={r"/*": {
-        "origins": ["https://agendapro-v1.vercel.app"],
+        "origins": ["https://agendapro-v1.vercel.app","http://localhost:5173"],
         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"]
     }})
