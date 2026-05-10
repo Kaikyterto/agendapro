@@ -1,0 +1,12 @@
+# Ignorar o .env em qualquer lugar do projeto
+.env
+**/.env
+
+# Ignorar pastas de ambiente e bibliotecas
+backend/env/
+backend/.venv/
+node_modules/
+
+# Ignorar cache de Python
+**/__pycache__/
+*.py[cod]
