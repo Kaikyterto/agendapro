@@ -26,7 +26,7 @@ def create_app():
 #  CORS 
 # =====================================================
 
-    from flask_cors import CORS
+
     CORS(app, resources={r"/*": {
         "origins": ["https://agendapro-v1.vercel.app"],
         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],

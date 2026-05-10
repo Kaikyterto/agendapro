@@ -1,4 +1,4 @@
-const API_URL = "https://agendapro-z63z.onrender.com";
+const API_URL = "https://agendapro-z63z.onrender.com/api";
 
 export async function apiFetch(endpoint, options = {}) {
   const res = await fetch(`${API_URL}${endpoint}`, {
