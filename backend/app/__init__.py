@@ -22,10 +22,17 @@ def create_app():
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
 
-    # =====================================================
-    #  CORS 
-    # =====================================================
-    CORS(app, resources={r"/*": {"origins": "https://agendapro-v1.vercel.app"}})
+   # =====================================================
+#  CORS 
+# =====================================================
+
+    from flask_cors import CORS
+    CORS(app, resources={r"/*": {
+        "origins": ["https://agendapro-v1.vercel.app"],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"]
+    }})
+
 
     # =====================================================
     #  INIT EXTENSIONS
