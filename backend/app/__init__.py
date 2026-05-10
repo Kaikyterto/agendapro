@@ -25,7 +25,7 @@ def create_app():
     # =====================================================
     #  CORS 
     # =====================================================
-    CORS(app, origins=["http://localhost:5173"])
+    CORS(app, origins=["https://agendapro-v1.vercel.app/"])
 
     # =====================================================
     #  INIT EXTENSIONS
