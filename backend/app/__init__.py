@@ -26,7 +26,7 @@ def create_app():
     app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
 
     # =====================================================
-    # CORS (FRONT + PATCH + PRE-FLIGHT OK)
+    # CORS (PRODUÇÃO SAFE)
     # =====================================================
     CORS(
         app,
@@ -41,7 +41,6 @@ def create_app():
         supports_credentials=True
     )
 
-    # fallback (render safe)
     @app.after_request
     def after_request(response):
         response.headers.add("Access-Control-Allow-Origin", "*")
@@ -57,23 +56,49 @@ def create_app():
     JWTManager(app)
 
     # =====================================================
-    # 🔥 GLOBAL SAAS GUARD (REGRA PRINCIPAL)
+    # 🔥 SAAS MIDDLEWARE GLOBAL
     # =====================================================
     @app.before_request
     def enforce_company_status():
 
         path = request.path
 
-        # rotas sempre livres
-        if path.startswith("/auth") or path.startswith("/webhook"):
+        # =================================================
+        # ROTAS LIVRES (SEM NENHUM BLOQUEIO)
+        # =================================================
+        if (
+            path.startswith("/auth") or
+            path.startswith("/webhook")
+        ):
             return
 
-        # CORS preflight
         if request.method == "OPTIONS":
             return
 
+        # =================================================
+        #  ROTAS PÚBLICAS (SEM LOGIN, MAS COM COMPANY ACTIVE)
+        # =================================================
+        if path.startswith("/api/public") or path.startswith("/api/company"):
+
+            company_id = request.args.get("company_id")
+
+            if not company_id:
+                return jsonify({"error": "company_id é obrigatório"}), 400
+
+            company = Company.query.get(company_id)
+
+            if not company:
+                return jsonify({"error": "Empresa não encontrada"}), 404
+
+            if company.status != "active":
+                return jsonify({"error": "Empresa inativa"}), 403
+
+            return  # libera acesso público
+
+        # =================================================
+        #  ROTAS PRIVADAS (COM JWT OBRIGATÓRIO)
+        # =================================================
         try:
-            # exige login em TODA API
             verify_jwt_in_request()
 
             claims = get_jwt()
@@ -87,10 +112,9 @@ def create_app():
             if not company:
                 return jsonify({"error": "Empresa não encontrada"}), 404
 
-            # 🔥 REGRA SAAS: BLOQUEIA TUDO SE NÃO ESTIVER ATIVA
             if company.status != "active":
                 return jsonify({
-                    "error": "Conta inativa. Ative sua assinatura para continuar usando o sistema."
+                    "error": "Conta inativa. Ative sua assinatura para continuar."
                 }), 403
 
         except Exception:
