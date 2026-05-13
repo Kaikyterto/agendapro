@@ -3,7 +3,7 @@ from flask import request, jsonify
 from app.models.company import Company
 
 
-def public_company_required(fn):
+def public_company_active(fn):
     @wraps(fn)
     def wrapper(*args, **kwargs):
 
