@@ -20,18 +20,15 @@ class Schedule(db.Model):
         unique=True
     )
 
-
     service_id = db.Column(
         db.Integer,
         db.ForeignKey("services.id"),
         nullable=False
     )
 
-   
     name = db.Column(db.String(100), nullable=False)
     phone = db.Column(db.String(20), nullable=False)
 
- 
     status = db.Column(
         db.String(20),
         nullable=False,
@@ -53,8 +50,12 @@ class Schedule(db.Model):
         onupdate=db.func.now()
     )
 
-    
     slot = db.relationship(
         "TimeSlot",
         backref=db.backref("schedule", uselist=False)
+    )
+
+    service = db.relationship(
+        "Service",
+        backref=db.backref("schedules", lazy=True)
     )
