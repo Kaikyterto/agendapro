@@ -1,34 +1,56 @@
-// DICA: Se você tiver um arquivo .env, use: import.meta.env.VITE_API_URL
-const API_URL = "https://sua-api-aqui.com";
+import { apiFetch } from "./api";
 
-/**
-
- * @param {Object} credentials
- */
+// =========================================================
+// LOGIN
+// =========================================================
 export const loginService = async (credentials) => {
   try {
-    const response = await fetch(`${API_URL}/login`, {
+    const data = await apiFetch("/auth/login", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(credentials),
+
+      body: JSON.stringify({
+        email: credentials.email,
+        password: credentials.password,
+      }),
     });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.message || "Erro ao realizar login");
-    }
 
     return data;
   } catch (error) {
-    console.error("Auth Service Error:", error.message);
+    console.error("Auth Service Error:", error);
+
+    // =====================================================
+    // PAYMENT PENDING
+    // =====================================================
+    if (error.message) {
+      try {
+        const parsed = JSON.parse(error.message);
+
+        if (parsed.payment_pending) {
+          throw parsed;
+        }
+      } catch {
+        // ignora parse
+      }
+    }
+
     throw error;
   }
 };
 
+// =========================================================
+// AUTH CHECK
+// =========================================================
 export const isAuthenticated = () => {
   const token = localStorage.getItem("@AgendaPro:token");
+
   return !!token;
+};
+
+// =========================================================
+// LOGOUT
+// =========================================================
+export const logout = () => {
+  localStorage.removeItem("@AgendaPro:token");
+
+  localStorage.removeItem("@AgendaPro:user");
 };
