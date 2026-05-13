@@ -15,7 +15,7 @@ class PaymentService:
     def create_pix_payment(data):
 
         required_fields = [
-            "tenant_id",
+            "company_id",
             "amount",
             "customer_name",
             "email"
@@ -55,6 +55,12 @@ class PaymentService:
             ),
 
             "payment_method_id": "pix",
+
+            # ESSENCIAL PARA IDENTIFICAR
+            # QUAL EMPRESA PAGOU
+            "external_reference": str(
+                data["company_id"]
+            ),
 
             "payer": {
 

@@ -1,5 +1,6 @@
 from app.database.db import db
 
+
 class Company(db.Model):
     __tablename__ = "companies"
 
@@ -13,17 +14,30 @@ class Company(db.Model):
         nullable=False
     )
 
-    
     slug = db.Column(
         db.String(60),
         unique=True,
         nullable=False
     )
 
-    active = db.Column(
-        db.Boolean,
+    # Controle da assinatura/plano da empresa
+    status = db.Column(
+        db.String(30),
         nullable=False,
-        default=True
+        default="pending_payment"
+    )
+
+    # Plano atual da empresa
+    plan = db.Column(
+        db.String(30),
+        nullable=False,
+        default="basic"
+    )
+
+    # ID do pagamento/assinatura no Mercado Pago
+    mercado_pago_payment_id = db.Column(
+        db.String(120),
+        nullable=True
     )
 
     logo_url = db.Column(
@@ -37,15 +51,15 @@ class Company(db.Model):
     )
 
     primary_color = db.Column(
-        db.String(7), 
+        db.String(7),
         nullable=False,
-        default='#3b82f6' 
+        default="#3b82f6"
     )
 
     secondary_color = db.Column(
         db.String(7),
         nullable=False,
-        default='#64748b'
+        default="#64748b"
     )
 
     created_at = db.Column(
@@ -55,7 +69,7 @@ class Company(db.Model):
     )
 
     services = db.relationship(
-    'Service',
-    backref='company',
-    lazy=True
-)
+        "Service",
+        backref="company",
+        lazy=True
+    )

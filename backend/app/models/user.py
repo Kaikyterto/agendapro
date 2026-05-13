@@ -1,6 +1,7 @@
 from app.database.db import db
 from werkzeug.security import generate_password_hash, check_password_hash
 
+
 class User(db.Model):
     __tablename__ = "users"
 
@@ -10,12 +11,11 @@ class User(db.Model):
     )
 
     email = db.Column(
-        db.String(255), 
+        db.String(255),
         nullable=False,
         unique=True
     )
 
-    
     password_hash = db.Column(
         db.String(255),
         nullable=False
@@ -30,13 +30,16 @@ class User(db.Model):
         nullable=False
     )
 
-    # Relacionamento para acessar dados da empresa direto pelo objeto user (ex: user.company.name)
-    company = db.relationship("Company", backref=db.backref("users", lazy=True))
+    # Relacionamento da empresa
+    company = db.relationship(
+        "Company",
+        backref=db.backref("users", lazy=True)
+    )
 
     def set_password(self, password):
-        """Cria um hash da senha para salvar no banco."""
+        """Cria hash da senha."""
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password):
-        """Verifica se a senha enviada bate com o hash salvo."""
+        """Verifica senha."""
         return check_password_hash(self.password_hash, password)
