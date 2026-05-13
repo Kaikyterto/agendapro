@@ -41,3 +41,15 @@ appointment_bp.route(
         AppointmentController.cancel_appointment
     )
 )
+
+# =========================================================
+# 📌 CONFIRMAR AGENDAMENTO
+# =========================================================
+appointment_bp.route(
+    '/appointments/<int:id>/confirm',
+    methods=['PATCH']
+)(
+    jwt_required()(
+        AppointmentController.confirm_appointment
+    )
+)

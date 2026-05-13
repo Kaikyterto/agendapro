@@ -18,30 +18,21 @@ class AppointmentController:
         data = request.get_json()
 
         try:
-
             slot = TimeSlot.query.get(data.get('slot_id'))
 
             if not slot:
-                return jsonify({
-                    "error": "Horário não encontrado"
-                }), 404
+                return jsonify({"error": "Horário não encontrado"}), 404
 
             if not slot.is_available:
-                return jsonify({
-                    "error": "Horário indisponível"
-                }), 400
+                return jsonify({"error": "Horário indisponível"}), 400
 
             service = Service.query.get(data.get('service_id'))
 
             if not service:
-                return jsonify({
-                    "error": "Serviço não encontrado"
-                }), 404
+                return jsonify({"error": "Serviço não encontrado"}), 404
 
             if not data.get('name') or not data.get('phone'):
-                return jsonify({
-                    "error": "Nome e telefone são obrigatórios"
-                }), 400
+                return jsonify({"error": "Nome e telefone são obrigatórios"}), 400
 
             schedule = Schedule(
                 company_id=slot.company_id,
@@ -65,12 +56,11 @@ class AppointmentController:
 
         except Exception as e:
             db.session.rollback()
-            return jsonify({
-                "error": str(e)
-            }), 500
+            return jsonify({"error": str(e)}), 500
+
 
     # =========================================================
-    #  LISTAR AGENDAMENTOS (CORRIGIDO)
+    #  LISTAR AGENDAMENTOS
     # =========================================================
     @staticmethod
     def list_company_schedules():
@@ -80,9 +70,7 @@ class AppointmentController:
             company_id = claims.get("company_id")
 
             if not company_id:
-                return jsonify({
-                    "error": "Empresa não identificada"
-                }), 401
+                return jsonify({"error": "Empresa não identificada"}), 401
 
             schedules = Schedule.query.filter_by(
                 company_id=company_id
@@ -93,17 +81,8 @@ class AppointmentController:
                     "id": s.id,
                     "customer_name": s.name,
                     "phone": s.phone,
-
-                    "service_name": (
-                        s.service.name
-                        if s.service else None
-                    ),
-
-                    "start": (
-                        s.slot.start_time.isoformat()
-                        if s.slot else None
-                    ),
-
+                    "service_name": s.service.name if s.service else None,
+                    "start": s.slot.start_time.isoformat() if s.slot else None,
                     "status": s.status,
                     "notes": s.notes
                 }
@@ -116,8 +95,9 @@ class AppointmentController:
                 "details": str(e)
             }), 500
 
+
     # =========================================================
-    #  CANCELAR AGENDAMENTO (CORRIGIDO)
+    #  CANCELAR AGENDAMENTO
     # =========================================================
     @staticmethod
     def cancel_appointment(id):
@@ -132,26 +112,62 @@ class AppointmentController:
             ).first()
 
             if not schedule:
-                return jsonify({
-                    "error": "Agendamento não encontrado"
-                }), 404
+                return jsonify({"error": "Agendamento não encontrado"}), 404
+
+            if schedule.status == "cancelled":
+                return jsonify({"error": "Já está cancelado"}), 400
 
             schedule.status = "cancelled"
 
             slot = TimeSlot.query.get(schedule.slot_id)
-
             if slot:
                 slot.is_available = True
 
             db.session.commit()
 
-            return jsonify({
-                "message": "Agendamento cancelado com sucesso"
-            }), 200
+            return jsonify({"message": "Agendamento cancelado com sucesso"}), 200
 
         except Exception as e:
             db.session.rollback()
             return jsonify({
                 "error": "Erro ao cancelar agendamento",
+                "details": str(e)
+            }), 500
+
+
+    # =========================================================
+    #  CONFIRMAR AGENDAMENTO (NOVO)
+    # =========================================================
+    @staticmethod
+    def confirm_appointment(id):
+
+        try:
+            claims = get_jwt()
+            company_id = claims.get("company_id")
+
+            schedule = Schedule.query.filter_by(
+                id=id,
+                company_id=company_id
+            ).first()
+
+            if not schedule:
+                return jsonify({"error": "Agendamento não encontrado"}), 404
+
+            if schedule.status == "cancelled":
+                return jsonify({"error": "Agendamento cancelado não pode ser confirmado"}), 400
+
+            if schedule.status == "confirmed":
+                return jsonify({"error": "Já está confirmado"}), 400
+
+            schedule.status = "confirmed"
+
+            db.session.commit()
+
+            return jsonify({"message": "Agendamento confirmado com sucesso"}), 200
+
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({
+                "error": "Erro ao confirmar agendamento",
                 "details": str(e)
             }), 500
