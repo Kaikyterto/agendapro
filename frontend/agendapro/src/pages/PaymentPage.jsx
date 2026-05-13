@@ -1,18 +1,32 @@
 import { useEffect, useState } from "react";
+
 import { useLocation, useNavigate } from "react-router-dom";
+
 import { CheckCircle2, Copy, Loader2 } from "lucide-react";
 
 import { apiFetch } from "../services/api";
 
 const PaymentPage = () => {
   const location = useLocation();
+
   const navigate = useNavigate();
 
   const payment = location.state?.payment;
+
   const company = location.state?.company;
 
   const [copied, setCopied] = useState(false);
+
   const [checkingPayment, setCheckingPayment] = useState(true);
+
+  // ========================================================
+  // PAYMENT NOT FOUND
+  // ========================================================
+  useEffect(() => {
+    if (!payment || !company) {
+      navigate("/");
+    }
+  }, [payment, company, navigate]);
 
   // ========================================================
   // COPIAR PIX
@@ -32,40 +46,39 @@ const PaymentPage = () => {
   };
 
   // ========================================================
-  // VERIFICA PAGAMENTO
+  // VERIFICA STATUS PAGAMENTO
   // ========================================================
   useEffect(() => {
-    if (!payment?.payment_id) return;
+    if (!company?.id) return;
 
     const interval = setInterval(async () => {
       try {
-        const response = await apiFetch(
-          `/payments/status/${payment.payment_id}`
-        );
+        const response = await apiFetch(`/payment/status/${company.id}`);
 
         console.log(response);
 
         // ==================================================
         // PAGAMENTO APROVADO
         // ==================================================
-        if (response.status === "approved") {
+        if (response.active) {
           clearInterval(interval);
 
-          navigate("/login", {
+          navigate("/", {
             state: {
-              success: "Pagamento aprovado! Faça login para continuar.",
+              success:
+                "Pagamento aprovado com sucesso! Faça login para continuar.",
             },
           });
         }
       } catch (error) {
-        console.error(error);
+        console.error("Erro ao verificar pagamento:", error);
       } finally {
         setCheckingPayment(false);
       }
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [payment, navigate]);
+  }, [company, navigate]);
 
   // ========================================================
   // PAYMENT NOT FOUND
@@ -87,6 +100,9 @@ const PaymentPage = () => {
   return (
     <div className="min-h-screen bg-[#0b0d11] flex items-center justify-center p-6">
       <div className="bg-[#16191f] border border-white/10 rounded-3xl p-8 max-w-md w-full text-center shadow-2xl">
+        {/* ================================================= */}
+        {/* HEADER */}
+        {/* ================================================= */}
         <div className="mb-6">
           <h1 className="text-3xl font-black text-white mb-2">Pagamento PIX</h1>
 
@@ -102,9 +118,9 @@ const PaymentPage = () => {
           )}
         </div>
 
-        {/* =============================================== */}
+        {/* ================================================= */}
         {/* QR CODE */}
-        {/* =============================================== */}
+        {/* ================================================= */}
         <div className="bg-white rounded-2xl p-4 w-fit mx-auto">
           <img
             src={`data:image/png;base64,${payment.qr_code_base64}`}
@@ -113,9 +129,9 @@ const PaymentPage = () => {
           />
         </div>
 
-        {/* =============================================== */}
+        {/* ================================================= */}
         {/* PIX CODE */}
-        {/* =============================================== */}
+        {/* ================================================= */}
         <textarea
           readOnly
           value={payment.pix_code}
@@ -135,6 +151,9 @@ const PaymentPage = () => {
           "
         />
 
+        {/* ================================================= */}
+        {/* COPY BUTTON */}
+        {/* ================================================= */}
         <button
           onClick={handleCopy}
           className="
@@ -166,6 +185,9 @@ const PaymentPage = () => {
           )}
         </button>
 
+        {/* ================================================= */}
+        {/* PAYMENT STATUS */}
+        {/* ================================================= */}
         <div className="mt-6 flex items-center justify-center gap-2 text-sm text-slate-400">
           {checkingPayment ? (
             <>
@@ -177,9 +199,12 @@ const PaymentPage = () => {
           )}
         </div>
 
+        {/* ================================================= */}
+        {/* FOOTER */}
+        {/* ================================================= */}
         <p className="text-xs text-slate-500 mt-6 leading-relaxed">
           Após o pagamento sua conta será ativada automaticamente. Você será
-          redirecionado para o login.
+          redirecionado para o login assim que o pagamento for confirmado.
         </p>
       </div>
     </div>

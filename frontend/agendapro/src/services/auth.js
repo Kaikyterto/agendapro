@@ -1,12 +1,16 @@
-import { apiFetch } from "./api";
+const API_URL_AUTH = "https://agendapro-z63z.onrender.com/auth";
 
 // =========================================================
 // LOGIN
 // =========================================================
 export const loginService = async (credentials) => {
   try {
-    const data = await apiFetch("/auth/login", {
+    const response = await fetch(`${API_URL_AUTH}/login`, {
       method: "POST",
+
+      headers: {
+        "Content-Type": "application/json",
+      },
 
       body: JSON.stringify({
         email: credentials.email,
@@ -14,24 +18,28 @@ export const loginService = async (credentials) => {
       }),
     });
 
+    let data;
+
+    try {
+      data = await response.json();
+    } catch {
+      data = null;
+    }
+
+    // =====================================================
+    // ERROR
+    // =====================================================
+    if (!response.ok) {
+      throw (
+        data || {
+          message: "Erro ao realizar login",
+        }
+      );
+    }
+
     return data;
   } catch (error) {
     console.error("Auth Service Error:", error);
-
-    // =====================================================
-    // PAYMENT PENDING
-    // =====================================================
-    if (error.message) {
-      try {
-        const parsed = JSON.parse(error.message);
-
-        if (parsed.payment_pending) {
-          throw parsed;
-        }
-      } catch {
-        // ignora parse
-      }
-    }
 
     throw error;
   }
