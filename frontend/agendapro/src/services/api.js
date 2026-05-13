@@ -4,15 +4,37 @@ export async function apiFetch(endpoint, options = {}) {
   const res = await fetch(`${API_URL}${endpoint}`, {
     headers: {
       "Content-Type": "application/json",
+
       ...options.headers,
     },
+
     ...options,
   });
 
-  if (!res.ok) {
-    const errorText = await res.text();
-    throw new Error(errorText || "Erro na requisição");
+  // =======================================================
+  // TENTA PEGAR JSON
+  // =======================================================
+  let data;
+
+  try {
+    data = await res.json();
+  } catch {
+    data = null;
   }
 
-  return res.json();
+  // =======================================================
+  // ERROR
+  // =======================================================
+  if (!res.ok) {
+    throw (
+      data || {
+        message: "Erro na requisição",
+      }
+    );
+  }
+
+  // =======================================================
+  // SUCCESS
+  // =======================================================
+  return data;
 }
