@@ -19,16 +19,23 @@ const AdminBookingPage = () => {
   const loadAppointments = async () => {
     try {
       setLoading(true);
+      setError("");
 
-      const data = await apiFetch(`/appointments?slug=${slug}`, {
-        method: "GET",
-        auth: true,
-      });
+      const data = await apiFetch(
+        `/appointments?slug=${encodeURIComponent(slug)}`,
+        {
+          method: "GET",
+          auth: true,
+        }
+      );
 
-      setAppointments(data);
+      setAppointments(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error(err);
-      setError("Erro ao carregar agendamentos");
+
+      setAppointments([]);
+
+      setError(err?.msg || err?.message || "Erro ao carregar agendamentos");
     } finally {
       setLoading(false);
     }
@@ -53,7 +60,7 @@ const AdminBookingPage = () => {
       );
     } catch (err) {
       console.error(err);
-      setError("Erro ao confirmar agendamento");
+      setError(err?.message || "Erro ao confirmar agendamento");
     }
   };
 
@@ -72,7 +79,7 @@ const AdminBookingPage = () => {
       );
     } catch (err) {
       console.error(err);
-      setError("Erro ao cancelar agendamento");
+      setError(err?.message || "Erro ao cancelar agendamento");
     }
   };
 
@@ -92,16 +99,13 @@ const AdminBookingPage = () => {
       <Nav />
 
       <div className="max-w-6xl mx-auto px-6 py-12">
-        {/* HEADER */}
         <div className="flex items-center gap-3 mb-10">
           <CalendarDays />
           <h1 className="text-3xl font-bold">Painel de Agendamentos</h1>
         </div>
 
-        {/* ERROR */}
         {error && <div className="mb-6 text-red-400">{error}</div>}
 
-        {/* LIST */}
         <div className="space-y-4">
           {appointments.length === 0 && (
             <div className="text-white/50">Nenhum agendamento encontrado</div>
@@ -112,7 +116,6 @@ const AdminBookingPage = () => {
               key={appointment.id}
               className="bg-white/5 border border-white/10 rounded-2xl p-5 flex justify-between"
             >
-              {/* INFO */}
               <div>
                 <h3 className="text-lg font-bold">
                   {appointment.customer_name}
@@ -124,23 +127,16 @@ const AdminBookingPage = () => {
 
                 <div className="flex items-center gap-2 mt-2 text-white/50 text-sm">
                   <Clock size={14} />
-                  {new Date(appointment.start).toLocaleString()}
+                  {appointment.start
+                    ? new Date(appointment.start).toLocaleString()
+                    : "Sem data"}
                 </div>
 
-                <span
-                  className={`text-xs mt-2 inline-block px-3 py-1 rounded-full ${
-                    appointment.status === "confirmed"
-                      ? "bg-green-500/20 text-green-300"
-                      : appointment.status === "cancelled"
-                      ? "bg-red-500/20 text-red-300"
-                      : "bg-yellow-500/20 text-yellow-300"
-                  }`}
-                >
+                <span className="text-xs mt-2 inline-block px-3 py-1 rounded-full bg-white/10">
                   {appointment.status}
                 </span>
               </div>
 
-              {/* ACTIONS */}
               <div className="flex gap-3">
                 <Button
                   onClick={() => handleConfirm(appointment.id)}

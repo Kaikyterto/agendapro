@@ -1,5 +1,5 @@
 from flask import request, jsonify
-from flask_jwt_extended import get_jwt_identity
+from flask_jwt_extended import get_jwt
 
 from app.database.db import db
 from app.models.schedule import Schedule
@@ -19,9 +19,7 @@ class AppointmentController:
 
         try:
 
-            slot = TimeSlot.query.get(
-                data.get('slot_id')
-            )
+            slot = TimeSlot.query.get(data.get('slot_id'))
 
             if not slot:
                 return jsonify({
@@ -33,9 +31,7 @@ class AppointmentController:
                     "error": "Horário indisponível"
                 }), 400
 
-            service = Service.query.get(
-                data.get('service_id')
-            )
+            service = Service.query.get(data.get('service_id'))
 
             if not service:
                 return jsonify({
@@ -57,7 +53,6 @@ class AppointmentController:
                 status="pending"
             )
 
-            # marca slot como indisponível
             slot.is_available = False
 
             db.session.add(schedule)
@@ -69,77 +64,94 @@ class AppointmentController:
             }), 201
 
         except Exception as e:
-
             db.session.rollback()
-
             return jsonify({
                 "error": str(e)
             }), 500
 
     # =========================================================
-    #  LISTAR AGENDAMENTOS
+    #  LISTAR AGENDAMENTOS (CORRIGIDO)
     # =========================================================
     @staticmethod
     def list_company_schedules():
 
-        company_id = get_jwt_identity()
+        try:
+            claims = get_jwt()
+            company_id = claims.get("company_id")
 
-        schedules = Schedule.query.filter_by(
-            company_id=company_id
-        ).all()
+            if not company_id:
+                return jsonify({
+                    "error": "Empresa não identificada"
+                }), 401
 
-        return jsonify([
-            {
-                "id": s.id,
-                "cliente": s.name,
-                "telefone": s.phone,
+            schedules = Schedule.query.filter_by(
+                company_id=company_id
+            ).all()
 
-                "servico": (
-                    s.service.name
-                    if s.service else None
-                ),
+            return jsonify([
+                {
+                    "id": s.id,
+                    "customer_name": s.name,
+                    "phone": s.phone,
 
-                "horario": (
-                    s.slot.start_time.strftime('%Y-%m-%d %H:%M')
-                    if s.slot else None
-                ),
+                    "service_name": (
+                        s.service.name
+                        if s.service else None
+                    ),
 
-                "status": s.status,
-                "observacoes": s.notes
-            }
-            for s in schedules
-        ]), 200
+                    "start": (
+                        s.slot.start_time.isoformat()
+                        if s.slot else None
+                    ),
+
+                    "status": s.status,
+                    "notes": s.notes
+                }
+                for s in schedules
+            ]), 200
+
+        except Exception as e:
+            return jsonify({
+                "error": "Erro ao buscar agendamentos",
+                "details": str(e)
+            }), 500
 
     # =========================================================
-    #  CANCELAR AGENDAMENTO
+    #  CANCELAR AGENDAMENTO (CORRIGIDO)
     # =========================================================
     @staticmethod
     def cancel_appointment(id):
 
-        company_id = get_jwt_identity()
+        try:
+            claims = get_jwt()
+            company_id = claims.get("company_id")
 
-        schedule = Schedule.query.filter_by(
-            id=id,
-            company_id=company_id
-        ).first()
+            schedule = Schedule.query.filter_by(
+                id=id,
+                company_id=company_id
+            ).first()
 
-        if not schedule:
+            if not schedule:
+                return jsonify({
+                    "error": "Agendamento não encontrado"
+                }), 404
+
+            schedule.status = "cancelled"
+
+            slot = TimeSlot.query.get(schedule.slot_id)
+
+            if slot:
+                slot.is_available = True
+
+            db.session.commit()
+
             return jsonify({
-                "error": "Agendamento não encontrado"
-            }), 404
+                "message": "Agendamento cancelado com sucesso"
+            }), 200
 
-        schedule.status = "canceled"
-
-        slot = TimeSlot.query.get(
-            schedule.slot_id
-        )
-
-        
-        if slot:
-            slot.is_available = True
-
-        db.session.commit()
-
-        return jsonify({
-            "message": "Agendamento cancelado com sucesso"
-        }), 200
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({
+                "error": "Erro ao cancelar agendamento",
+                "details": str(e)
+            }), 500
