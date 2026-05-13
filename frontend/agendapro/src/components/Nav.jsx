@@ -1,110 +1,47 @@
-import { useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { ArrowLeft, ShoppingCart } from "lucide-react";
 
-export default function Nav({ logo }) {
-  const [isOpen, setIsOpen] = useState(false);
-
-  const navItems = [
-    { label: "Home", href: "#hero" },
-    { label: "Sobre", href: "#about" },
-    { label: "Depoimentos", href: "#testimonials" },
-    { label: "Planos", href: "#card" },
-    { label: "FAQ", href: "#faq" },
-    { label: "Contato", href: "#footer" },
-  ];
+const Nav = ({ logo, showCart, cartCount = 0, onCartClick }) => {
+  const navigate = useNavigate();
 
   return (
-    <nav
-      className="sticky top-0 z-40 w-full font-sans backdrop-blur border-b-2"
-      style={{
-        backgroundColor: "rgba(7, 9, 13, 0.8)",
-        borderBottomColor: "var(--primary)",
-      }}
-    >
-      <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-4">
-        {/* LOGO */}
-        <a href="#hero" className="flex items-center gap-3">
-          {logo ? (
-            <img src={logo} alt="Logo" className="h-12 w-auto object-contain" />
-          ) : (
-            <span
-              className="font-bold text-xl"
-              style={{ color: "var(--primary)" }}
-            >
-              LOGO
-            </span>
-          )}
-        </a>
+    <header className="w-full flex items-center justify-between px-4 py-3 bg-[#07090d] border-b border-white/10">
+      {/* BACK */}
+      <button
+        onClick={() => navigate(-1)}
+        className="p-2 rounded-lg hover:bg-white/10 transition"
+      >
+        <ArrowLeft size={20} className="text-white" />
+      </button>
 
-        {/* MENU DESKTOP */}
-        <div className="hidden items-center gap-6 md:flex">
-          {navItems.map((item) => (
-            <a
-              key={item.href}
-              href={item.href}
-              className="font-medium transition hover:brightness-125"
-              style={{ color: "var(--accent)" }} // Usa a cor secundária (accent)
-            >
-              {item.label}
-            </a>
-          ))}
-        </div>
-
-        {/* BOTÃO MOBILE */}
-        <button
-          type="button"
-          className="rounded-lg p-2 md:hidden"
-          style={{ color: "var(--primary)" }}
-          onClick={() => setIsOpen((v) => !v)}
-        >
-          <svg
-            className="h-7 w-7"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            {isOpen ? (
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            ) : (
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 6h16M4 12h16M4 18h16"
-              />
-            )}
-          </svg>
-        </button>
+      {/* LOGO */}
+      <div className="flex items-center justify-center">
+        {logo ? (
+          <img src={logo} alt="logo" className="h-8 object-contain" />
+        ) : (
+          <span className="text-white font-bold text-lg">AgendApp</span>
+        )}
       </div>
 
-      {/* MENU MOBILE */}
-      {isOpen && (
-        <div
-          className="px-6 py-4 md:hidden border-t"
-          style={{
-            backgroundColor: "#07090d",
-            borderTopColor: "var(--primary)",
-          }}
-        >
-          <div className="flex flex-col gap-4">
-            {navItems.map((item) => (
-              <a
-                key={item.href}
-                href={item.href}
-                onClick={() => setIsOpen(false)}
-                className="font-medium"
-                style={{ color: "var(--accent)" }}
-              >
-                {item.label}
-              </a>
-            ))}
-          </div>
-        </div>
-      )}
-    </nav>
+      {/* CART (CONTROLADO PELA PAGE) */}
+      <div className="w-10 flex justify-end">
+        {showCart && (
+          <button
+            onClick={onCartClick}
+            className="relative p-2 rounded-lg hover:bg-white/10 transition"
+          >
+            <ShoppingCart size={20} className="text-white" />
+
+            {cartCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 text-[10px] flex items-center justify-center bg-red-500 rounded-full">
+                {cartCount}
+              </span>
+            )}
+          </button>
+        )}
+      </div>
+    </header>
   );
-}
+};
+
+export default Nav;
