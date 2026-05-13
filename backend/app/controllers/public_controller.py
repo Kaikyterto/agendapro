@@ -1,33 +1,23 @@
 from flask import jsonify
-
-from app.models.company import Company
 from app.models.time_slot import TimeSlot
 from app.models.service import Service
+from app.middlewares.public_company_active import public_company_active
 
 
 class PublicController:
 
     # =====================================================
-    #  BUSCA DADOS PÚBLICOS DA EMPRESA
+    #  EMPRESA
     # =====================================================
     @staticmethod
-    def get_public_company_data(slug):
-
-        company = Company.query.filter_by(
-            slug=slug
-        ).first()
-
-        if not company:
-            return jsonify({
-                "error": "Empresa não encontrada"
-            }), 404
+    @public_company_active
+    def get_public_company_data(slug, company):
 
         return jsonify({
             "id": company.id,
             "name": company.name,
             "logo": company.logo_url,
             "about": company.about,
-
             "colors": {
                 "primary": company.primary_color,
                 "secondary": company.secondary_color
@@ -35,19 +25,11 @@ class PublicController:
         }), 200
 
     # =====================================================
-    #  BUSCA HORÁRIOS DISPONÍVEIS
+    #  SLOTS DISPONÍVEIS
     # =====================================================
     @staticmethod
-    def get_company_available_slots(slug):
-
-        company = Company.query.filter_by(
-            slug=slug
-        ).first()
-
-        if not company:
-            return jsonify({
-                "error": "Empresa não encontrada"
-            }), 404
+    @public_company_active
+    def get_company_available_slots(slug, company):
 
         slots = TimeSlot.query.filter_by(
             company_id=company.id,
@@ -66,19 +48,11 @@ class PublicController:
         ]), 200
 
     # =====================================================
-    #  BUSCA HORÁRIOS DISPONÍVEIS POR SERVIÇO
+    #  SLOTS POR SERVIÇO
     # =====================================================
     @staticmethod
-    def get_service_available_slots(slug, service_id):
-
-        company = Company.query.filter_by(
-            slug=slug
-        ).first()
-
-        if not company:
-            return jsonify({
-                "error": "Empresa não encontrada"
-            }), 404
+    @public_company_active
+    def get_service_available_slots(slug, service_id, company):
 
         service = Service.query.filter_by(
             id=service_id,
@@ -86,9 +60,7 @@ class PublicController:
         ).first()
 
         if not service:
-            return jsonify({
-                "error": "Serviço não encontrado"
-            }), 404
+            return jsonify({"error": "Serviço não encontrado"}), 404
 
         slots = TimeSlot.query.filter_by(
             company_id=company.id,
@@ -107,45 +79,29 @@ class PublicController:
         ]), 200
 
     # =====================================================
-    #  BUSCA PRODUTOS DA EMPRESA
+    #  PRODUTOS
     # =====================================================
     @staticmethod
-    def get_company_products(slug):
-
-        company = Company.query.filter_by(
-            slug=slug
-        ).first()
-
-        if not company:
-            return jsonify({
-                "error": "Empresa não encontrada"
-            }), 404
+    @public_company_active
+    def get_company_products(slug, company):
 
         return jsonify([
             {
-                "id": product.id,
-                "name": product.name,
-                "description": product.description,
-                "value": float(product.value),
-                "image_url": product.image_url
+                "id": p.id,
+                "name": p.name,
+                "description": p.description,
+                "value": float(p.value),
+                "image_url": p.image_url
             }
-            for product in company.products
+            for p in company.products
         ]), 200
 
     # =====================================================
-    #  BUSCA SERVIÇOS DA EMPRESA
+    #  SERVIÇOS
     # =====================================================
     @staticmethod
-    def get_company_services(slug):
-
-        company = Company.query.filter_by(
-            slug=slug
-        ).first()
-
-        if not company:
-            return jsonify({
-                "error": "Empresa não encontrada"
-            }), 404
+    @public_company_active
+    def get_company_services(slug, company):
 
         return jsonify([
             {
