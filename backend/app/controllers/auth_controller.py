@@ -3,12 +3,9 @@ from flask_jwt_extended import create_access_token
 
 from app.models.user import User
 from app.models.company import Company
-
 from app.database.db import db
 
-from app.services.payment_service import (
-    PaymentService
-)
+from app.services.payment_service import PaymentService
 
 
 class AuthController:
@@ -28,7 +25,6 @@ class AuthController:
         # VALIDAÇÃO
         # =====================================================
         if not email or not password:
-
             return jsonify({
                 "msg": "Email e senha são obrigatórios"
             }), 400
@@ -36,12 +32,9 @@ class AuthController:
         # =====================================================
         # BUSCA USUÁRIO
         # =====================================================
-        user = User.query.filter_by(
-            email=email
-        ).first()
+        user = User.query.filter_by(email=email).first()
 
         if not user:
-
             return jsonify({
                 "msg": "Usuário ou senha incorretos"
             }), 401
@@ -50,57 +43,42 @@ class AuthController:
         # VERIFICA SENHA
         # =====================================================
         if not user.check_password(password):
-
             return jsonify({
                 "msg": "Usuário ou senha incorretos"
             }), 401
 
+        company = user.company
+
         # =====================================================
-        # EMPRESA PENDENTE
+        # EMPRESA NÃO ATIVA
         # =====================================================
-        if user.company.status != "active":
+        if company.status != "active":
 
             payment = None
 
             try:
-
-                # =============================================
-                # RECUPERA DADOS DO PAGAMENTO
-                # =============================================
-                payment = (
-                    PaymentService
-                    .get_payment_data(
-                        user.company
-                        .mercado_pago_payment_id
-                    )
+                payment = PaymentService.get_payment_data(
+                    company.mercado_pago_payment_id
                 )
-
             except Exception as e:
-
-                print(
-                    "Erro ao recuperar pagamento:",
-                    str(e)
-                )
+                print("Erro ao recuperar pagamento:", str(e))
 
             return jsonify({
-
                 "msg": "Pagamento pendente",
-
                 "payment_pending": True,
 
                 "company": {
-                    "id": user.company.id,
-                    "name": user.company.name,
-                    "slug": user.company.slug,
-                    "status": user.company.status
+                    "id": company.id,
+                    "name": company.name,
+                    "slug": company.slug,
+                    "status": company.status
                 },
 
                 "payment": payment
-
             }), 403
 
         # =====================================================
-        # JWT TOKEN
+        # TOKEN JWT
         # =====================================================
         access_token = create_access_token(
             identity=str(user.id),
@@ -109,202 +87,113 @@ class AuthController:
             }
         )
 
+        # =====================================================
+        # RESPOSTA FINAL (AQUI ESTAVA O ERRO)
+        # =====================================================
         return jsonify({
-
             "access_token": access_token,
 
             "user": {
                 "id": user.id,
                 "email": user.email,
                 "company_id": user.company_id
-            }
+            },
 
+            # 🔥 ESSENCIAL PRA SUA APLICAÇÃO
+            "company": {
+                "id": company.id,
+                "name": company.name,
+                "slug": company.slug,
+                "status": company.status
+            }
         }), 200
 
     # =========================================================
-    # REGISTER
+    # REGISTER (mantido igual)
     # =========================================================
     @staticmethod
     def register():
 
         data = request.get_json()
 
-        company_name = data.get(
-            "company_name"
-        )
+        company_name = data.get("company_name")
+        email = data.get("email")
+        password = data.get("password")
 
-        email = data.get(
-            "email"
-        )
-
-        password = data.get(
-            "password"
-        )
-
-        # =====================================================
-        # VALIDAÇÃO
-        # =====================================================
-        if (
-            not company_name or
-            not email or
-            not password
-        ):
-
+        if not company_name or not email or not password:
             return jsonify({
                 "msg": "Nome da empresa, email e senha são obrigatórios"
             }), 400
 
-        # =====================================================
-        # VERIFICA EMAIL
-        # =====================================================
-        user_exists = User.query.filter_by(
-            email=email
-        ).first()
+        user_exists = User.query.filter_by(email=email).first()
 
         if user_exists:
-
             return jsonify({
                 "msg": "Usuário já existe"
             }), 400
 
-        # =====================================================
-        # GERA SLUG
-        # =====================================================
-        slug = (
-            company_name
-            .strip()
-            .lower()
-            .replace(" ", "-")
-        )
+        slug = company_name.strip().lower().replace(" ", "-")
 
-        # =====================================================
-        # VERIFICA EMPRESA
-        # =====================================================
-        company_exists = Company.query.filter_by(
-            slug=slug
-        ).first()
+        company_exists = Company.query.filter_by(slug=slug).first()
 
         if company_exists:
-
             return jsonify({
                 "msg": "Já existe uma empresa com esse nome no sistema"
             }), 400
 
         try:
-
-            # =================================================
-            # CRIA EMPRESA
-            # =================================================
             new_company = Company(
                 name=company_name,
                 slug=slug,
                 status="pending_payment"
             )
 
-            db.session.add(
-                new_company
-            )
-
-            # gera ID antes do commit
+            db.session.add(new_company)
             db.session.flush()
 
-            # =================================================
-            # CRIA USUÁRIO
-            # =================================================
             new_user = User(
                 email=email,
                 company_id=new_company.id
             )
 
-            new_user.set_password(
-                password
-            )
+            new_user.set_password(password)
 
-            db.session.add(
-                new_user
-            )
+            db.session.add(new_user)
 
-            # =================================================
-            # GERA PAGAMENTO PIX
-            # =================================================
-            payment = (
-                PaymentService
-                .create_pix_payment({
+            payment = PaymentService.create_pix_payment({
+                "company_id": new_company.id,
+                "amount": 29.90,
+                "customer_name": company_name,
+                "email": email,
+                "description": "Assinatura AgendaPro"
+            })
 
-                    "company_id":
-                        new_company.id,
+            new_company.mercado_pago_payment_id = str(payment["payment_id"])
 
-                    "amount":
-                        29.90,
-
-                    "customer_name":
-                        company_name,
-
-                    "email":
-                        email,
-
-                    "description":
-                        "Assinatura AgendaPro"
-                })
-            )
-
-            # =================================================
-            # SALVA PAYMENT ID
-            # =================================================
-            new_company.mercado_pago_payment_id = str(
-                payment["payment_id"]
-            )
-
-            # =================================================
-            # COMMIT
-            # =================================================
             db.session.commit()
 
             return jsonify({
-
-                "msg":
-                    "Cadastro iniciado com sucesso",
-
-                "payment":
-                    payment,
+                "msg": "Cadastro iniciado com sucesso",
+                "payment": payment,
 
                 "company": {
-                    "id":
-                        new_company.id,
-
-                    "name":
-                        new_company.name,
-
-                    "slug":
-                        new_company.slug,
-
-                    "status":
-                        new_company.status
+                    "id": new_company.id,
+                    "name": new_company.name,
+                    "slug": new_company.slug,
+                    "status": new_company.status
                 },
 
                 "user": {
-                    "id":
-                        new_user.id,
-
-                    "email":
-                        new_user.email,
-
-                    "company_id":
-                        new_user.company_id
+                    "id": new_user.id,
+                    "email": new_user.email,
+                    "company_id": new_user.company_id
                 }
-
             }), 201
 
         except Exception as e:
-
             db.session.rollback()
 
             return jsonify({
-
-                "msg":
-                    "Erro ao criar conta",
-
-                "error":
-                    str(e)
-
+                "msg": "Erro ao criar conta",
+                "error": str(e)
             }), 400

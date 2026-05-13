@@ -1,19 +1,23 @@
 const API_URL = "https://agendapro-z63z.onrender.com/api";
 
 export async function apiFetch(endpoint, options = {}) {
+  const token = localStorage.getItem("@AgendaPro:token");
+
   const res = await fetch(`${API_URL}${endpoint}`, {
+    method: options.method || "GET",
+
     headers: {
       "Content-Type": "application/json",
+
+      // envia token SOMENTE se existir e se for necessário
+      ...(options.auth && token ? { Authorization: `Bearer ${token}` } : {}),
 
       ...options.headers,
     },
 
-    ...options,
+    body: options.body ? JSON.stringify(options.body) : undefined,
   });
 
-  // =======================================================
-  // TENTA PEGAR JSON
-  // =======================================================
   let data;
 
   try {
@@ -22,19 +26,9 @@ export async function apiFetch(endpoint, options = {}) {
     data = null;
   }
 
-  // =======================================================
-  // ERROR
-  // =======================================================
   if (!res.ok) {
-    throw (
-      data || {
-        message: "Erro na requisição",
-      }
-    );
+    throw data || { message: "Erro na requisição" };
   }
 
-  // =======================================================
-  // SUCCESS
-  // =======================================================
   return data;
 }
