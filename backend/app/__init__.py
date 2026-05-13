@@ -26,7 +26,7 @@ def create_app():
     app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
 
     # =====================================================
-    # CORS (PRODUÇÃO SAFE)
+    # CORS (PRODUÇÃO OK)
     # =====================================================
     CORS(
         app,
@@ -64,39 +64,24 @@ def create_app():
         path = request.path
 
         # =================================================
-        # ROTAS LIVRES (SEM NENHUM BLOQUEIO)
+        # ROTAS LIVRES (SEM NADA)
         # =================================================
-        if (
-            path.startswith("/auth") or
-            path.startswith("/webhook")
-        ):
+        if path.startswith("/auth") or path.startswith("/webhook"):
             return
 
         if request.method == "OPTIONS":
             return
 
         # =================================================
-        #  ROTAS PÚBLICAS (SEM LOGIN, MAS COM COMPANY ACTIVE)
+        # 🌐 ROTAS PÚBLICAS (SEM LOGIN, MAS COM SLUG NO CONTROLLER)
         # =================================================
-        if path.startswith("/api/public") or path.startswith("/api/company"):
-
-            company_id = request.args.get("company_id")
-
-            if not company_id:
-                return jsonify({"error": "company_id é obrigatório"}), 400
-
-            company = Company.query.get(company_id)
-
-            if not company:
-                return jsonify({"error": "Empresa não encontrada"}), 404
-
-            if company.status != "active":
-                return jsonify({"error": "Empresa inativa"}), 403
-
-            return  # libera acesso público
+        if path.startswith("/api/public"):
+            # NÃO bloqueia aqui
+            # validação é feita dentro do controller via slug
+            return
 
         # =================================================
-        #  ROTAS PRIVADAS (COM JWT OBRIGATÓRIO)
+        # 🔐 ROTAS PRIVADAS (JWT OBRIGATÓRIO)
         # =================================================
         try:
             verify_jwt_in_request()
