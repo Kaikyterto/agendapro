@@ -1,21 +1,32 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+
 import { ArrowRight, KeyRound, UserPlus } from "lucide-react";
 
 import { loginService } from "../services/auth";
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const successMessage = location.state?.success;
 
   const [isLoading, setIsLoading] = useState(false);
+
   const [error, setError] = useState("");
+
   const [email, setEmail] = useState("");
+
   const [password, setPassword] = useState("");
 
+  // ========================================================
+  // LOGIN
+  // ========================================================
   const handleLogin = async (e) => {
     e.preventDefault();
 
     setIsLoading(true);
+
     setError("");
 
     try {
@@ -24,11 +35,46 @@ const LoginPage = () => {
         password,
       });
 
-      localStorage.setItem("@AgendaPro:token", data.token);
+      // ====================================================
+      // PAGAMENTO PENDENTE
+      // ====================================================
+      if (data.payment_pending) {
+        navigate("/payment", {
+          state: {
+            payment: data.payment,
+            company: data.company,
+          },
+        });
+
+        return;
+      }
+
+      // ====================================================
+      // LOGIN NORMAL
+      // ====================================================
+      localStorage.setItem("@AgendaPro:token", data.access_token);
+
+      localStorage.setItem("@AgendaPro:user", JSON.stringify(data.user));
 
       navigate("/home");
     } catch (err) {
-      setError(err.message);
+      console.error(err);
+
+      // ====================================================
+      // PAYMENT PENDING (403)
+      // ====================================================
+      if (err.payment_pending) {
+        navigate("/payment", {
+          state: {
+            payment: err.payment,
+            company: err.company,
+          },
+        });
+
+        return;
+      }
+
+      setError(err.message || "Erro ao fazer login.");
     } finally {
       setIsLoading(false);
     }
@@ -36,16 +82,18 @@ const LoginPage = () => {
 
   return (
     <div className="min-h-screen bg-[#0b0d11] relative flex items-center justify-center p-4 font-sans text-slate-200 overflow-hidden">
-      {/* Glow Background */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none"></div>
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
 
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-900/10 blur-[120px] rounded-full pointer-events-none"></div>
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-900/10 blur-[120px] rounded-full pointer-events-none" />
 
       <div className="w-full max-w-[400px] relative">
-        {/* Header */}
+        {/* ============================================== */}
+        {/* HEADER */}
+        {/* ============================================== */}
         <div className="flex flex-col items-center mb-10">
           <h1 className="text-3xl font-black text-white tracking-tight">
-            Agenda<span className="text-blue-500">Pro</span>
+            Agenda
+            <span className="text-blue-500">Pro</span>
           </h1>
 
           <p className="text-slate-500 text-sm mt-2 text-center">
@@ -53,10 +101,23 @@ const LoginPage = () => {
           </p>
         </div>
 
-        {/* Card */}
+        {/* ============================================== */}
+        {/* CARD */}
+        {/* ============================================== */}
         <div className="bg-[#16191f]/80 backdrop-blur-xl border border-white/[0.08] p-8 rounded-3xl shadow-2xl">
+          {/* ============================================ */}
+          {/* SUCCESS MESSAGE */}
+          {/* ============================================ */}
+          {successMessage && (
+            <div className="mb-5 bg-green-500/10 border border-green-500/20 text-green-400 px-4 py-3 rounded-xl text-sm">
+              {successMessage}
+            </div>
+          )}
+
           <form className="space-y-5" onSubmit={handleLogin}>
-            {/* Email */}
+            {/* ========================================== */}
+            {/* EMAIL */}
+            {/* ========================================== */}
             <div>
               <label className="text-sm text-slate-400 mb-2 block">
                 E-mail
@@ -71,7 +132,9 @@ const LoginPage = () => {
               />
             </div>
 
-            {/* Password */}
+            {/* ========================================== */}
+            {/* PASSWORD */}
+            {/* ========================================== */}
             <div>
               <label className="text-sm text-slate-400 mb-2 block">Senha</label>
 
@@ -84,7 +147,9 @@ const LoginPage = () => {
               />
             </div>
 
-            {/* Forgot Password */}
+            {/* ========================================== */}
+            {/* FORGOT PASSWORD */}
+            {/* ========================================== */}
             <div className="flex justify-end">
               <button
                 type="button"
@@ -96,14 +161,18 @@ const LoginPage = () => {
               </button>
             </div>
 
-            {/* Error */}
+            {/* ========================================== */}
+            {/* ERROR */}
+            {/* ========================================== */}
             {error && (
               <p className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 px-4 py-3 rounded-xl">
                 {error}
               </p>
             )}
 
-            {/* Login Button */}
+            {/* ========================================== */}
+            {/* LOGIN BUTTON */}
+            {/* ========================================== */}
             <button
               type="submit"
               disabled={isLoading}
@@ -120,7 +189,9 @@ const LoginPage = () => {
             </button>
           </form>
 
-          {/* Register */}
+          {/* ============================================ */}
+          {/* REGISTER */}
+          {/* ============================================ */}
           <div className="mt-8 pt-6 border-t border-white/[0.06] text-center">
             <p className="text-slate-500 text-sm mb-4">
               Ainda não possui conta?

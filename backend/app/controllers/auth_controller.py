@@ -24,34 +24,84 @@ class AuthController:
         email = data.get("email")
         password = data.get("password")
 
+        # =====================================================
+        # VALIDAÇÃO
+        # =====================================================
         if not email or not password:
+
             return jsonify({
                 "msg": "Email e senha são obrigatórios"
             }), 400
 
+        # =====================================================
+        # BUSCA USUÁRIO
+        # =====================================================
         user = User.query.filter_by(
             email=email
         ).first()
 
         if not user:
-            return jsonify({
-                "msg": "Usuário ou senha incorretos"
-            }), 401
 
-        if not user.check_password(password):
             return jsonify({
                 "msg": "Usuário ou senha incorretos"
             }), 401
 
         # =====================================================
-        # VERIFICA STATUS DA EMPRESA
+        # VERIFICA SENHA
+        # =====================================================
+        if not user.check_password(password):
+
+            return jsonify({
+                "msg": "Usuário ou senha incorretos"
+            }), 401
+
+        # =====================================================
+        # EMPRESA PENDENTE
         # =====================================================
         if user.company.status != "active":
 
+            payment = None
+
+            try:
+
+                # =============================================
+                # RECUPERA DADOS DO PAGAMENTO
+                # =============================================
+                payment = (
+                    PaymentService
+                    .get_payment_data(
+                        user.company
+                        .mercado_pago_payment_id
+                    )
+                )
+
+            except Exception as e:
+
+                print(
+                    "Erro ao recuperar pagamento:",
+                    str(e)
+                )
+
             return jsonify({
-                "msg": "Assinatura pendente ou inativa"
+
+                "msg": "Pagamento pendente",
+
+                "payment_pending": True,
+
+                "company": {
+                    "id": user.company.id,
+                    "name": user.company.name,
+                    "slug": user.company.slug,
+                    "status": user.company.status
+                },
+
+                "payment": payment
+
             }), 403
 
+        # =====================================================
+        # JWT TOKEN
+        # =====================================================
         access_token = create_access_token(
             identity=str(user.id),
             additional_claims={
@@ -60,12 +110,15 @@ class AuthController:
         )
 
         return jsonify({
+
             "access_token": access_token,
+
             "user": {
                 "id": user.id,
                 "email": user.email,
                 "company_id": user.company_id
             }
+
         }), 200
 
     # =========================================================
@@ -76,14 +129,26 @@ class AuthController:
 
         data = request.get_json()
 
-        company_name = data.get("company_name")
-        email = data.get("email")
-        password = data.get("password")
+        company_name = data.get(
+            "company_name"
+        )
+
+        email = data.get(
+            "email"
+        )
+
+        password = data.get(
+            "password"
+        )
 
         # =====================================================
         # VALIDAÇÃO
         # =====================================================
-        if not company_name or not email or not password:
+        if (
+            not company_name or
+            not email or
+            not password
+        ):
 
             return jsonify({
                 "msg": "Nome da empresa, email e senha são obrigatórios"
@@ -136,7 +201,9 @@ class AuthController:
                 status="pending_payment"
             )
 
-            db.session.add(new_company)
+            db.session.add(
+                new_company
+            )
 
             # gera ID antes do commit
             db.session.flush()
@@ -149,9 +216,13 @@ class AuthController:
                 company_id=new_company.id
             )
 
-            new_user.set_password(password)
+            new_user.set_password(
+                password
+            )
 
-            db.session.add(new_user)
+            db.session.add(
+                new_user
+            )
 
             # =================================================
             # GERA PAGAMENTO PIX
@@ -160,15 +231,20 @@ class AuthController:
                 PaymentService
                 .create_pix_payment({
 
-                    "company_id": new_company.id,
+                    "company_id":
+                        new_company.id,
 
-                    "amount": 29.90,
+                    "amount":
+                        29.90,
 
-                    "customer_name": company_name,
+                    "customer_name":
+                        company_name,
 
-                    "email": email,
+                    "email":
+                        email,
 
-                    "description": "Assinatura AgendaPro"
+                    "description":
+                        "Assinatura AgendaPro"
                 })
             )
 
@@ -179,25 +255,42 @@ class AuthController:
                 payment["payment_id"]
             )
 
+            # =================================================
+            # COMMIT
+            # =================================================
             db.session.commit()
 
             return jsonify({
 
-                "msg": "Cadastro iniciado com sucesso",
+                "msg":
+                    "Cadastro iniciado com sucesso",
 
-                "payment": payment,
+                "payment":
+                    payment,
 
                 "company": {
-                    "id": new_company.id,
-                    "name": new_company.name,
-                    "slug": new_company.slug,
-                    "status": new_company.status
+                    "id":
+                        new_company.id,
+
+                    "name":
+                        new_company.name,
+
+                    "slug":
+                        new_company.slug,
+
+                    "status":
+                        new_company.status
                 },
 
                 "user": {
-                    "id": new_user.id,
-                    "email": new_user.email,
-                    "company_id": new_user.company_id
+                    "id":
+                        new_user.id,
+
+                    "email":
+                        new_user.email,
+
+                    "company_id":
+                        new_user.company_id
                 }
 
             }), 201
@@ -207,6 +300,11 @@ class AuthController:
             db.session.rollback()
 
             return jsonify({
-                "msg": "Erro ao criar conta",
-                "error": str(e)
+
+                "msg":
+                    "Erro ao criar conta",
+
+                "error":
+                    str(e)
+
             }), 400

@@ -102,3 +102,56 @@ class PaymentService:
                 "qr_code_base64"
             ]
         }
+    
+    # =========================================================
+    # RECUPERAR PAGAMENTO
+    # =========================================================
+    @staticmethod
+    def get_payment_data(payment_id):
+
+        access_token = os.getenv(
+            "MERCADO_PAGO_ACCESS_TOKEN"
+        )
+
+        if not access_token:
+
+            raise Exception(
+                "Token do Mercado Pago não configurado"
+            )
+
+        sdk = mercadopago.SDK(
+            access_token
+        )
+
+        payment_response = sdk.payment().get(
+            payment_id
+        )
+
+        payment = payment_response[
+            "response"
+        ]
+
+        transaction_data = payment[
+            "point_of_interaction"
+        ][
+            "transaction_data"
+        ]
+
+        return {
+
+            "payment_id":
+                payment["id"],
+
+            "status":
+                payment["status"],
+
+            "pix_code":
+                transaction_data.get(
+                    "qr_code"
+                ),
+
+            "qr_code_base64":
+                transaction_data.get(
+                    "qr_code_base64"
+                )
+        }

@@ -20,6 +20,9 @@ const RegisterPage = () => {
 
   const [error, setError] = useState("");
 
+  // ========================================================
+  // HANDLE INPUT
+  // ========================================================
   const handleChange = (e) => {
     setFormData((prev) => ({
       ...prev,
@@ -27,11 +30,17 @@ const RegisterPage = () => {
     }));
   };
 
+  // ========================================================
+  // REGISTER
+  // ========================================================
   const handleRegister = async (e) => {
     e.preventDefault();
 
     setError("");
 
+    // ======================================================
+    // VALIDATION
+    // ======================================================
     if (
       !formData.name ||
       !formData.companyName ||
@@ -53,22 +62,24 @@ const RegisterPage = () => {
     try {
       setIsLoading(true);
 
-      // =====================================================
+      // ====================================================
       // REGISTER API
-      // =====================================================
-      const response = await apiFetch.post("/auth/register", {
-        company_name: formData.companyName,
+      // ====================================================
+      const data = await apiFetch("/auth/register", {
+        method: "POST",
 
-        email: formData.email,
+        body: JSON.stringify({
+          company_name: formData.companyName,
 
-        password: formData.password,
+          email: formData.email,
+
+          password: formData.password,
+        }),
       });
 
-      const data = response.data;
-
-      // =====================================================
-      // REDIRECIONA PARA PAGAMENTO
-      // =====================================================
+      // ====================================================
+      // REDIRECT PAYMENT
+      // ====================================================
       navigate("/payment", {
         state: {
           payment: data.payment,
@@ -76,11 +87,9 @@ const RegisterPage = () => {
         },
       });
     } catch (err) {
-      setError(
-        err?.response?.data?.msg ||
-          err?.response?.data?.error ||
-          "Erro ao criar conta."
-      );
+      console.error(err);
+
+      setError(err.message || "Erro ao criar conta.");
     } finally {
       setIsLoading(false);
     }
@@ -88,13 +97,17 @@ const RegisterPage = () => {
 
   return (
     <div className="min-h-screen bg-[#0b0d11] relative flex items-center justify-center p-4 font-sans text-slate-200 overflow-hidden">
-      {/* Glow */}
+      {/* ================================================ */}
+      {/* GLOW */}
+      {/* ================================================ */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
 
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-900/10 blur-[120px] rounded-full pointer-events-none" />
 
       <div className="w-full max-w-[460px] relative">
-        {/* Header */}
+        {/* ============================================== */}
+        {/* HEADER */}
+        {/* ============================================== */}
         <div className="flex flex-col items-center mb-10">
           <h1 className="text-3xl font-black text-white tracking-tight text-center">
             Assine <span className="text-blue-500">já</span>
@@ -106,10 +119,14 @@ const RegisterPage = () => {
           </p>
         </div>
 
-        {/* Card */}
+        {/* ============================================== */}
+        {/* CARD */}
+        {/* ============================================== */}
         <div className="bg-[#16191f]/80 backdrop-blur-xl border border-white/[0.08] p-8 rounded-3xl shadow-2xl">
           <form className="space-y-5" onSubmit={handleRegister}>
-            {/* Nome */}
+            {/* ========================================== */}
+            {/* NAME */}
+            {/* ========================================== */}
             <div>
               <label className="text-sm text-slate-400 mb-2 block">
                 Seu nome
@@ -132,7 +149,9 @@ const RegisterPage = () => {
               </div>
             </div>
 
-            {/* Empresa */}
+            {/* ========================================== */}
+            {/* COMPANY */}
+            {/* ========================================== */}
             <div>
               <label className="text-sm text-slate-400 mb-2 block">
                 Nome da empresa
@@ -155,7 +174,9 @@ const RegisterPage = () => {
               </div>
             </div>
 
-            {/* Email */}
+            {/* ========================================== */}
+            {/* EMAIL */}
+            {/* ========================================== */}
             <div>
               <label className="text-sm text-slate-400 mb-2 block">
                 E-mail
@@ -178,7 +199,9 @@ const RegisterPage = () => {
               </div>
             </div>
 
-            {/* Senha */}
+            {/* ========================================== */}
+            {/* PASSWORD */}
+            {/* ========================================== */}
             <div>
               <label className="text-sm text-slate-400 mb-2 block">Senha</label>
 
@@ -199,7 +222,9 @@ const RegisterPage = () => {
               </div>
             </div>
 
-            {/* Confirmar senha */}
+            {/* ========================================== */}
+            {/* CONFIRM PASSWORD */}
+            {/* ========================================== */}
             <div>
               <label className="text-sm text-slate-400 mb-2 block">
                 Confirmar senha
@@ -222,14 +247,18 @@ const RegisterPage = () => {
               </div>
             </div>
 
-            {/* Error */}
+            {/* ========================================== */}
+            {/* ERROR */}
+            {/* ========================================== */}
             {error && (
               <p className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 px-4 py-3 rounded-xl">
                 {error}
               </p>
             )}
 
-            {/* Submit */}
+            {/* ========================================== */}
+            {/* SUBMIT */}
+            {/* ========================================== */}
             <button
               type="submit"
               disabled={isLoading}
@@ -246,7 +275,9 @@ const RegisterPage = () => {
             </button>
           </form>
 
-          {/* Footer */}
+          {/* ============================================ */}
+          {/* FOOTER */}
+          {/* ============================================ */}
           <div className="mt-8 pt-6 border-t border-white/[0.06] text-center">
             <p className="text-slate-500 text-sm mb-4">Já possui uma conta?</p>
 
