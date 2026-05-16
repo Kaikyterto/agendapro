@@ -6,6 +6,7 @@ import {
   User,
   MessageSquare,
   ArrowLeft,
+  X,
 } from "lucide-react";
 
 import {
@@ -37,7 +38,8 @@ const CompanyBookingPage = () => {
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [selectedDate, setSelectedDate] = useState("");
 
-  const [showForm, setShowForm] = useState(false);
+  const [showWorkersModal, setShowWorkersModal] = useState(false);
+  const [showBookingModal, setShowBookingModal] = useState(false);
 
   const [form, setForm] = useState({
     name: "",
@@ -76,7 +78,7 @@ const CompanyBookingPage = () => {
           );
         }
       } catch (err) {
-        console.error("Erro ao carregar empresa:", err);
+        console.error(err);
       } finally {
         setLoading(false);
       }
@@ -199,364 +201,352 @@ const CompanyBookingPage = () => {
       </div>
 
       <main className="relative z-10 max-w-7xl mx-auto px-6 py-20">
-        <div className="grid lg:grid-cols-2 gap-14 items-start">
-          <div>
-            <div
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-6 border border-white/10 backdrop-blur-md"
-              style={{
-                backgroundColor: "rgba(255,255,255,0.03)",
-              }}
-            >
-              <CalendarDays size={18} />
-              <span className="text-sm text-white/70">Agendamento Online</span>
-            </div>
-
-            <h1 className="text-5xl lg:text-7xl font-black leading-none tracking-tight mb-6">
-              Agende seu
-              <span className="block" style={{ color: "var(--primary)" }}>
-                horário
-              </span>
-            </h1>
-
-            <p className="text-lg text-white/60 leading-relaxed max-w-xl">
-              Escolha um serviço e realize seu agendamento com a {company?.name}
-              .
-            </p>
-
-            <div className="mt-12">
-              <h2 className="text-2xl font-bold mb-6">Escolha um serviço</h2>
-
-              <div className="grid gap-5">
-                {services.map((service) => (
-                  <div
-                    key={service.id}
-                    className={`
-                      rounded-[28px]
-                      overflow-hidden
-                      border transition-all duration-300
-                      backdrop-blur-xl
-                      ${
-                        selectedService?.id === service.id
-                          ? "border-transparent scale-[1.02]"
-                          : "border-white/10 bg-white/5 hover:border-white/20"
-                      }
-                    `}
-                    style={{
-                      backgroundColor:
-                        selectedService?.id === service.id
-                          ? "rgba(255,255,255,0.08)"
-                          : undefined,
-                    }}
-                  >
-                    {service.image_url && (
-                      <img
-                        src={service.image_url}
-                        alt={service.name}
-                        className="w-full h-52 object-cover"
-                      />
-                    )}
-
-                    <div className="p-6">
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <h3 className="text-2xl font-bold">{service.name}</h3>
-
-                          <p className="text-white/60 mt-2">
-                            {service.description}
-                          </p>
-                        </div>
-
-                        <div
-                          className="px-4 py-2 rounded-2xl text-sm font-semibold"
-                          style={{
-                            backgroundColor: "var(--primary)",
-                          }}
-                        >
-                          R$ {service.price}
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between mt-6">
-                        <div className="flex items-center gap-2 text-white/60">
-                          <Clock3 size={16} />
-                          <span>{service.duration} min</span>
-                        </div>
-
-                        <Button
-                          onClick={async () => {
-                            try {
-                              const workersData = await getServiceWorkers(
-                                slug,
-                                service.id
-                              );
-
-                              setSelectedService(service);
-                              setSelectedWorker(null);
-                              setSelectedSlot(null);
-
-                              setWorkers(workersData);
-
-                              setShowForm(true);
-
-                              setTimeout(() => {
-                                window.scrollTo({
-                                  top: document.body.scrollHeight,
-                                  behavior: "smooth",
-                                });
-                              }, 100);
-                            } catch (err) {
-                              console.error(err);
-                            }
-                          }}
-                          style={{
-                            backgroundColor: "var(--primary)",
-                          }}
-                        >
-                          Agendar
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+        <div className="max-w-4xl">
+          <div
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-6 border border-white/10 backdrop-blur-md"
+            style={{
+              backgroundColor: "rgba(255,255,255,0.03)",
+            }}
+          >
+            <CalendarDays size={18} />
+            <span className="text-sm text-white/70">Agendamento Online</span>
           </div>
 
-          {showForm && (
-            <div className="relative">
-              <div
-                className="absolute inset-0 blur-[120px] opacity-30 z-50"
-                style={{
-                  backgroundColor: "var(--primary)",
-                }}
-              />
+          <h1 className="text-5xl lg:text-7xl font-black leading-none tracking-tight mb-6">
+            Agende seu
+            <span className="block" style={{ color: "var(--primary)" }}>
+              horário
+            </span>
+          </h1>
 
-              <div className="relative backdrop-blur-2xl border border-white/10 bg-white/5 rounded-[32px] p-8 lg:p-10 shadow-2xl">
-                <h2 className="text-3xl font-bold mb-2">Fazer agendamento</h2>
+          <p className="text-lg text-white/60 leading-relaxed max-w-xl">
+            Escolha um serviço e realize seu agendamento com a {company?.name}.
+          </p>
 
-                {selectedService && (
-                  <p className="text-white/60 mb-8">
-                    Serviço selecionado:{" "}
-                    <span
-                      className="font-semibold"
-                      style={{
-                        color: "var(--primary)",
-                      }}
-                    >
-                      {selectedService.name}
-                    </span>
-                  </p>
-                )}
+          <div className="mt-12">
+            <h2 className="text-2xl font-bold mb-6">Escolha um serviço</h2>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div>
-                    <label className="text-sm text-white/60 mb-4 block">
-                      Escolha um funcionário
-                    </label>
-
-                    <div className="grid gap-3">
-                      {workers.map((worker) => (
-                        <button
-                          type="button"
-                          key={worker.id}
-                          onClick={() => setSelectedWorker(worker)}
-                          className={`
-                            p-4 rounded-2xl border
-                            flex items-center gap-4
-                            transition-all
-                            ${
-                              selectedWorker?.id === worker.id
-                                ? "border-transparent scale-[1.02]"
-                                : "border-white/10 bg-white/5 hover:border-white/20"
-                            }
-                          `}
-                          style={{
-                            backgroundColor:
-                              selectedWorker?.id === worker.id
-                                ? "var(--primary)"
-                                : undefined,
-                          }}
-                        >
-                          <div className="w-14 h-14 rounded-2xl bg-white/10 overflow-hidden flex items-center justify-center">
-                            {worker.avatar_url ? (
-                              <img
-                                src={worker.avatar_url}
-                                alt={worker.name}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <User size={20} />
-                            )}
-                          </div>
-
-                          <div className="text-left">
-                            <h3 className="font-semibold">{worker.name}</h3>
-
-                            <p className="text-sm text-white/60">
-                              Profissional disponível
-                            </p>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-sm text-white/60 mb-2 block">
-                      Seu nome
-                    </label>
-
-                    <div className="relative">
-                      <User
-                        className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40"
-                        size={18}
-                      />
-
-                      <input
-                        type="text"
-                        name="name"
-                        value={form.name}
-                        onChange={handleChange}
-                        placeholder="Digite seu nome"
-                        className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 pl-12 pr-4 outline-none focus:border-[var(--primary)] transition-all"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-sm text-white/60 mb-2 block">
-                      Telefone
-                    </label>
-
-                    <input
-                      type="text"
-                      name="phone"
-                      value={form.phone}
-                      onChange={handleChange}
-                      placeholder="(81) 99999-9999"
-                      className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 px-4 outline-none focus:border-[var(--primary)] transition-all"
+            <div className="grid gap-5">
+              {services.map((service) => (
+                <div
+                  key={service.id}
+                  className="rounded-[28px] overflow-hidden border border-white/10 bg-white/5 hover:border-white/20 transition-all duration-300 backdrop-blur-xl"
+                >
+                  {service.image_url && (
+                    <img
+                      src={service.image_url}
+                      alt={service.name}
+                      className="w-full h-52 object-cover"
                     />
-                  </div>
+                  )}
 
-                  <div>
-                    <label className="text-sm text-white/60 mb-2 block">
-                      Escolha a data
-                    </label>
+                  <div className="p-6">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <h3 className="text-2xl font-bold">{service.name}</h3>
 
-                    <input
-                      type="date"
-                      value={selectedDate}
-                      onChange={(e) => {
-                        setSelectedDate(e.target.value);
-                        setSelectedSlot(null);
-                      }}
-                      className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 px-4 outline-none focus:border-[var(--primary)] transition-all"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm text-white/60 mb-4 block">
-                      Horários disponíveis
-                    </label>
-
-                    {!selectedDate ? (
-                      <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-white/50 text-sm">
-                        Selecione uma data para ver os horários disponíveis.
+                        <p className="text-white/60 mt-2">
+                          {service.description}
+                        </p>
                       </div>
-                    ) : (
-                      <>
-                        <div className="grid grid-cols-3 gap-3">
-                          {filteredSlots.map((slot) => {
-                            const date = new Date(slot.start);
 
-                            return (
-                              <button
-                                type="button"
-                                key={slot.id}
-                                onClick={() => setSelectedSlot(slot)}
-                                className={`
-                                  h-14 rounded-2xl border
-                                  transition-all text-sm font-semibold
-                                  ${
-                                    selectedSlot?.id === slot.id
-                                      ? "border-transparent scale-[1.03]"
-                                      : "border-white/10 bg-white/5 hover:border-white/20"
-                                  }
-                                `}
-                                style={{
-                                  backgroundColor:
-                                    selectedSlot?.id === slot.id
-                                      ? "var(--primary)"
-                                      : undefined,
-                                }}
-                              >
-                                {date.toLocaleTimeString("pt-BR", {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}
-                              </button>
+                      <div
+                        className="px-4 py-2 rounded-2xl text-sm font-semibold"
+                        style={{
+                          backgroundColor: "var(--primary)",
+                        }}
+                      >
+                        R$ {service.price}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between mt-6">
+                      <div className="flex items-center gap-2 text-white/60">
+                        <Clock3 size={16} />
+                        <span>{service.duration} min</span>
+                      </div>
+
+                      <Button
+                        onClick={async () => {
+                          try {
+                            const workersData = await getServiceWorkers(
+                              slug,
+                              service.id
                             );
-                          })}
-                        </div>
 
-                        {filteredSlots.length === 0 && (
-                          <div className="mt-4 p-4 rounded-2xl bg-white/5 border border-white/10 text-white/50 text-sm">
-                            Nenhum horário disponível para esta data.
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
+                            setSelectedService(service);
 
-                  <div>
-                    <label className="text-sm text-white/60 mb-2 block">
-                      Observações
-                    </label>
+                            setSelectedWorker(null);
+                            setSelectedSlot(null);
+                            setSelectedDate("");
 
-                    <div className="relative">
-                      <MessageSquare
-                        className="absolute left-4 top-5 text-white/40"
-                        size={18}
-                      />
+                            setWorkers(workersData);
 
-                      <textarea
-                        name="notes"
-                        value={form.notes}
-                        onChange={handleChange}
-                        placeholder="Digite alguma observação..."
-                        rows={4}
-                        className="w-full rounded-2xl bg-white/5 border border-white/10 pl-12 pr-4 py-4 outline-none focus:border-[var(--primary)] transition-all resize-none"
-                      />
+                            setShowWorkersModal(true);
+                          } catch (err) {
+                            console.error(err);
+                          }
+                        }}
+                        style={{
+                          backgroundColor: "var(--primary)",
+                        }}
+                      >
+                        Agendar
+                      </Button>
                     </div>
                   </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </main>
 
-                  {error && (
-                    <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm">
-                      {error}
-                    </div>
-                  )}
+      {showWorkersModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-md p-6">
+          <div className="w-full max-w-2xl bg-[#11151c] border border-white/10 rounded-[32px] p-8 relative">
+            <button
+              onClick={() => setShowWorkersModal(false)}
+              className="absolute top-5 right-5 w-11 h-11 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition"
+            >
+              <X size={18} />
+            </button>
 
-                  {success && (
-                    <div className="p-4 rounded-2xl bg-green-500/10 border border-green-500/20 text-green-300 text-sm">
-                      {success}
+            <h2 className="text-3xl font-black mb-2">
+              Escolha um profissional
+            </h2>
+
+            <p className="text-white/60 mb-8">
+              Serviço selecionado:{" "}
+              <span style={{ color: "var(--primary)" }}>
+                {selectedService?.name}
+              </span>
+            </p>
+
+            <div className="grid gap-4">
+              {workers.map((worker) => (
+                <div
+                  key={worker.id}
+                  className="bg-white/5 border border-white/10 rounded-3xl p-5 flex items-center justify-between gap-4"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 rounded-2xl overflow-hidden bg-white/10 flex items-center justify-center">
+                      {worker.avatar_url ? (
+                        <img
+                          src={worker.avatar_url}
+                          alt={worker.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <User size={24} />
+                      )}
                     </div>
-                  )}
+
+                    <div>
+                      <h3 className="font-bold text-lg">{worker.name}</h3>
+
+                      <p className="text-white/50 text-sm">
+                        Profissional disponível
+                      </p>
+                    </div>
+                  </div>
 
                   <Button
-                    type="submit"
-                    className="w-full h-16 text-lg font-bold rounded-2xl transition-transform hover:scale-[1.02]"
+                    onClick={() => {
+                      setSelectedWorker(worker);
+
+                      setShowWorkersModal(false);
+
+                      setTimeout(() => {
+                        setShowBookingModal(true);
+                      }, 150);
+                    }}
                     style={{
                       backgroundColor: "var(--primary)",
                     }}
                   >
-                    Confirmar Agendamento
+                    Escolher
                   </Button>
-                </form>
-              </div>
+                </div>
+              ))}
             </div>
-          )}
+          </div>
         </div>
-      </main>
+      )}
+
+      {showBookingModal && (
+        <div className="fixed inset-0 z-[210] flex items-center justify-center bg-black/70 backdrop-blur-md p-6 overflow-y-auto">
+          <div className="w-full max-w-2xl bg-[#11151c] border border-white/10 rounded-[32px] p-8 relative">
+            <button
+              onClick={() => setShowBookingModal(false)}
+              className="absolute top-5 right-5 w-11 h-11 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition"
+            >
+              <X size={18} />
+            </button>
+
+            <h2 className="text-3xl font-black mb-2">Finalizar agendamento</h2>
+
+            <p className="text-white/60 mb-8">
+              <span style={{ color: "var(--primary)" }}>
+                {selectedService?.name}
+              </span>{" "}
+              com{" "}
+              <span style={{ color: "var(--primary)" }}>
+                {selectedWorker?.name}
+              </span>
+            </p>
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <label className="text-sm text-white/60 mb-2 block">
+                  Seu nome
+                </label>
+
+                <div className="relative">
+                  <User
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40"
+                    size={18}
+                  />
+
+                  <input
+                    type="text"
+                    name="name"
+                    value={form.name}
+                    onChange={handleChange}
+                    placeholder="Digite seu nome"
+                    className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 pl-12 pr-4 outline-none focus:border-[var(--primary)] transition-all"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm text-white/60 mb-2 block">
+                  Telefone
+                </label>
+
+                <input
+                  type="text"
+                  name="phone"
+                  value={form.phone}
+                  onChange={handleChange}
+                  placeholder="(81) 99999-9999"
+                  className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 px-4 outline-none focus:border-[var(--primary)] transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm text-white/60 mb-2 block">
+                  Escolha a data
+                </label>
+
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => {
+                    setSelectedDate(e.target.value);
+                    setSelectedSlot(null);
+                  }}
+                  className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 px-4 outline-none focus:border-[var(--primary)] transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm text-white/60 mb-4 block">
+                  Horários disponíveis
+                </label>
+
+                {!selectedDate ? (
+                  <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-white/50 text-sm">
+                    Selecione uma data para ver os horários disponíveis.
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-3 gap-3">
+                      {filteredSlots.map((slot) => {
+                        const date = new Date(slot.start);
+
+                        return (
+                          <button
+                            type="button"
+                            key={slot.id}
+                            onClick={() => setSelectedSlot(slot)}
+                            className={`h-14 rounded-2xl border transition-all text-sm font-semibold ${
+                              selectedSlot?.id === slot.id
+                                ? "border-transparent scale-[1.03]"
+                                : "border-white/10 bg-white/5 hover:border-white/20"
+                            }`}
+                            style={{
+                              backgroundColor:
+                                selectedSlot?.id === slot.id
+                                  ? "var(--primary)"
+                                  : undefined,
+                            }}
+                          >
+                            {date.toLocaleTimeString("pt-BR", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {filteredSlots.length === 0 && (
+                      <div className="mt-4 p-4 rounded-2xl bg-white/5 border border-white/10 text-white/50 text-sm">
+                        Nenhum horário disponível para esta data.
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+
+              <div>
+                <label className="text-sm text-white/60 mb-2 block">
+                  Observações
+                </label>
+
+                <div className="relative">
+                  <MessageSquare
+                    className="absolute left-4 top-5 text-white/40"
+                    size={18}
+                  />
+
+                  <textarea
+                    name="notes"
+                    value={form.notes}
+                    onChange={handleChange}
+                    placeholder="Digite alguma observação..."
+                    rows={4}
+                    className="w-full rounded-2xl bg-white/5 border border-white/10 pl-12 pr-4 py-4 outline-none focus:border-[var(--primary)] transition-all resize-none"
+                  />
+                </div>
+              </div>
+
+              {error && (
+                <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm">
+                  {error}
+                </div>
+              )}
+
+              {success && (
+                <div className="p-4 rounded-2xl bg-green-500/10 border border-green-500/20 text-green-300 text-sm">
+                  {success}
+                </div>
+              )}
+
+              <Button
+                type="submit"
+                className="w-full h-16 text-lg font-bold rounded-2xl transition-transform hover:scale-[1.02]"
+                style={{
+                  backgroundColor: "var(--primary)",
+                }}
+              >
+                Confirmar Agendamento
+              </Button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
