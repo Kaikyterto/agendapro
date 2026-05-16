@@ -42,3 +42,9 @@ class Service(db.Model):
         db.String(255),
         nullable=True
     )
+
+    workers = db.relationship(
+        "Worker",
+        secondary="worker_services",
+        back_populates="services"
+    )
