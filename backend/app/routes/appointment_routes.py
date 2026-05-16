@@ -50,6 +50,6 @@ appointment_bp.route(
     methods=['PATCH']
 )(
     jwt_required()(
-        AppointmentController.confirm_appointment
+        AppointmentController.finish_appointment
     )
 )
