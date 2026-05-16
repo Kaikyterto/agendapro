@@ -8,14 +8,11 @@ export async function apiFetch(endpoint, options = {}) {
 
     headers: {
       "Content-Type": "application/json",
-
-      // envia token SOMENTE se existir e se for necessário
       ...(options.auth && token ? { Authorization: `Bearer ${token}` } : {}),
-
       ...options.headers,
     },
 
-    body: options.body ? JSON.stringify(options.body) : undefined,
+    body: options.body || undefined,
   });
 
   let data;
