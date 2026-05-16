@@ -16,6 +16,7 @@ import {
 import {
   getCompanyBySlug,
   getCompanyServices,
+  getServiceWorkers,
 } from "../services/companyService";
 
 import Button from "../components/Button";
@@ -26,10 +27,12 @@ const CompanyBookingPage = () => {
 
   const [company, setCompany] = useState(null);
   const [services, setServices] = useState([]);
+  const [workers, setWorkers] = useState([]);
 
   const [loading, setLoading] = useState(true);
 
   const [selectedService, setSelectedService] = useState(null);
+  const [selectedWorker, setSelectedWorker] = useState(null);
 
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [selectedDate, setSelectedDate] = useState("");
@@ -118,6 +121,11 @@ const CompanyBookingPage = () => {
       return;
     }
 
+    if (!selectedWorker) {
+      setError("Selecione um funcionário");
+      return;
+    }
+
     if (!selectedSlot) {
       setError("Selecione um horário");
       return;
@@ -127,6 +135,7 @@ const CompanyBookingPage = () => {
       await createAppointment({
         slot_id: selectedSlot.id,
         service_id: selectedService.id,
+        worker_id: selectedWorker.id,
         name: form.name,
         phone: form.phone,
         notes: form.notes,
@@ -176,23 +185,12 @@ const CompanyBookingPage = () => {
 
       <Nav logo={company?.logo} />
 
-      {/* TOP */}
       <div className="relative z-10 max-w-7xl mx-auto px-6 pt-8">
         <button
           onClick={() => window.history.back()}
           className="group flex items-center gap-3 text-white/70 hover:text-white transition-all"
         >
-          <div
-            className="
-              w-11 h-11 rounded-2xl
-              border border-white/10
-              bg-white/5 backdrop-blur-xl
-              flex items-center justify-center
-              transition-all
-              group-hover:scale-105
-              group-hover:border-white/20
-            "
-          >
+          <div className="w-11 h-11 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl flex items-center justify-center transition-all group-hover:scale-105 group-hover:border-white/20">
             <ArrowLeft size={18} />
           </div>
 
@@ -200,10 +198,8 @@ const CompanyBookingPage = () => {
         </button>
       </div>
 
-      {/* MAIN */}
       <main className="relative z-10 max-w-7xl mx-auto px-6 py-20">
         <div className="grid lg:grid-cols-2 gap-14 items-start">
-          {/* LEFT */}
           <div>
             <div
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-6 border border-white/10 backdrop-blur-md"
@@ -227,7 +223,6 @@ const CompanyBookingPage = () => {
               .
             </p>
 
-            {/* SERVIÇOS */}
             <div className="mt-12">
               <h2 className="text-2xl font-bold mb-6">Escolha um serviço</h2>
 
@@ -284,21 +279,34 @@ const CompanyBookingPage = () => {
                       <div className="flex items-center justify-between mt-6">
                         <div className="flex items-center gap-2 text-white/60">
                           <Clock3 size={16} />
-
                           <span>{service.duration} min</span>
                         </div>
 
                         <Button
-                          onClick={() => {
-                            setSelectedService(service);
-                            setShowForm(true);
+                          onClick={async () => {
+                            try {
+                              const workersData = await getServiceWorkers(
+                                slug,
+                                service.id
+                              );
 
-                            setTimeout(() => {
-                              window.scrollTo({
-                                top: document.body.scrollHeight,
-                                behavior: "smooth",
-                              });
-                            }, 100);
+                              setSelectedService(service);
+                              setSelectedWorker(null);
+                              setSelectedSlot(null);
+
+                              setWorkers(workersData);
+
+                              setShowForm(true);
+
+                              setTimeout(() => {
+                                window.scrollTo({
+                                  top: document.body.scrollHeight,
+                                  behavior: "smooth",
+                                });
+                              }, 100);
+                            } catch (err) {
+                              console.error(err);
+                            }
                           }}
                           style={{
                             backgroundColor: "var(--primary)",
@@ -314,7 +322,6 @@ const CompanyBookingPage = () => {
             </div>
           </div>
 
-          {/* RIGHT */}
           {showForm && (
             <div className="relative">
               <div
@@ -342,7 +349,58 @@ const CompanyBookingPage = () => {
                 )}
 
                 <form onSubmit={handleSubmit} className="space-y-6">
-                  {/* NOME */}
+                  <div>
+                    <label className="text-sm text-white/60 mb-4 block">
+                      Escolha um funcionário
+                    </label>
+
+                    <div className="grid gap-3">
+                      {workers.map((worker) => (
+                        <button
+                          type="button"
+                          key={worker.id}
+                          onClick={() => setSelectedWorker(worker)}
+                          className={`
+                            p-4 rounded-2xl border
+                            flex items-center gap-4
+                            transition-all
+                            ${
+                              selectedWorker?.id === worker.id
+                                ? "border-transparent scale-[1.02]"
+                                : "border-white/10 bg-white/5 hover:border-white/20"
+                            }
+                          `}
+                          style={{
+                            backgroundColor:
+                              selectedWorker?.id === worker.id
+                                ? "var(--primary)"
+                                : undefined,
+                          }}
+                        >
+                          <div className="w-14 h-14 rounded-2xl bg-white/10 overflow-hidden flex items-center justify-center">
+                            {worker.avatar_url ? (
+                              <img
+                                src={worker.avatar_url}
+                                alt={worker.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <User size={20} />
+                            )}
+                          </div>
+
+                          <div className="text-left">
+                            <h3 className="font-semibold">{worker.name}</h3>
+
+                            <p className="text-sm text-white/60">
+                              Profissional disponível
+                            </p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   <div>
                     <label className="text-sm text-white/60 mb-2 block">
                       Seu nome
@@ -360,18 +418,11 @@ const CompanyBookingPage = () => {
                         value={form.name}
                         onChange={handleChange}
                         placeholder="Digite seu nome"
-                        className="
-                          w-full h-14 rounded-2xl
-                          bg-white/5 border border-white/10
-                          pl-12 pr-4 outline-none
-                          focus:border-[var(--primary)]
-                          transition-all
-                        "
+                        className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 pl-12 pr-4 outline-none focus:border-[var(--primary)] transition-all"
                       />
                     </div>
                   </div>
 
-                  {/* TELEFONE */}
                   <div>
                     <label className="text-sm text-white/60 mb-2 block">
                       Telefone
@@ -383,17 +434,10 @@ const CompanyBookingPage = () => {
                       value={form.phone}
                       onChange={handleChange}
                       placeholder="(81) 99999-9999"
-                      className="
-                        w-full h-14 rounded-2xl
-                        bg-white/5 border border-white/10
-                        px-4 outline-none
-                        focus:border-[var(--primary)]
-                        transition-all
-                      "
+                      className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 px-4 outline-none focus:border-[var(--primary)] transition-all"
                     />
                   </div>
 
-                  {/* DATA */}
                   <div>
                     <label className="text-sm text-white/60 mb-2 block">
                       Escolha a data
@@ -406,17 +450,10 @@ const CompanyBookingPage = () => {
                         setSelectedDate(e.target.value);
                         setSelectedSlot(null);
                       }}
-                      className="
-                        w-full h-14 rounded-2xl
-                        bg-white/5 border border-white/10
-                        px-4 outline-none
-                        focus:border-[var(--primary)]
-                        transition-all
-                      "
+                      className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 px-4 outline-none focus:border-[var(--primary)] transition-all"
                     />
                   </div>
 
-                  {/* HORÁRIOS */}
                   <div>
                     <label className="text-sm text-white/60 mb-4 block">
                       Horários disponíveis
@@ -471,7 +508,6 @@ const CompanyBookingPage = () => {
                     )}
                   </div>
 
-                  {/* OBSERVAÇÕES */}
                   <div>
                     <label className="text-sm text-white/60 mb-2 block">
                       Observações
@@ -489,19 +525,11 @@ const CompanyBookingPage = () => {
                         onChange={handleChange}
                         placeholder="Digite alguma observação..."
                         rows={4}
-                        className="
-                          w-full rounded-2xl
-                          bg-white/5 border border-white/10
-                          pl-12 pr-4 py-4
-                          outline-none
-                          focus:border-[var(--primary)]
-                          transition-all resize-none
-                        "
+                        className="w-full rounded-2xl bg-white/5 border border-white/10 pl-12 pr-4 py-4 outline-none focus:border-[var(--primary)] transition-all resize-none"
                       />
                     </div>
                   </div>
 
-                  {/* ALERTAS */}
                   {error && (
                     <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm">
                       {error}
@@ -514,14 +542,9 @@ const CompanyBookingPage = () => {
                     </div>
                   )}
 
-                  {/* BUTTON */}
                   <Button
                     type="submit"
-                    className="
-                      w-full h-16 text-lg font-bold
-                      rounded-2xl transition-transform
-                      hover:scale-[1.02]
-                    "
+                    className="w-full h-16 text-lg font-bold rounded-2xl transition-transform hover:scale-[1.02]"
                     style={{
                       backgroundColor: "var(--primary)",
                     }}

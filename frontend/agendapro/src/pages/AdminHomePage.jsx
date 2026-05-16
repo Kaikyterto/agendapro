@@ -1,6 +1,13 @@
 import React from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { CalendarDays, ShoppingBag, Palette, ArrowRight } from "lucide-react";
+import {
+  CalendarDays,
+  ShoppingBag,
+  Palette,
+  ArrowRight,
+  Users,
+  BarChart3,
+} from "lucide-react";
 
 const AdminDashboardPage = () => {
   const navigate = useNavigate();
@@ -14,10 +21,22 @@ const AdminDashboardPage = () => {
       path: `/admin/${slug}/agendamentos`,
     },
     {
+      title: "Funcionários",
+      description: "Cadastre funcionários e vincule serviços disponíveis.",
+      icon: Users,
+      path: `/admin/${slug}/funcionarios`,
+    },
+    {
       title: "Produtos",
       description: "Cadastre, edite e organize os produtos da sua empresa.",
       icon: ShoppingBag,
       path: `/admin/${slug}/produtos`,
+    },
+    {
+      title: "Vendas & Insights",
+      description: "Acompanhe vendas, faturamento e métricas da empresa.",
+      icon: BarChart3,
+      path: `/admin/${slug}/vendas`,
     },
     {
       title: "Design",
@@ -30,7 +49,6 @@ const AdminDashboardPage = () => {
   return (
     <div className="min-h-screen bg-[#0b0d11] text-white overflow-hidden">
       <div className="relative z-10 max-w-7xl mx-auto px-6 py-12">
-        {/* HEADER */}
         <div className="mb-14">
           <p className="text-blue-400 font-semibold mb-3">
             Painel administrativo
@@ -39,7 +57,6 @@ const AdminDashboardPage = () => {
           <h1 className="text-5xl font-black mb-4">Gerencie sua empresa</h1>
         </div>
 
-        {/* CARDS */}
         <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
           {cards.map((card) => {
             const Icon = card.icon;

@@ -8,6 +8,10 @@ export function getCompanyServices(slug) {
   return apiFetch(`/public/company/${slug}/services`);
 }
 
+export function getServiceWorkers(slug, serviceId) {
+  return apiFetch(`/public/company/${slug}/services/${serviceId}/workers`);
+}
+
 export function getCompanyProducts(slug) {
   return apiFetch(`/public/company/${slug}/products`);
 }

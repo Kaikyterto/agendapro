@@ -114,3 +114,29 @@ class PublicController:
             }
             for s in company.services
         ]), 200
+    
+    # =====================================================
+    #  FUNCIONÁRIOS DO SERVIÇO
+    # =====================================================
+    @staticmethod
+    @public_company_active
+    def get_service_workers(slug, company, service_id):
+
+        service = Service.query.filter_by(
+            id=service_id,
+            company_id=company.id
+        ).first()
+
+        if not service:
+            return jsonify({
+                "error": "Serviço não encontrado"
+            }), 404
+
+        return jsonify([
+            {
+                "id": worker.id,
+                "name": worker.name,
+                "avatar_url": worker.avatar_url
+            }
+            for worker in service.workers
+        ]), 200

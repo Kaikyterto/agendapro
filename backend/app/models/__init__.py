@@ -6,4 +6,6 @@ from .sale import Sale
 from .sales_record import SalesRecord
 from .schedule import Schedule
 from .time_slot import TimeSlot
-from app.models.service import Service
+from .service import Service
+from .worker import Worker
+from .worker_service import WorkerService

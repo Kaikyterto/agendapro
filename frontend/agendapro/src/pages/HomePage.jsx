@@ -16,7 +16,7 @@ const HomePage = () => {
   useEffect(() => {
     const loadCompany = async () => {
       try {
-        // 🚨 protege rota inválida (admin não é empresa)
+
         if (!slug || slug === "admin") return;
 
         const data = await getCompanyBySlug(slug);

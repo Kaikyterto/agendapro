@@ -29,9 +29,15 @@ public_bp.route(
 )
 
 public_bp.route(
+    '/public/company/<string:slug>/services/<int:service_id>/workers',
+    methods=['GET']
+)(
+    PublicController.get_service_workers
+)
+
+public_bp.route(
     '/public/company/<string:slug>/slots',
     methods=['GET']
 )(
     PublicController.get_company_available_slots
 )
-
