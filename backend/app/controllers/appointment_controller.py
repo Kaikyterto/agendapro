@@ -136,13 +136,14 @@ class AppointmentController:
 
 
     # =========================================================
-    #  CONFIRMAR AGENDAMENTO (NOVO)
+    #  FINALIZAR AGENDAMENTO
     # =========================================================
     @staticmethod
-    def confirm_appointment(id):
+    def finish_appointment(id):
 
         try:
             claims = get_jwt()
+
             company_id = claims.get("company_id")
 
             schedule = Schedule.query.filter_by(
@@ -151,23 +152,32 @@ class AppointmentController:
             ).first()
 
             if not schedule:
-                return jsonify({"error": "Agendamento não encontrado"}), 404
+                return jsonify({
+                    "error": "Agendamento não encontrado"
+                }), 404
 
             if schedule.status == "cancelled":
-                return jsonify({"error": "Agendamento cancelado não pode ser confirmado"}), 400
+                return jsonify({
+                    "error": "Agendamento cancelado não pode ser finalizado"
+                }), 400
 
-            if schedule.status == "confirmed":
-                return jsonify({"error": "Já está confirmado"}), 400
+            if schedule.status == "completed":
+                return jsonify({
+                    "error": "Agendamento já finalizado"
+                }), 400
 
-            schedule.status = "confirmed"
+            schedule.status = "completed"
 
             db.session.commit()
 
-            return jsonify({"message": "Agendamento confirmado com sucesso"}), 200
+            return jsonify({
+                "message": "Agendamento finalizado com sucesso"
+            }), 200
 
         except Exception as e:
             db.session.rollback()
+
             return jsonify({
-                "error": "Erro ao confirmar agendamento",
+                "error": "Erro ao finalizar agendamento",
                 "details": str(e)
             }), 500
