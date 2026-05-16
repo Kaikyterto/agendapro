@@ -1,7 +1,7 @@
 import { apiFetch } from "./api";
 
 export function createAppointment(data) {
-  return apiFetch("/appointments", {
+  return apiFetch("public/appointments", {
     method: "POST",
     body: JSON.stringify(data),
   });

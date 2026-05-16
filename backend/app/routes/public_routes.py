@@ -1,6 +1,7 @@
 from flask import Blueprint
 
 from app.controllers.public_controller import PublicController
+from app.controllers.appointment_controller import AppointmentController
 
 public_bp = Blueprint(
     'public',
@@ -40,4 +41,11 @@ public_bp.route(
     methods=['GET']
 )(
     PublicController.get_company_available_slots
+)
+
+public_bp.route(
+    '/public/appointments',
+    methods=['POST']
+)(
+    AppointmentController.create_appointment
 )
