@@ -33,3 +33,14 @@ class SalesRecord(db.Model):
         nullable=False,
         server_default=db.func.now()
     )
+
+    status = db.Column(
+    db.String(20),
+    nullable=False,
+    default="paid"
+    )
+    
+    payment_method = db.Column(
+    db.String(30),
+    nullable=True
+    )
