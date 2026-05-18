@@ -82,6 +82,7 @@ class AppointmentController:
                     "customer_name": s.name,
                     "phone": s.phone,
                     "service_name": s.service.name if s.service else None,
+                    "worker_name": s.worker.name if s.worker else None,
                     "start": s.slot.start_time.isoformat() if s.slot else None,
                     "status": s.status,
                     "notes": s.notes

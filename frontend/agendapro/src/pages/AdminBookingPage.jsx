@@ -119,7 +119,6 @@ const AdminBookingPage = () => {
   return (
     <div className="min-h-screen bg-[#07090d] text-white p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
-        {/* HEADER */}
         <div className="flex items-center gap-3 mb-8">
           <div className="w-14 h-14 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center">
             <CalendarDays size={26} />
@@ -134,14 +133,12 @@ const AdminBookingPage = () => {
           </div>
         </div>
 
-        {/* ERROR */}
         {error && (
           <div className="mb-6 text-red-300 bg-red-500/10 border border-red-500/20 p-4 rounded-2xl">
             {error}
           </div>
         )}
 
-        {/* STATS */}
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
           <StatCard title="Total" value={stats.total} color="blue" />
 
@@ -152,7 +149,6 @@ const AdminBookingPage = () => {
           <StatCard title="Cancelados" value={stats.cancelled} color="red" />
         </div>
 
-        {/* SEARCH */}
         <div className="flex items-center gap-3 mb-8 bg-white/5 border border-white/10 rounded-3xl px-5 h-16 backdrop-blur-xl">
           <Search size={18} className="text-white/40" />
 
@@ -169,9 +165,9 @@ const AdminBookingPage = () => {
           <div className="grid grid-cols-5 px-6 py-5 border-b border-white/10 text-white/50 text-sm font-semibold">
             <div>Cliente</div>
             <div>Serviço</div>
+            <div>Profissional</div>
             <div>Data</div>
             <div>Status</div>
-            <div className="text-right">Ações</div>
           </div>
 
           {filtered.map((a) => (
@@ -193,6 +189,10 @@ const AdminBookingPage = () => {
 
               <div className="text-white/70">{a.service_name}</div>
 
+              <div className="text-white/60 font-medium">
+                {a.worker_name || "Não definido"}
+              </div>
+
               <div className="text-sm text-white/60 flex items-center gap-2">
                 <Clock size={15} />
 
@@ -201,13 +201,11 @@ const AdminBookingPage = () => {
                   : "Sem data"}
               </div>
 
-              <div>
+              <div className="flex items-center justify-between gap-3">
                 <StatusBadge status={a.status} />
-              </div>
 
-              <div className="flex justify-end gap-2">
                 {a.status === "pending" && (
-                  <>
+                  <div className="flex gap-2">
                     <Button
                       onClick={() => handleFinish(a.id)}
                       className="bg-green-600 hover:bg-green-700 h-11 px-4"
@@ -221,7 +219,7 @@ const AdminBookingPage = () => {
                     >
                       <X size={16} />
                     </Button>
-                  </>
+                  </div>
                 )}
               </div>
             </div>
@@ -257,8 +255,14 @@ const AdminBookingPage = () => {
                 <StatusBadge status={a.status} />
               </div>
 
-              <div className="space-y-2 mb-5">
-                <p className="text-white/70 text-sm">{a.service_name}</p>
+              <div className="space-y-3 mb-5">
+                <p className="text-white/70 text-sm">
+                  Serviço: {a.service_name}
+                </p>
+
+                <p className="text-white/60 text-sm">
+                  Profissional: {a.worker_name || "Não definido"}
+                </p>
 
                 <div className="flex items-center gap-2 text-white/50 text-sm">
                   <Clock size={14} />

@@ -26,6 +26,12 @@ class Schedule(db.Model):
         nullable=False
     )
 
+    worker_id = db.Column(
+    db.Integer,
+    db.ForeignKey("workers.id"),
+    nullable=True
+)
+
     name = db.Column(db.String(100), nullable=False)
     phone = db.Column(db.String(20), nullable=False)
 
@@ -57,5 +63,10 @@ class Schedule(db.Model):
 
     service = db.relationship(
         "Service",
+        backref=db.backref("schedules", lazy=True)
+    )
+
+    worker = db.relationship(
+        "Worker",
         backref=db.backref("schedules", lazy=True)
     )
