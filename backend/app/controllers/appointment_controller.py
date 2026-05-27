@@ -5,6 +5,7 @@ from app.database.db import db
 from app.models.schedule import Schedule
 from app.models.time_slot import TimeSlot
 from app.models.service import Service
+from app.models.worker import Worker
 
 
 class AppointmentController:
