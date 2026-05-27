@@ -11,6 +11,7 @@ import {
   TrendingUp,
   Boxes,
   Loader2,
+  Image as ImageIcon,
 } from "lucide-react";
 
 import Button from "../components/Button";
@@ -58,7 +59,15 @@ const AdminProductsPage = () => {
         getProductsDashboard(),
       ]);
 
-      setProducts(Array.isArray(productsData) ? productsData : []);
+      const normalizedProducts = Array.isArray(productsData)
+        ? productsData.map((product) => ({
+            ...product,
+            value: product.value ?? product.price ?? 0,
+            active: typeof product.active === "boolean" ? product.active : true,
+          }))
+        : [];
+
+      setProducts(normalizedProducts);
 
       setDashboard(dashboardData || null);
     } catch (err) {
@@ -146,24 +155,11 @@ const AdminProductsPage = () => {
       };
 
       if (editingProduct) {
-        const updatedProduct = await updateProduct(editingProduct.id, payload);
-
-        setProducts((prev) =>
-          prev.map((product) =>
-            product.id === editingProduct.id
-              ? {
-                  ...product,
-                  ...updatedProduct,
-                }
-              : product
-          )
-        );
+        await updateProduct(editingProduct.id, payload);
 
         setSuccess("Produto atualizado com sucesso!");
       } else {
-        const createdProduct = await createProduct(payload);
-
-        setProducts((prev) => [createdProduct, ...prev]);
+        await createProduct(payload);
 
         setSuccess("Produto criado com sucesso!");
       }
@@ -172,7 +168,7 @@ const AdminProductsPage = () => {
 
       setTimeout(() => {
         handleCloseModal();
-      }, 800);
+      }, 700);
     } catch (err) {
       console.error(err);
 
@@ -201,7 +197,7 @@ const AdminProductsPage = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#07090d] text-white">
-        <Loader2 className="animate-spin" size={42} />
+        <Loader2 className="animate-spin text-[#c084fc]" size={42} />
       </div>
     );
   }
@@ -209,14 +205,17 @@ const AdminProductsPage = () => {
   return (
     <div className="min-h-screen bg-[#07090d] text-white p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
+        {/* HEADER */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 mb-8">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-[28px] bg-white/5 border border-white/10 flex items-center justify-center">
-              <Package size={30} />
+            <div className="w-16 h-16 rounded-[28px] bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border border-violet-400/20 flex items-center justify-center shadow-lg shadow-violet-500/10">
+              <Package size={30} className="text-violet-300" />
             </div>
 
             <div>
-              <h1 className="text-3xl md:text-4xl font-black">Produtos</h1>
+              <h1 className="text-3xl md:text-4xl font-black bg-gradient-to-r from-white via-violet-200 to-fuchsia-300 bg-clip-text text-transparent">
+                Produtos
+              </h1>
 
               <p className="text-white/50 mt-1">
                 Gerencie os produtos da sua empresa
@@ -226,13 +225,14 @@ const AdminProductsPage = () => {
 
           <Button
             onClick={handleOpenCreate}
-            className="bg-white text-black hover:bg-white/90 h-14 px-6 rounded-2xl font-bold"
+            className="bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:opacity-90 text-white h-14 px-6 rounded-2xl font-bold border-0 shadow-xl shadow-violet-500/20"
           >
             <Plus size={18} />
             Novo Produto
           </Button>
         </div>
 
+        {/* DASHBOARD */}
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
           <DashboardCard
             title="Faturamento"
@@ -259,8 +259,9 @@ const AdminProductsPage = () => {
           />
         </div>
 
-        <div className="flex items-center gap-3 mb-8 bg-white/5 border border-white/10 rounded-3xl px-5 h-16 backdrop-blur-xl">
-          <Search size={18} className="text-white/40" />
+        {/* SEARCH */}
+        <div className="flex items-center gap-3 mb-8 bg-[#111827] border border-violet-500/10 rounded-3xl px-5 h-16 backdrop-blur-xl shadow-lg">
+          <Search size={18} className="text-violet-300" />
 
           <input
             value={search}
@@ -270,22 +271,24 @@ const AdminProductsPage = () => {
           />
         </div>
 
+        {/* PRODUCTS */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {filteredProducts.map((product) => (
             <div
               key={product.id}
-              className="rounded-[32px] overflow-hidden border border-white/10 bg-white/5 backdrop-blur-xl"
+              className="rounded-[32px] overflow-hidden border border-violet-500/10 bg-[#111827] shadow-xl shadow-black/20 transition-all duration-300 hover:-translate-y-1 hover:border-violet-400/30"
             >
-              <div className="aspect-video bg-black/20 overflow-hidden">
+              <div className="aspect-video bg-black/30 overflow-hidden">
                 {product.image_url ? (
                   <img
                     src={product.image_url}
                     alt={product.name}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-white/20">
-                    <Package size={42} />
+                  <div className="w-full h-full flex flex-col items-center justify-center text-white/20 gap-2">
+                    <ImageIcon size={40} />
+                    <span className="text-sm">Sem imagem</span>
                   </div>
                 )}
               </div>
@@ -303,10 +306,10 @@ const AdminProductsPage = () => {
                   </div>
 
                   <div
-                    className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap ${
+                    className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap border ${
                       product.active
-                        ? "bg-green-500/10 text-green-400 border border-green-500/20"
-                        : "bg-red-500/10 text-red-400 border border-red-500/20"
+                        ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                        : "bg-red-500/10 text-red-400 border-red-500/20"
                     }`}
                   >
                     {product.active ? "Ativo" : "Inativo"}
@@ -317,7 +320,7 @@ const AdminProductsPage = () => {
                   <div>
                     <p className="text-white/40 text-xs">Valor</p>
 
-                    <h4 className="text-2xl font-black">
+                    <h4 className="text-2xl font-black text-violet-300">
                       R$ {Number(product.value || 0).toFixed(2)}
                     </h4>
                   </div>
@@ -334,14 +337,14 @@ const AdminProductsPage = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <Button
                     onClick={() => handleOpenEdit(product)}
-                    className="h-12 bg-white/10 hover:bg-white/15"
+                    className="h-12 bg-violet-500/10 hover:bg-violet-500/20 text-violet-300 border border-violet-500/20 rounded-2xl"
                   >
                     <Pencil size={16} />
                   </Button>
 
                   <Button
                     onClick={() => handleDelete(product.id)}
-                    className="h-12 bg-red-500/10 hover:bg-red-500/20 text-red-300"
+                    className="h-12 bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/20 rounded-2xl"
                   >
                     <Trash2 size={16} />
                   </Button>
@@ -357,12 +360,13 @@ const AdminProductsPage = () => {
           </div>
         )}
 
+        {/* MODAL */}
         {openModal && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="w-full max-w-xl rounded-[32px] border border-white/10 bg-[#101317] p-6">
-              <div className="flex items-center justify-between mb-6">
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="w-full max-w-2xl max-h-[95vh] overflow-y-auto rounded-[32px] border border-violet-500/20 bg-[#0f172a] p-6 shadow-2xl shadow-violet-500/10">
+              <div className="flex items-start justify-between gap-4 mb-6">
                 <div>
-                  <h2 className="text-2xl font-black">
+                  <h2 className="text-3xl font-black">
                     {editingProduct ? "Editar Produto" : "Novo Produto"}
                   </h2>
 
@@ -374,77 +378,91 @@ const AdminProductsPage = () => {
                 <button
                   type="button"
                   onClick={handleCloseModal}
-                  className="w-11 h-11 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center"
+                  className="min-w-[44px] h-11 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all"
                 >
                   <X size={18} />
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="text-sm text-white/60 mb-2 block">
-                    Nome
-                  </label>
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="md:col-span-2">
+                    <label className="text-sm text-white/60 mb-2 block">
+                      Nome
+                    </label>
 
-                  <input
-                    value={form.name}
-                    onChange={(e) => handleChange("name", e.target.value)}
-                    required
-                    className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 px-4 outline-none focus:border-white/30 transition-all"
-                  />
+                    <input
+                      value={form.name}
+                      onChange={(e) => handleChange("name", e.target.value)}
+                      required
+                      className="w-full h-14 rounded-2xl bg-[#111827] border border-white/10 px-4 outline-none focus:border-violet-400 transition-all"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="text-sm text-white/60 mb-2 block">
+                      Descrição
+                    </label>
+
+                    <textarea
+                      value={form.description}
+                      onChange={(e) =>
+                        handleChange("description", e.target.value)
+                      }
+                      rows={5}
+                      className="w-full rounded-2xl bg-[#111827] border border-white/10 px-4 py-4 outline-none resize-none focus:border-violet-400 transition-all"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm text-white/60 mb-2 block">
+                      Valor
+                    </label>
+
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={form.value}
+                      onChange={(e) => handleChange("value", e.target.value)}
+                      required
+                      className="w-full h-14 rounded-2xl bg-[#111827] border border-white/10 px-4 outline-none focus:border-violet-400 transition-all"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm text-white/60 mb-2 block">
+                      URL da imagem
+                    </label>
+
+                    <input
+                      value={form.image_url}
+                      onChange={(e) =>
+                        handleChange("image_url", e.target.value)
+                      }
+                      className="w-full h-14 rounded-2xl bg-[#111827] border border-white/10 px-4 outline-none focus:border-violet-400 transition-all"
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="text-sm text-white/60 mb-2 block">
-                    Descrição
-                  </label>
+                {form.image_url && (
+                  <div className="rounded-3xl overflow-hidden border border-violet-500/20">
+                    <img
+                      src={form.image_url}
+                      alt="Preview"
+                      className="w-full h-56 object-cover"
+                    />
+                  </div>
+                )}
 
-                  <textarea
-                    value={form.description}
-                    onChange={(e) =>
-                      handleChange("description", e.target.value)
-                    }
-                    rows={4}
-                    className="w-full rounded-2xl bg-white/5 border border-white/10 px-4 py-4 outline-none resize-none focus:border-white/30 transition-all"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-sm text-white/60 mb-2 block">
-                    Valor
-                  </label>
-
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={form.value}
-                    onChange={(e) => handleChange("value", e.target.value)}
-                    required
-                    className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 px-4 outline-none focus:border-white/30 transition-all"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-sm text-white/60 mb-2 block">
-                    URL da imagem
-                  </label>
-
-                  <input
-                    value={form.image_url}
-                    onChange={(e) => handleChange("image_url", e.target.value)}
-                    className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 px-4 outline-none focus:border-white/30 transition-all"
-                  />
-                </div>
-
-                <div className="flex items-center justify-between rounded-2xl bg-white/5 border border-white/10 px-4 h-14">
+                <div className="flex items-center justify-between rounded-2xl bg-[#111827] border border-white/10 px-4 h-14">
                   <span className="text-white/70">Produto ativo</span>
 
                   <input
                     type="checkbox"
                     checked={form.active}
                     onChange={(e) => handleChange("active", e.target.checked)}
-                    className="w-5 h-5"
+                    className="w-5 h-5 accent-violet-500"
                   />
                 </div>
 
@@ -455,7 +473,7 @@ const AdminProductsPage = () => {
                 )}
 
                 {success && (
-                  <div className="p-4 rounded-2xl bg-green-500/10 border border-green-500/20 text-green-300 text-sm">
+                  <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm">
                     {success}
                   </div>
                 )}
@@ -463,7 +481,7 @@ const AdminProductsPage = () => {
                 <Button
                   type="submit"
                   disabled={submitting}
-                  className="w-full h-14 bg-white text-black hover:bg-white/90 rounded-2xl font-bold mt-4 disabled:opacity-60"
+                  className="w-full h-14 bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:opacity-90 text-white rounded-2xl font-bold mt-2 disabled:opacity-60 border-0"
                 >
                   {submitting ? (
                     <>
@@ -487,16 +505,18 @@ const AdminProductsPage = () => {
 
 const DashboardCard = ({ title, value, icon }) => {
   return (
-    <div className="rounded-[28px] border border-white/10 bg-white/5 backdrop-blur-xl p-5">
+    <div className="rounded-[28px] border border-violet-500/10 bg-[#111827] p-5 shadow-xl shadow-black/20">
       <div className="flex items-center justify-between mb-5">
-        <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
+        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border border-violet-500/20 flex items-center justify-center text-violet-300">
           {icon}
         </div>
       </div>
 
       <p className="text-sm text-white/50">{title}</p>
 
-      <h3 className="text-3xl font-black mt-2 break-words">{value}</h3>
+      <h3 className="text-3xl font-black mt-2 break-words text-white">
+        {value}
+      </h3>
     </div>
   );
 };
