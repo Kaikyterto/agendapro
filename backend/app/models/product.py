@@ -45,6 +45,12 @@ class Product(db.Model):
         default=datetime.utcnow
     )
 
+    active = db.Column(
+    db.Boolean,
+    default=True,
+    nullable=True
+)
+
     company = db.relationship(
         "Company",
         backref="products"
