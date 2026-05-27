@@ -10,6 +10,7 @@ import {
   ShoppingCart,
   TrendingUp,
   Boxes,
+  Loader2,
 } from "lucide-react";
 
 import Button from "../components/Button";
@@ -27,6 +28,7 @@ const initialForm = {
   description: "",
   price: "",
   image_url: "",
+  active: true,
 };
 
 const AdminProductsPage = () => {
@@ -34,6 +36,7 @@ const AdminProductsPage = () => {
   const [dashboard, setDashboard] = useState(null);
 
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
   const [search, setSearch] = useState("");
 
@@ -42,6 +45,9 @@ const AdminProductsPage = () => {
   const [editingProduct, setEditingProduct] = useState(null);
 
   const [form, setForm] = useState(initialForm);
+
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const loadData = async () => {
     try {
@@ -57,6 +63,7 @@ const AdminProductsPage = () => {
       setDashboard(dashboardData || null);
     } catch (err) {
       console.error(err);
+      setError("Erro ao carregar produtos");
     } finally {
       setLoading(false);
     }
@@ -68,13 +75,17 @@ const AdminProductsPage = () => {
 
   const filteredProducts = useMemo(() => {
     return [...products]
-      .filter((p) => p.name?.toLowerCase().includes(search.toLowerCase()))
+      .filter((product) =>
+        product?.name?.toLowerCase().includes(search.trim().toLowerCase())
+      )
       .sort((a, b) => b.id - a.id);
   }, [products, search]);
 
   const resetForm = () => {
     setForm(initialForm);
     setEditingProduct(null);
+    setError("");
+    setSuccess("");
   };
 
   const handleOpenCreate = () => {
@@ -86,10 +97,11 @@ const AdminProductsPage = () => {
     setEditingProduct(product);
 
     setForm({
-      name: product.name || "",
-      description: product.description || "",
-      price: product.price || "",
-      image_url: product.image_url || "",
+      name: product?.name || "",
+      description: product?.description || "",
+      price: product?.price || "",
+      image_url: product?.image_url || "",
+      active: typeof product?.active === "boolean" ? product.active : true,
     });
 
     setOpenModal(true);
@@ -111,44 +123,85 @@ const AdminProductsPage = () => {
     e.preventDefault();
 
     try {
+      setSubmitting(true);
+      setError("");
+      setSuccess("");
+
+      if (!form.name.trim()) {
+        setError("O nome do produto é obrigatório");
+        return;
+      }
+
+      if (!form.price || Number(form.price) <= 0) {
+        setError("Informe um preço válido");
+        return;
+      }
+
+      const payload = {
+        name: form.name.trim(),
+        description: form.description.trim(),
+        image_url: form.image_url.trim(),
+        price: Number(form.price),
+        active: form.active,
+      };
+
       if (editingProduct) {
-        await updateProduct(editingProduct.id, {
-          ...form,
-          price: Number(form.price),
-        });
+        const updatedProduct = await updateProduct(editingProduct.id, payload);
+
+        setProducts((prev) =>
+          prev.map((product) =>
+            product.id === editingProduct.id
+              ? {
+                  ...product,
+                  ...updatedProduct,
+                }
+              : product
+          )
+        );
+
+        setSuccess("Produto atualizado com sucesso!");
       } else {
-        await createProduct({
-          ...form,
-          price: Number(form.price),
-        });
+        const createdProduct = await createProduct(payload);
+
+        setProducts((prev) => [createdProduct, ...prev]);
+
+        setSuccess("Produto criado com sucesso!");
       }
 
       await loadData();
 
-      handleCloseModal();
+      setTimeout(() => {
+        handleCloseModal();
+      }, 800);
     } catch (err) {
       console.error(err);
+
+      setError(err?.response?.data?.error || "Erro ao salvar produto");
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleDelete = async (id) => {
-    const confirmed = confirm("Deseja realmente remover este produto?");
+    const confirmed = window.confirm("Deseja realmente remover este produto?");
 
     if (!confirmed) return;
 
     try {
       await deleteProduct(id);
 
-      setProducts((prev) => prev.filter((p) => p.id !== id));
+      setProducts((prev) => prev.filter((product) => product.id !== id));
     } catch (err) {
       console.error(err);
+
+      alert(err?.response?.data?.error || "Erro ao remover produto");
     }
   };
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#07090d] text-white">
-        <div className="w-12 h-12 border-4 border-white/10 border-t-white rounded-full animate-spin" />
+        <Loader2 className="animate-spin" size={42} />
       </div>
     );
   }
@@ -243,8 +296,10 @@ const AdminProductsPage = () => {
 
               <div className="p-5">
                 <div className="flex items-start justify-between gap-4 mb-4">
-                  <div>
-                    <h3 className="text-xl font-black">{product.name}</h3>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-xl font-black truncate">
+                      {product.name}
+                    </h3>
 
                     <p className="text-white/50 text-sm mt-1 line-clamp-2">
                       {product.description || "Sem descrição"}
@@ -252,7 +307,7 @@ const AdminProductsPage = () => {
                   </div>
 
                   <div
-                    className={`px-3 py-1 rounded-full text-xs font-bold ${
+                    className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap ${
                       product.active
                         ? "bg-green-500/10 text-green-400 border border-green-500/20"
                         : "bg-red-500/10 text-red-400 border border-red-500/20"
@@ -267,7 +322,7 @@ const AdminProductsPage = () => {
                     <p className="text-white/40 text-xs">Preço</p>
 
                     <h4 className="text-2xl font-black">
-                      R$ {Number(product.price).toFixed(2)}
+                      R$ {Number(product.price || 0).toFixed(2)}
                     </h4>
                   </div>
 
@@ -275,7 +330,7 @@ const AdminProductsPage = () => {
                     <p className="text-white/40 text-xs">Vendidos</p>
 
                     <h4 className="text-lg font-bold">
-                      {product.sales?.total_quantity || 0}
+                      {product?.sales?.total_quantity || 0}
                     </h4>
                   </div>
                 </div>
@@ -322,6 +377,7 @@ const AdminProductsPage = () => {
                 </div>
 
                 <button
+                  type="button"
                   onClick={handleCloseModal}
                   className="w-11 h-11 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center"
                 >
@@ -339,7 +395,7 @@ const AdminProductsPage = () => {
                     value={form.name}
                     onChange={(e) => handleChange("name", e.target.value)}
                     required
-                    className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 px-4 outline-none"
+                    className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 px-4 outline-none focus:border-white/30 transition-all"
                   />
                 </div>
 
@@ -354,7 +410,7 @@ const AdminProductsPage = () => {
                       handleChange("description", e.target.value)
                     }
                     rows={4}
-                    className="w-full rounded-2xl bg-white/5 border border-white/10 px-4 py-4 outline-none resize-none"
+                    className="w-full rounded-2xl bg-white/5 border border-white/10 px-4 py-4 outline-none resize-none focus:border-white/30 transition-all"
                   />
                 </div>
 
@@ -366,10 +422,11 @@ const AdminProductsPage = () => {
                   <input
                     type="number"
                     step="0.01"
+                    min="0"
                     value={form.price}
                     onChange={(e) => handleChange("price", e.target.value)}
                     required
-                    className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 px-4 outline-none"
+                    className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 px-4 outline-none focus:border-white/30 transition-all"
                   />
                 </div>
 
@@ -381,15 +438,48 @@ const AdminProductsPage = () => {
                   <input
                     value={form.image_url}
                     onChange={(e) => handleChange("image_url", e.target.value)}
-                    className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 px-4 outline-none"
+                    className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 px-4 outline-none focus:border-white/30 transition-all"
                   />
                 </div>
 
+                <div className="flex items-center justify-between rounded-2xl bg-white/5 border border-white/10 px-4 h-14">
+                  <span className="text-white/70">Produto ativo</span>
+
+                  <input
+                    type="checkbox"
+                    checked={form.active}
+                    onChange={(e) => handleChange("active", e.target.checked)}
+                    className="w-5 h-5"
+                  />
+                </div>
+
+                {error && (
+                  <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm">
+                    {error}
+                  </div>
+                )}
+
+                {success && (
+                  <div className="p-4 rounded-2xl bg-green-500/10 border border-green-500/20 text-green-300 text-sm">
+                    {success}
+                  </div>
+                )}
+
                 <Button
                   type="submit"
-                  className="w-full h-14 bg-white text-black hover:bg-white/90 rounded-2xl font-bold mt-4"
+                  disabled={submitting}
+                  className="w-full h-14 bg-white text-black hover:bg-white/90 rounded-2xl font-bold mt-4 disabled:opacity-60"
                 >
-                  {editingProduct ? "Salvar Alterações" : "Criar Produto"}
+                  {submitting ? (
+                    <>
+                      <Loader2 size={18} className="animate-spin" />
+                      Salvando...
+                    </>
+                  ) : editingProduct ? (
+                    "Salvar Alterações"
+                  ) : (
+                    "Criar Produto"
+                  )}
                 </Button>
               </form>
             </div>
@@ -411,7 +501,7 @@ const DashboardCard = ({ title, value, icon }) => {
 
       <p className="text-sm text-white/50">{title}</p>
 
-      <h3 className="text-3xl font-black mt-2">{value}</h3>
+      <h3 className="text-3xl font-black mt-2 break-words">{value}</h3>
     </div>
   );
 };
