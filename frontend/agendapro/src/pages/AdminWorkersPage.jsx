@@ -9,21 +9,13 @@ import {
   X,
   Loader2,
   Phone,
-  BadgeCheck,
   Image as ImageIcon,
   Briefcase,
 } from "lucide-react";
 
 import Button from "../components/Button";
 
-import {
-  getWorkers,
-  createWorker,
-  updateWorker,
-  deleteWorker,
-} from "../services/workers";
-
-import { getServices } from "../services/services";
+import { apiFetch } from "../services/api";
 
 const initialForm = {
   name: "",
@@ -59,11 +51,19 @@ const AdminWorkersPage = () => {
       setLoading(true);
 
       const [workersData, servicesData] = await Promise.all([
-        getWorkers(),
-        getServices(),
+        apiFetch("/workers", {
+          method: "GET",
+          auth: true,
+        }),
+
+        apiFetch("/services", {
+          method: "GET",
+          auth: true,
+        }),
       ]);
 
       setWorkers(Array.isArray(workersData) ? workersData : []);
+
       setServices(Array.isArray(servicesData) ? servicesData : []);
     } catch (err) {
       console.error(err);
@@ -94,13 +94,16 @@ const AdminWorkersPage = () => {
   // =========================================================
   const resetForm = () => {
     setForm(initialForm);
+
     setEditingWorker(null);
+
     setError("");
     setSuccess("");
   };
 
   const handleOpenCreate = () => {
     resetForm();
+
     setOpenModal(true);
   };
 
@@ -111,10 +114,11 @@ const AdminWorkersPage = () => {
       name: worker?.name || "",
       phone: worker?.phone || "",
       avatar_url: worker?.avatar_url || "",
+
       is_active:
         typeof worker?.is_active === "boolean" ? worker.is_active : true,
 
-      service_ids: worker?.services?.map((s) => s.id) || [],
+      service_ids: worker?.services?.map((service) => service.id) || [],
     });
 
     setOpenModal(true);
@@ -122,6 +126,7 @@ const AdminWorkersPage = () => {
 
   const handleCloseModal = () => {
     setOpenModal(false);
+
     resetForm();
   };
 
@@ -141,6 +146,7 @@ const AdminWorkersPage = () => {
 
       return {
         ...prev,
+
         service_ids: alreadySelected
           ? prev.service_ids.filter((id) => id !== serviceId)
           : [...prev.service_ids, serviceId],
@@ -167,18 +173,30 @@ const AdminWorkersPage = () => {
 
       const payload = {
         name: form.name.trim(),
+
         phone: form.phone.trim(),
+
         avatar_url: form.avatar_url.trim(),
+
         is_active: form.is_active,
+
         service_ids: form.service_ids,
       };
 
       if (editingWorker) {
-        await updateWorker(editingWorker.id, payload);
+        await apiFetch(`/workers/${editingWorker.id}`, {
+          method: "PATCH",
+          auth: true,
+          body: JSON.stringify(payload),
+        });
 
         setSuccess("Funcionário atualizado com sucesso!");
       } else {
-        await createWorker(payload);
+        await apiFetch("/workers", {
+          method: "POST",
+          auth: true,
+          body: JSON.stringify(payload),
+        });
 
         setSuccess("Funcionário criado com sucesso!");
       }
@@ -208,7 +226,10 @@ const AdminWorkersPage = () => {
     if (!confirmed) return;
 
     try {
-      await deleteWorker(id);
+      await apiFetch(`/workers/${id}`, {
+        method: "DELETE",
+        auth: true,
+      });
 
       setWorkers((prev) => prev.filter((worker) => worker.id !== id));
     } catch (err) {
@@ -232,9 +253,7 @@ const AdminWorkersPage = () => {
   return (
     <div className="min-h-screen bg-[#07090d] text-white p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
-        {/* ================================================= */}
         {/* HEADER */}
-        {/* ================================================= */}
 
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 mb-8">
           <div className="flex items-center gap-4">
@@ -260,9 +279,7 @@ const AdminWorkersPage = () => {
           </Button>
         </div>
 
-        {/* ================================================= */}
         {/* SEARCH */}
-        {/* ================================================= */}
 
         <div className="flex items-center gap-3 mb-8 bg-[#111827] border border-violet-500/10 rounded-3xl px-5 h-16 backdrop-blur-xl shadow-lg">
           <Search size={18} className="text-violet-300" />
@@ -275,9 +292,7 @@ const AdminWorkersPage = () => {
           />
         </div>
 
-        {/* ================================================= */}
         {/* WORKERS */}
-        {/* ================================================= */}
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {filteredWorkers.map((worker) => (
@@ -286,6 +301,7 @@ const AdminWorkersPage = () => {
               className="rounded-[32px] overflow-hidden border border-violet-500/10 bg-[#111827] shadow-xl shadow-black/20 transition-all duration-300 hover:-translate-y-1 hover:border-violet-400/30"
             >
               {/* AVATAR */}
+
               <div className="h-52 bg-black/30 overflow-hidden">
                 {worker.avatar_url ? (
                   <img
@@ -303,6 +319,7 @@ const AdminWorkersPage = () => {
               </div>
 
               {/* CONTENT */}
+
               <div className="p-5">
                 <div className="flex items-start justify-between gap-4 mb-4">
                   <div className="flex-1 min-w-0">
@@ -329,6 +346,7 @@ const AdminWorkersPage = () => {
                 </div>
 
                 {/* SERVICES */}
+
                 <div className="mb-5">
                   <div className="flex items-center gap-2 mb-3">
                     <Briefcase size={15} className="text-violet-300" />
@@ -355,6 +373,7 @@ const AdminWorkersPage = () => {
                 </div>
 
                 {/* ACTIONS */}
+
                 <div className="grid grid-cols-2 gap-3">
                   <Button
                     onClick={() => handleOpenEdit(worker)}
@@ -376,20 +395,18 @@ const AdminWorkersPage = () => {
         </div>
 
         {/* EMPTY */}
+
         {filteredWorkers.length === 0 && (
           <div className="text-center py-20 text-white/40">
             Nenhum funcionário encontrado.
           </div>
         )}
 
-        {/* ================================================= */}
         {/* MODAL */}
-        {/* ================================================= */}
 
         {openModal && (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="w-full max-w-2xl max-h-[95vh] overflow-y-auto rounded-[32px] border border-violet-500/20 bg-[#0f172a] p-6 shadow-2xl shadow-violet-500/10">
-              {/* HEADER */}
               <div className="flex items-start justify-between gap-4 mb-6">
                 <div>
                   <h2 className="text-3xl font-black">
@@ -410,10 +427,8 @@ const AdminWorkersPage = () => {
                 </button>
               </div>
 
-              {/* FORM */}
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="grid md:grid-cols-2 gap-4">
-                  {/* NAME */}
                   <div className="md:col-span-2">
                     <label className="text-sm text-white/60 mb-2 block">
                       Nome
@@ -427,7 +442,6 @@ const AdminWorkersPage = () => {
                     />
                   </div>
 
-                  {/* PHONE */}
                   <div>
                     <label className="text-sm text-white/60 mb-2 block">
                       Telefone
@@ -440,7 +454,6 @@ const AdminWorkersPage = () => {
                     />
                   </div>
 
-                  {/* AVATAR */}
                   <div>
                     <label className="text-sm text-white/60 mb-2 block">
                       URL do avatar
@@ -456,7 +469,8 @@ const AdminWorkersPage = () => {
                   </div>
                 </div>
 
-                {/* AVATAR PREVIEW */}
+                {/* PREVIEW */}
+
                 {form.avatar_url && (
                   <div className="rounded-3xl overflow-hidden border border-violet-500/20">
                     <img
@@ -468,6 +482,7 @@ const AdminWorkersPage = () => {
                 )}
 
                 {/* SERVICES */}
+
                 <div>
                   <label className="text-sm text-white/60 mb-3 block">
                     Serviços
@@ -496,6 +511,7 @@ const AdminWorkersPage = () => {
                 </div>
 
                 {/* ACTIVE */}
+
                 <div className="flex items-center justify-between rounded-2xl bg-[#111827] border border-white/10 px-4 h-14">
                   <span className="text-white/70">Funcionário ativo</span>
 
@@ -510,6 +526,7 @@ const AdminWorkersPage = () => {
                 </div>
 
                 {/* ERROR */}
+
                 {error && (
                   <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm">
                     {error}
@@ -517,6 +534,7 @@ const AdminWorkersPage = () => {
                 )}
 
                 {/* SUCCESS */}
+
                 {success && (
                   <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm">
                     {success}
@@ -524,6 +542,7 @@ const AdminWorkersPage = () => {
                 )}
 
                 {/* SUBMIT */}
+
                 <Button
                   type="submit"
                   disabled={submitting}
