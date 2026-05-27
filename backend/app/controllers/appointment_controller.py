@@ -21,23 +21,49 @@ class AppointmentController:
             slot = TimeSlot.query.get(data.get('slot_id'))
 
             if not slot:
-                return jsonify({"error": "Horário não encontrado"}), 404
+                return jsonify({
+                    "error": "Horário não encontrado"
+                }), 404
 
             if not slot.is_available:
-                return jsonify({"error": "Horário indisponível"}), 400
+                return jsonify({
+                    "error": "Horário indisponível"
+                }), 400
 
             service = Service.query.get(data.get('service_id'))
 
             if not service:
-                return jsonify({"error": "Serviço não encontrado"}), 404
+                return jsonify({
+                    "error": "Serviço não encontrado"
+                }), 404
+
+            worker = Worker.query.get(data.get('worker_id'))
+
+            if not worker:
+                return jsonify({
+                    "error": "Funcionário não encontrado"
+                }), 404
+
+            if worker not in service.workers:
+                return jsonify({
+                    "error": "Funcionário não pertence a este serviço"
+                }), 400
+
+            if slot.worker_id != worker.id:
+                return jsonify({
+                    "error": "Horário não pertence a este funcionário"
+                }), 400
 
             if not data.get('name') or not data.get('phone'):
-                return jsonify({"error": "Nome e telefone são obrigatórios"}), 400
+                return jsonify({
+                    "error": "Nome e telefone são obrigatórios"
+                }), 400
 
             schedule = Schedule(
                 company_id=slot.company_id,
                 slot_id=slot.id,
                 service_id=service.id,
+                worker_id=worker.id,
                 name=data['name'],
                 phone=data['phone'],
                 notes=data.get('notes'),
@@ -56,7 +82,10 @@ class AppointmentController:
 
         except Exception as e:
             db.session.rollback()
-            return jsonify({"error": str(e)}), 500
+
+            return jsonify({
+                "error": str(e)
+            }), 500
 
 
     # =========================================================

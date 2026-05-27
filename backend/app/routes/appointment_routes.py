@@ -46,7 +46,7 @@ appointment_bp.route(
 # 📌 CONFIRMAR AGENDAMENTO
 # =========================================================
 appointment_bp.route(
-    '/appointments/<int:id>/confirm',
+    '/appointments/<int:id>/finish',
     methods=['PATCH']
 )(
     jwt_required()(
