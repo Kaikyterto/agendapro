@@ -26,7 +26,7 @@ import {
 const initialForm = {
   name: "",
   description: "",
-  price: "",
+  value: "",
   image_url: "",
   active: true,
 };
@@ -99,7 +99,7 @@ const AdminProductsPage = () => {
     setForm({
       name: product?.name || "",
       description: product?.description || "",
-      price: product?.price || "",
+      value: product?.value || "",
       image_url: product?.image_url || "",
       active: typeof product?.active === "boolean" ? product.active : true,
     });
@@ -132,8 +132,8 @@ const AdminProductsPage = () => {
         return;
       }
 
-      if (!form.price || Number(form.price) <= 0) {
-        setError("Informe um preço válido");
+      if (!form.value || Number(form.value) <= 0) {
+        setError("Informe um valor válido");
         return;
       }
 
@@ -141,7 +141,7 @@ const AdminProductsPage = () => {
         name: form.name.trim(),
         description: form.description.trim(),
         image_url: form.image_url.trim(),
-        price: Number(form.price),
+        value: Number(form.value),
         active: form.active,
       };
 
@@ -209,7 +209,6 @@ const AdminProductsPage = () => {
   return (
     <div className="min-h-screen bg-[#07090d] text-white p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
-        {/* HEADER */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 mb-8">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-[28px] bg-white/5 border border-white/10 flex items-center justify-center">
@@ -234,7 +233,6 @@ const AdminProductsPage = () => {
           </Button>
         </div>
 
-        {/* DASHBOARD */}
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
           <DashboardCard
             title="Faturamento"
@@ -261,7 +259,6 @@ const AdminProductsPage = () => {
           />
         </div>
 
-        {/* SEARCH */}
         <div className="flex items-center gap-3 mb-8 bg-white/5 border border-white/10 rounded-3xl px-5 h-16 backdrop-blur-xl">
           <Search size={18} className="text-white/40" />
 
@@ -273,7 +270,6 @@ const AdminProductsPage = () => {
           />
         </div>
 
-        {/* PRODUCTS */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {filteredProducts.map((product) => (
             <div
@@ -319,10 +315,10 @@ const AdminProductsPage = () => {
 
                 <div className="flex items-center justify-between mb-5">
                   <div>
-                    <p className="text-white/40 text-xs">Preço</p>
+                    <p className="text-white/40 text-xs">Valor</p>
 
                     <h4 className="text-2xl font-black">
-                      R$ {Number(product.price || 0).toFixed(2)}
+                      R$ {Number(product.value || 0).toFixed(2)}
                     </h4>
                   </div>
 
@@ -361,7 +357,6 @@ const AdminProductsPage = () => {
           </div>
         )}
 
-        {/* MODAL */}
         {openModal && (
           <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="w-full max-w-xl rounded-[32px] border border-white/10 bg-[#101317] p-6">
@@ -416,15 +411,15 @@ const AdminProductsPage = () => {
 
                 <div>
                   <label className="text-sm text-white/60 mb-2 block">
-                    Preço
+                    Valor
                   </label>
 
                   <input
                     type="number"
                     step="0.01"
                     min="0"
-                    value={form.price}
-                    onChange={(e) => handleChange("price", e.target.value)}
+                    value={form.value}
+                    onChange={(e) => handleChange("value", e.target.value)}
                     required
                     className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 px-4 outline-none focus:border-white/30 transition-all"
                   />
