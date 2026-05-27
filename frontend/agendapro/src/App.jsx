@@ -11,6 +11,7 @@ import CompanyBookingPage from "./pages/CompanyBookingPage";
 
 import AdminHomePage from "./pages/AdminHomePage";
 import AdminBookingPage from "./pages/AdminBookingPage";
+import AdminProductsPage from "./pages/AdminProductsPage";
 
 export default function App() {
   return (
@@ -26,7 +27,10 @@ export default function App() {
       {/* ADMIN (MULTI-TENANT COM SLUG) */}
       {/* ============================================= */}
       <Route path="/admin/:slug" element={<AdminHomePage />} />
+
       <Route path="/admin/:slug/agendamentos" element={<AdminBookingPage />} />
+
+      <Route path="/admin/:slug/produtos" element={<AdminProductsPage />} />
 
       {/* ============================================= */}
       {/* PUBLIC COMPANY */}
