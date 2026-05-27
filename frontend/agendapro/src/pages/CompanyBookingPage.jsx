@@ -11,7 +11,7 @@ import {
 
 import {
   createAppointment,
-  getServiceWorkerAvailableSlots,
+  getCompanyAvailableSlotsByServiceAndWorker,
 } from "../services/appointmentService";
 
 import {
@@ -41,6 +41,8 @@ const CompanyBookingPage = () => {
   const [showWorkersModal, setShowWorkersModal] = useState(false);
   const [showBookingModal, setShowBookingModal] = useState(false);
 
+  const [availableSlots, setAvailableSlots] = useState([]);
+
   const [form, setForm] = useState({
     name: "",
     phone: "",
@@ -59,7 +61,6 @@ const CompanyBookingPage = () => {
         ]);
 
         setCompany(companyData);
-
         setServices(servicesData);
 
         if (companyData?.colors) {
@@ -93,28 +94,29 @@ const CompanyBookingPage = () => {
   };
 
   const filteredSlots = useMemo(() => {
-    return (
-      company?.available_slots?.filter((slot) => {
-        if (!selectedDate) return false;
+    return availableSlots.filter((slot) => {
+      if (!selectedDate) return false;
 
-        const date = new Date(slot.start);
+      const date = new Date(slot.start);
 
-        const slotDate =
-          date.getFullYear() +
-          "-" +
-          String(date.getMonth() + 1).padStart(2, "0") +
-          "-" +
-          String(date.getDate()).padStart(2, "0");
+      const slotDate =
+        date.getFullYear() +
+        "-" +
+        String(date.getMonth() + 1).padStart(2, "0") +
+        "-" +
+        String(date.getDate()).padStart(2, "0");
 
-        return slotDate === selectedDate;
-      }) || []
-    );
-  }, [company, selectedDate]);
+      return slotDate === selectedDate;
+    });
+  }, [availableSlots, selectedDate]);
 
   const resetBookingState = () => {
     setSelectedWorker(null);
     setSelectedSlot(null);
     setSelectedDate("");
+
+    setAvailableSlots([]);
+
     setError("");
     setSuccess("");
 
@@ -163,12 +165,9 @@ const CompanyBookingPage = () => {
 
       setSuccess("Agendamento realizado com sucesso!");
 
-      setCompany((prev) => ({
-        ...prev,
-        available_slots: prev.available_slots.filter(
-          (slot) => slot.id !== selectedSlot.id
-        ),
-      }));
+      setAvailableSlots((prev) =>
+        prev.filter((slot) => slot.id !== selectedSlot.id)
+      );
 
       setTimeout(() => {
         setShowBookingModal(false);
@@ -291,15 +290,14 @@ const CompanyBookingPage = () => {
                       <Button
                         onClick={async () => {
                           try {
+                            resetBookingState();
+
                             const workersData = await getServiceWorkers(
                               slug,
                               service.id
                             );
 
                             setSelectedService(service);
-
-                            resetBookingState();
-
                             setWorkers(workersData);
 
                             setShowWorkersModal(true);
@@ -379,16 +377,13 @@ const CompanyBookingPage = () => {
                       onClick={async () => {
                         try {
                           const slotsData =
-                            await getServiceWorkerAvailableSlots(
+                            await getCompanyAvailableSlotsByServiceAndWorker(
                               slug,
                               selectedService.id,
                               worker.id
                             );
 
-                          setCompany((prev) => ({
-                            ...prev,
-                            available_slots: slotsData,
-                          }));
+                          setAvailableSlots(slotsData);
 
                           setSelectedWorker(worker);
 
@@ -399,6 +394,7 @@ const CompanyBookingPage = () => {
                           }, 150);
                         } catch (err) {
                           console.error(err);
+                          setError("Erro ao carregar horários disponíveis");
                         }
                       }}
                       className="w-full sm:w-auto"
