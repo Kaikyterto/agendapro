@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+
 from flask_jwt_extended import (
     JWTManager,
     get_jwt,
@@ -41,27 +42,23 @@ def create_app():
     # =====================================================
     CORS(
         app,
-        resources={
-            r"/api/*": {
-                "origins": [
-                    "https://agendapro-v1.vercel.app",
-                    "http://localhost:5173",
-                ],
-                "methods": [
-                    "GET",
-                    "POST",
-                    "PUT",
-                    "PATCH",
-                    "DELETE",
-                    "OPTIONS"
-                ],
-                "allow_headers": [
-                    "Content-Type",
-                    "Authorization"
-                ],
-            }
-        },
-        supports_credentials=True
+        origins=[
+            "https://agendapro-v1.vercel.app",
+            "http://localhost:5173",
+        ],
+        supports_credentials=True,
+        methods=[
+            "GET",
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE",
+            "OPTIONS"
+        ],
+        allow_headers=[
+            "Content-Type",
+            "Authorization"
+        ]
     )
 
     # =====================================================
