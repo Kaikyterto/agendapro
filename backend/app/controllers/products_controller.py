@@ -25,7 +25,7 @@ class ProductsController:
 
             products = Product.query.filter_by(
                 company_id=company_id
-            ).order_by(Product.created_at.desc()).all()
+            ).order_by(Product.id.desc()).all()
 
             response = []
 
@@ -51,7 +51,10 @@ class ProductsController:
                     "id": product.id,
                     "name": product.name,
                     "description": product.description,
-                    "price": float(product.price),
+
+                    # 🔥 CORRIGIDO
+                    "value": float(product.value or 0),
+
                     "image_url": product.image_url,
                     "active": product.active,
 
@@ -93,7 +96,10 @@ class ProductsController:
 
             name = data.get("name")
             description = data.get("description")
-            price = data.get("price")
+
+            # 🔥 CORRIGIDO
+            value = data.get("value")
+
             image_url = data.get("image_url")
 
             if not name:
@@ -101,7 +107,7 @@ class ProductsController:
                     "error": "Nome é obrigatório"
                 }), 400
 
-            if price is None:
+            if value is None:
                 return jsonify({
                     "error": "Preço é obrigatório"
                 }), 400
@@ -110,7 +116,10 @@ class ProductsController:
                 company_id=company_id,
                 name=name,
                 description=description,
-                price=price,
+
+                # 🔥 CORRIGIDO
+                value=value,
+
                 image_url=image_url,
                 active=True
             )
@@ -120,11 +129,15 @@ class ProductsController:
 
             return jsonify({
                 "message": "Produto criado com sucesso",
+
                 "product": {
                     "id": product.id,
                     "name": product.name,
                     "description": product.description,
-                    "price": float(product.price),
+
+                    # 🔥 CORRIGIDO
+                    "value": float(product.value or 0),
+
                     "image_url": product.image_url,
                     "active": product.active
                 }
@@ -174,9 +187,10 @@ class ProductsController:
                 product.description
             )
 
-            product.price = data.get(
-                "price",
-                product.price
+            # 🔥 CORRIGIDO
+            product.value = data.get(
+                "value",
+                product.value
             )
 
             product.image_url = data.get(
@@ -190,7 +204,16 @@ class ProductsController:
             db.session.commit()
 
             return jsonify({
-                "message": "Produto atualizado com sucesso"
+                "message": "Produto atualizado com sucesso",
+
+                "product": {
+                    "id": product.id,
+                    "name": product.name,
+                    "description": product.description,
+                    "value": float(product.value or 0),
+                    "image_url": product.image_url,
+                    "active": product.active
+                }
             }), 200
 
         except Exception as e:
@@ -278,7 +301,7 @@ class ProductsController:
             ).all()
 
             revenue = sum(
-                float(record.value)
+                float(record.value or 0)
                 for record in records
             )
 
