@@ -1,5 +1,4 @@
 from flask import Flask, request, jsonify
-
 from flask_jwt_extended import (
     JWTManager,
     get_jwt,
@@ -27,39 +26,57 @@ def create_app():
     # =====================================================
     # CONFIG
     # =====================================================
-    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
-        "DATABASE_URL"
-    )
-
+    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-
-    app.config["JWT_SECRET_KEY"] = os.getenv(
-        "JWT_SECRET_KEY"
-    )
+    app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
 
     # =====================================================
     # CORS
     # =====================================================
     CORS(
         app,
-        origins=[
-            "https://agendapro-v1.vercel.app",
-            "http://localhost:5173",
-        ],
-        supports_credentials=True,
-        methods=[
-            "GET",
-            "POST",
-            "PUT",
-            "PATCH",
-            "DELETE",
-            "OPTIONS"
-        ],
-        allow_headers=[
-            "Content-Type",
-            "Authorization"
-        ]
+        resources={
+            r"/api/*": {
+                "origins": [
+                    "https://agendapro-v1.vercel.app",
+                    "http://localhost:5173",
+                ],
+                "methods": [
+                    "GET",
+                    "POST",
+                    "PUT",
+                    "PATCH",
+                    "DELETE",
+                    "OPTIONS"
+                ],
+                "allow_headers": [
+                    "Content-Type",
+                    "Authorization"
+                ],
+            }
+        },
+        supports_credentials=True
     )
+
+    @app.after_request
+    def after_request(response):
+
+        response.headers.add(
+            "Access-Control-Allow-Origin",
+            "*"
+        )
+
+        response.headers.add(
+            "Access-Control-Allow-Headers",
+            "Content-Type,Authorization"
+        )
+
+        response.headers.add(
+            "Access-Control-Allow-Methods",
+            "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+        )
+
+        return response
 
     # =====================================================
     # INIT EXTENSIONS
@@ -79,25 +96,22 @@ def create_app():
         path = request.path
 
         # =================================================
-        # IGNORAR PREFLIGHT
+        # ROTAS LIVRES
         # =================================================
+        if path.startswith("/auth") or path.startswith("/webhook"):
+            return
+
         if request.method == "OPTIONS":
             return
 
         # =================================================
-        # ROTAS LIVRES
+        # ROTAS PÚBLICAS
         # =================================================
-        public_paths = [
-            "/auth",
-            "/webhook",
-            "/api/public"
-        ]
-
-        if any(path.startswith(p) for p in public_paths):
+        if path.startswith("/api/public"):
             return
 
         # =================================================
-        # VALIDAR JWT
+        # ROTAS PRIVADAS
         # =================================================
         try:
 
@@ -121,20 +135,16 @@ def create_app():
 
             if company.status != "active":
                 return jsonify({
-                    "error": (
-                        "Conta inativa. "
-                        "Ative sua assinatura para continuar."
-                    )
+                    "error": "Conta inativa. Ative sua assinatura para continuar."
                 }), 403
 
-        except Exception as e:
+        except Exception:
             return jsonify({
-                "error": "Token inválido ou ausente",
-                "details": str(e)
+                "error": "Token inválido ou ausente"
             }), 401
 
     # =====================================================
-    # IMPORT ROUTES
+    # ROUTES
     # =====================================================
     from app.routes.auth_routes import auth_bp
     from app.routes.appointment_routes import appointment_bp
@@ -142,38 +152,41 @@ def create_app():
     from app.routes.settings_routes import settings_bp
     from app.routes.payment_routes import payment_bp
     from app.routes.products_routes import products_bp
-    from app.routes.workers_routes import workers_bp
     from app.routes.webhook_routes import webhook_bp
 
-    # =====================================================
     # AUTH
-    # =====================================================
     app.register_blueprint(
         auth_bp,
         url_prefix="/auth"
     )
 
-    # =====================================================
     # API
-    # =====================================================
-    api_blueprints = [
+    app.register_blueprint(
         appointment_bp,
+        url_prefix="/api"
+    )
+
+    app.register_blueprint(
         public_bp,
+        url_prefix="/api"
+    )
+
+    app.register_blueprint(
         settings_bp,
+        url_prefix="/api"
+    )
+
+    app.register_blueprint(
         payment_bp,
+        url_prefix="/api"
+    )
+
+    app.register_blueprint(
         products_bp,
-        workers_bp
-    ]
+        url_prefix="/api"
+    )
 
-    for blueprint in api_blueprints:
-        app.register_blueprint(
-            blueprint,
-            url_prefix="/api"
-        )
-
-    # =====================================================
     # WEBHOOK
-    # =====================================================
     app.register_blueprint(
         webhook_bp,
         url_prefix="/webhook"
