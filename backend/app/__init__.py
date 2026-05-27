@@ -1,5 +1,10 @@
 from flask import Flask, request, jsonify
-from flask_jwt_extended import JWTManager, get_jwt, verify_jwt_in_request
+from flask_jwt_extended import (
+    JWTManager,
+    get_jwt,
+    verify_jwt_in_request
+)
+
 from flask_migrate import Migrate
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -26,37 +31,64 @@ def create_app():
     app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
 
     # =====================================================
-    # CORS (PRODUÇÃO OK)
+    # CORS
     # =====================================================
     CORS(
         app,
-        resources={r"/api/*": {
-            "origins": [
-                "https://agendapro-v1.vercel.app",
-                "http://localhost:5173",
-            ],
-            "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-            "allow_headers": ["Content-Type", "Authorization"],
-        }},
+        resources={
+            r"/api/*": {
+                "origins": [
+                    "https://agendapro-v1.vercel.app",
+                    "http://localhost:5173",
+                ],
+                "methods": [
+                    "GET",
+                    "POST",
+                    "PUT",
+                    "PATCH",
+                    "DELETE",
+                    "OPTIONS"
+                ],
+                "allow_headers": [
+                    "Content-Type",
+                    "Authorization"
+                ],
+            }
+        },
         supports_credentials=True
     )
 
     @app.after_request
     def after_request(response):
-        response.headers.add("Access-Control-Allow-Origin", "*")
-        response.headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization")
-        response.headers.add("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS")
+
+        response.headers.add(
+            "Access-Control-Allow-Origin",
+            "*"
+        )
+
+        response.headers.add(
+            "Access-Control-Allow-Headers",
+            "Content-Type,Authorization"
+        )
+
+        response.headers.add(
+            "Access-Control-Allow-Methods",
+            "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+        )
+
         return response
 
     # =====================================================
     # INIT EXTENSIONS
     # =====================================================
     db.init_app(app)
+
     migrate.init_app(app, db)
+
     JWTManager(app)
 
     # =====================================================
-    # 🔥 SAAS MIDDLEWARE GLOBAL
+    # SAAS MIDDLEWARE GLOBAL
     # =====================================================
     @app.before_request
     def enforce_company_status():
@@ -64,7 +96,7 @@ def create_app():
         path = request.path
 
         # =================================================
-        # ROTAS LIVRES (SEM NADA)
+        # ROTAS LIVRES
         # =================================================
         if path.startswith("/auth") or path.startswith("/webhook"):
             return
@@ -73,29 +105,33 @@ def create_app():
             return
 
         # =================================================
-        # 🌐 ROTAS PÚBLICAS (SEM LOGIN, MAS COM SLUG NO CONTROLLER)
+        # ROTAS PÚBLICAS
         # =================================================
         if path.startswith("/api/public"):
-            # NÃO bloqueia aqui
-            # validação é feita dentro do controller via slug
             return
 
         # =================================================
-        # 🔐 ROTAS PRIVADAS (JWT OBRIGATÓRIO)
+        # ROTAS PRIVADAS
         # =================================================
         try:
+
             verify_jwt_in_request()
 
             claims = get_jwt()
+
             company_id = claims.get("company_id")
 
             if not company_id:
-                return jsonify({"error": "Empresa não identificada"}), 401
+                return jsonify({
+                    "error": "Empresa não identificada"
+                }), 401
 
             company = Company.query.get(company_id)
 
             if not company:
-                return jsonify({"error": "Empresa não encontrada"}), 404
+                return jsonify({
+                    "error": "Empresa não encontrada"
+                }), 404
 
             if company.status != "active":
                 return jsonify({
@@ -103,7 +139,9 @@ def create_app():
                 }), 403
 
         except Exception:
-            return jsonify({"error": "Token inválido ou ausente"}), 401
+            return jsonify({
+                "error": "Token inválido ou ausente"
+            }), 401
 
     # =====================================================
     # ROUTES
@@ -113,15 +151,45 @@ def create_app():
     from app.routes.public_routes import public_bp
     from app.routes.settings_routes import settings_bp
     from app.routes.payment_routes import payment_bp
+    from app.routes.products_routes import products_bp
     from app.routes.webhook_routes import webhook_bp
 
-    app.register_blueprint(auth_bp, url_prefix="/auth")
+    # AUTH
+    app.register_blueprint(
+        auth_bp,
+        url_prefix="/auth"
+    )
 
-    app.register_blueprint(appointment_bp, url_prefix="/api")
-    app.register_blueprint(public_bp, url_prefix="/api")
-    app.register_blueprint(settings_bp, url_prefix="/api")
-    app.register_blueprint(payment_bp, url_prefix="/api")
+    # API
+    app.register_blueprint(
+        appointment_bp,
+        url_prefix="/api"
+    )
 
-    app.register_blueprint(webhook_bp, url_prefix="/webhook")
+    app.register_blueprint(
+        public_bp,
+        url_prefix="/api"
+    )
+
+    app.register_blueprint(
+        settings_bp,
+        url_prefix="/api"
+    )
+
+    app.register_blueprint(
+        payment_bp,
+        url_prefix="/api"
+    )
+
+    app.register_blueprint(
+        products_bp,
+        url_prefix="/api"
+    )
+
+    # WEBHOOK
+    app.register_blueprint(
+        webhook_bp,
+        url_prefix="/webhook"
+    )
 
     return app
