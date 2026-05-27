@@ -48,11 +48,16 @@ class PublicController:
         ]), 200
 
     # =====================================================
-    #  SLOTS POR SERVIÇO
+    #  SLOTS POR SERVIÇO E FUNCIONÁRIO
     # =====================================================
     @staticmethod
     @public_company_active
-    def get_service_available_slots(slug, service_id, company):
+    def get_service_available_slots(
+        slug,
+        service_id,
+        worker_id,
+        company
+    ):
 
         service = Service.query.filter_by(
             id=service_id,
@@ -60,10 +65,26 @@ class PublicController:
         ).first()
 
         if not service:
-            return jsonify({"error": "Serviço não encontrado"}), 404
+            return jsonify({
+                "error": "Serviço não encontrado"
+            }), 404
+
+        worker = next(
+            (
+                worker for worker in service.workers
+                if worker.id == worker_id
+            ),
+            None
+        )
+
+        if not worker:
+            return jsonify({
+                "error": "Funcionário não pertence ao serviço"
+            }), 404
 
         slots = TimeSlot.query.filter_by(
             company_id=company.id,
+            worker_id=worker.id,
             is_available=True
         ).order_by(
             TimeSlot.start_time.asc()
@@ -73,7 +94,11 @@ class PublicController:
             {
                 "id": slot.id,
                 "start": slot.start_time.isoformat(),
-                "end": slot.end_time.isoformat()
+                "end": slot.end_time.isoformat(),
+                "worker": {
+                    "id": worker.id,
+                    "name": worker.name
+                }
             }
             for slot in slots
         ]), 200

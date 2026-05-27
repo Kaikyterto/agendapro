@@ -9,3 +9,13 @@ export function createAppointment(data) {
 export function getCompanyAvailableSlots(slug) {
   return apiFetch(`/public/company/${slug}/slots`);
 }
+
+export function getCompanyAvailableSlotsByServiceAndWorker(
+  slug,
+  serviceId,
+  workerId
+) {
+  return apiFetch(
+    `/public/company/${slug}/services/${serviceId}/workers/${workerId}/slots`
+  );
+}

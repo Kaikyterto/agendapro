@@ -11,7 +11,7 @@ import {
 
 import {
   createAppointment,
-  getCompanyAvailableSlots,
+  getServiceWorkerAvailableSlots,
 } from "../services/appointmentService";
 
 import {
@@ -53,16 +53,12 @@ const CompanyBookingPage = () => {
   useEffect(() => {
     const loadCompany = async () => {
       try {
-        const [companyData, slotsData, servicesData] = await Promise.all([
+        const [companyData, servicesData] = await Promise.all([
           getCompanyBySlug(slug),
-          getCompanyAvailableSlots(slug),
           getCompanyServices(slug),
         ]);
 
-        setCompany({
-          ...companyData,
-          available_slots: slotsData,
-        });
+        setCompany(companyData);
 
         setServices(servicesData);
 
@@ -380,14 +376,30 @@ const CompanyBookingPage = () => {
                     </div>
 
                     <Button
-                      onClick={() => {
-                        setSelectedWorker(worker);
+                      onClick={async () => {
+                        try {
+                          const slotsData =
+                            await getServiceWorkerAvailableSlots(
+                              slug,
+                              selectedService.id,
+                              worker.id
+                            );
 
-                        setShowWorkersModal(false);
+                          setCompany((prev) => ({
+                            ...prev,
+                            available_slots: slotsData,
+                          }));
 
-                        setTimeout(() => {
-                          setShowBookingModal(true);
-                        }, 150);
+                          setSelectedWorker(worker);
+
+                          setShowWorkersModal(false);
+
+                          setTimeout(() => {
+                            setShowBookingModal(true);
+                          }, 150);
+                        } catch (err) {
+                          console.error(err);
+                        }
                       }}
                       className="w-full sm:w-auto"
                       style={{
