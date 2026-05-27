@@ -26,9 +26,15 @@ def create_app():
     # =====================================================
     # CONFIG
     # =====================================================
-    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
+    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
+        "DATABASE_URL"
+    )
+
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-    app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
+
+    app.config["JWT_SECRET_KEY"] = os.getenv(
+        "JWT_SECRET_KEY"
+    )
 
     # =====================================================
     # CORS
@@ -58,26 +64,6 @@ def create_app():
         supports_credentials=True
     )
 
-    @app.after_request
-    def after_request(response):
-
-        response.headers.add(
-            "Access-Control-Allow-Origin",
-            "*"
-        )
-
-        response.headers.add(
-            "Access-Control-Allow-Headers",
-            "Content-Type,Authorization"
-        )
-
-        response.headers.add(
-            "Access-Control-Allow-Methods",
-            "GET,POST,PUT,PATCH,DELETE,OPTIONS"
-        )
-
-        return response
-
     # =====================================================
     # INIT EXTENSIONS
     # =====================================================
@@ -96,22 +82,25 @@ def create_app():
         path = request.path
 
         # =================================================
-        # ROTAS LIVRES
+        # IGNORAR PREFLIGHT
         # =================================================
-        if path.startswith("/auth") or path.startswith("/webhook"):
-            return
-
         if request.method == "OPTIONS":
             return
 
         # =================================================
-        # ROTAS PÚBLICAS
+        # ROTAS LIVRES
         # =================================================
-        if path.startswith("/api/public"):
+        public_paths = [
+            "/auth",
+            "/webhook",
+            "/api/public"
+        ]
+
+        if any(path.startswith(p) for p in public_paths):
             return
 
         # =================================================
-        # ROTAS PRIVADAS
+        # VALIDAR JWT
         # =================================================
         try:
 
@@ -135,16 +124,20 @@ def create_app():
 
             if company.status != "active":
                 return jsonify({
-                    "error": "Conta inativa. Ative sua assinatura para continuar."
+                    "error": (
+                        "Conta inativa. "
+                        "Ative sua assinatura para continuar."
+                    )
                 }), 403
 
-        except Exception:
+        except Exception as e:
             return jsonify({
-                "error": "Token inválido ou ausente"
+                "error": "Token inválido ou ausente",
+                "details": str(e)
             }), 401
 
     # =====================================================
-    # ROUTES
+    # IMPORT ROUTES
     # =====================================================
     from app.routes.auth_routes import auth_bp
     from app.routes.appointment_routes import appointment_bp
@@ -152,41 +145,38 @@ def create_app():
     from app.routes.settings_routes import settings_bp
     from app.routes.payment_routes import payment_bp
     from app.routes.products_routes import products_bp
+    from app.routes.workers_routes import workers_bp
     from app.routes.webhook_routes import webhook_bp
 
+    # =====================================================
     # AUTH
+    # =====================================================
     app.register_blueprint(
         auth_bp,
         url_prefix="/auth"
     )
 
+    # =====================================================
     # API
-    app.register_blueprint(
+    # =====================================================
+    api_blueprints = [
         appointment_bp,
-        url_prefix="/api"
-    )
-
-    app.register_blueprint(
         public_bp,
-        url_prefix="/api"
-    )
-
-    app.register_blueprint(
         settings_bp,
-        url_prefix="/api"
-    )
-
-    app.register_blueprint(
         payment_bp,
-        url_prefix="/api"
-    )
-
-    app.register_blueprint(
         products_bp,
-        url_prefix="/api"
-    )
+        workers_bp
+    ]
 
+    for blueprint in api_blueprints:
+        app.register_blueprint(
+            blueprint,
+            url_prefix="/api"
+        )
+
+    # =====================================================
     # WEBHOOK
+    # =====================================================
     app.register_blueprint(
         webhook_bp,
         url_prefix="/webhook"

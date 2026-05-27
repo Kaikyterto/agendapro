@@ -12,6 +12,7 @@ import CompanyBookingPage from "./pages/CompanyBookingPage";
 import AdminHomePage from "./pages/AdminHomePage";
 import AdminBookingPage from "./pages/AdminBookingPage";
 import AdminProductsPage from "./pages/AdminProductsPage";
+import AdminWorkersPage from "./pages/AdminWorkersPage";
 
 export default function App() {
   return (
@@ -20,23 +21,31 @@ export default function App() {
       {/* AUTH */}
       {/* ============================================= */}
       <Route path="/" element={<LoginPage />} />
+
       <Route path="/register" element={<RegisterPage />} />
+
       <Route path="/payment" element={<PaymentPage />} />
 
       {/* ============================================= */}
       {/* ADMIN (MULTI-TENANT COM SLUG) */}
       {/* ============================================= */}
+
       <Route path="/admin/:slug" element={<AdminHomePage />} />
 
       <Route path="/admin/:slug/agendamentos" element={<AdminBookingPage />} />
 
       <Route path="/admin/:slug/produtos" element={<AdminProductsPage />} />
 
+      <Route path="/admin/:slug/funcionarios" element={<AdminWorkersPage />} />
+
       {/* ============================================= */}
       {/* PUBLIC COMPANY */}
       {/* ============================================= */}
+
       <Route path="/:slug" element={<HomePage />} />
+
       <Route path="/:slug/produtos" element={<CompanyProductsPage />} />
+
       <Route path="/:slug/agendar" element={<CompanyBookingPage />} />
     </Routes>
   );
