@@ -2,6 +2,9 @@ from flask import Blueprint
 from flask_jwt_extended import jwt_required
 
 from app.controllers.workers_controller import WorkersController
+from app.controllers.worker_schedules_controller import (
+    WorkerSchedulesController
+)
 
 workers_bp = Blueprint("workers", __name__)
 
@@ -32,6 +35,54 @@ def update_worker(worker_id):
 @jwt_required()
 def delete_worker(worker_id):
     return WorkersController.delete_worker(worker_id)
+
+
+# =========================================================
+# WORKER SCHEDULES
+# =========================================================
+
+@workers_bp.route(
+    "/workers/<int:worker_id>/schedules",
+    methods=["GET"]
+)
+@jwt_required()
+def list_worker_schedules(worker_id):
+    return WorkerSchedulesController.list_worker_schedules(
+        worker_id
+    )
+
+
+@workers_bp.route(
+    "/workers/<int:worker_id>/schedules",
+    methods=["POST"]
+)
+@jwt_required()
+def create_worker_schedule(worker_id):
+    return WorkerSchedulesController.create_worker_schedule(
+        worker_id
+    )
+
+
+@workers_bp.route(
+    "/worker-schedules/<int:schedule_id>",
+    methods=["PATCH"]
+)
+@jwt_required()
+def update_worker_schedule(schedule_id):
+    return WorkerSchedulesController.update_worker_schedule(
+        schedule_id
+    )
+
+
+@workers_bp.route(
+    "/worker-schedules/<int:schedule_id>",
+    methods=["DELETE"]
+)
+@jwt_required()
+def delete_worker_schedule(schedule_id):
+    return WorkerSchedulesController.delete_worker_schedule(
+        schedule_id
+    )
 
 
 # =========================================================

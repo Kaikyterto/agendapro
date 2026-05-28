@@ -9,3 +9,4 @@ from .time_slot import TimeSlot
 from .service import Service
 from .worker import Worker
 from .worker_service import WorkerService
+from .worker_schedule import WorkerSchedule

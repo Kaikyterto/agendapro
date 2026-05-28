@@ -45,6 +45,50 @@ export async function deleteWorker(workerId) {
 }
 
 // =========================================================
+// WORKER SCHEDULES
+// =========================================================
+
+export async function getWorkerSchedules(workerId) {
+  return await apiFetch(`/workers/${workerId}/schedules`, {
+    method: "GET",
+    auth: true,
+  });
+}
+
+export async function createWorkerSchedule(workerId, data) {
+  return await apiFetch(`/workers/${workerId}/schedules`, {
+    method: "POST",
+    auth: true,
+
+    headers: {
+      "Content-Type": "application/json",
+    },
+
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateWorkerSchedule(scheduleId, data) {
+  return await apiFetch(`/worker-schedules/${scheduleId}`, {
+    method: "PATCH",
+    auth: true,
+
+    headers: {
+      "Content-Type": "application/json",
+    },
+
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteWorkerSchedule(scheduleId) {
+  return await apiFetch(`/worker-schedules/${scheduleId}`, {
+    method: "DELETE",
+    auth: true,
+  });
+}
+
+// =========================================================
 // SERVICES
 // =========================================================
 

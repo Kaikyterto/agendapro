@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from flask import jsonify, request
 from flask_jwt_extended import get_jwt
 
@@ -6,6 +8,7 @@ from app.database.db import db
 from app.models.worker import Worker
 from app.models.service import Service
 from app.models.worker_service import WorkerService
+from app.models.worker_schedule import WorkerSchedule
 
 
 class WorkersController:
@@ -33,6 +36,11 @@ class WorkersController:
 
             for worker in workers:
 
+                schedules = sorted(
+                    worker.schedules,
+                    key=lambda s: (s.weekday, s.start_time)
+                )
+
                 response.append({
                     "id": worker.id,
                     "name": worker.name,
@@ -48,6 +56,17 @@ class WorkersController:
                             "duration": service.duration
                         }
                         for service in worker.services
+                    ],
+
+                    "schedules": [
+                        {
+                            "id": schedule.id,
+                            "weekday": schedule.weekday,
+                            "start_time": schedule.start_time.strftime("%H:%M"),
+                            "end_time": schedule.end_time.strftime("%H:%M"),
+                            "is_active": schedule.is_active
+                        }
+                        for schedule in schedules
                     ]
                 })
 
@@ -117,6 +136,7 @@ class WorkersController:
             is_active = data.get("is_active", True)
 
             service_ids = data.get("service_ids", [])
+            schedules_data = data.get("schedules", [])
 
             if not name:
                 return jsonify({
@@ -135,6 +155,10 @@ class WorkersController:
 
             db.session.flush()
 
+            # =====================================================
+            # SERVICES
+            # =====================================================
+
             if service_ids:
 
                 services = Service.query.filter(
@@ -143,6 +167,85 @@ class WorkersController:
                 ).all()
 
                 worker.services = services
+
+            # =====================================================
+            # SCHEDULES
+            # =====================================================
+
+            for item in schedules_data:
+
+                weekday = item.get("weekday")
+                start_time = item.get("start_time")
+                end_time = item.get("end_time")
+
+                if weekday is None:
+                    db.session.rollback()
+
+                    return jsonify({
+                        "error": "weekday é obrigatório"
+                    }), 400
+
+                if not start_time or not end_time:
+                    db.session.rollback()
+
+                    return jsonify({
+                        "error": "Horário inicial e final são obrigatórios"
+                    }), 400
+
+                try:
+
+                    start_time_obj = datetime.strptime(
+                        start_time,
+                        "%H:%M"
+                    ).time()
+
+                    end_time_obj = datetime.strptime(
+                        end_time,
+                        "%H:%M"
+                    ).time()
+
+                except ValueError:
+
+                    db.session.rollback()
+
+                    return jsonify({
+                        "error": "Formato de horário inválido"
+                    }), 400
+
+                if start_time_obj >= end_time_obj:
+
+                    db.session.rollback()
+
+                    return jsonify({
+                        "error": "Horário final deve ser maior que o inicial"
+                    }), 400
+
+                overlapping_schedule = WorkerSchedule.query.filter(
+                    WorkerSchedule.company_id == company_id,
+                    WorkerSchedule.worker_id == worker.id,
+                    WorkerSchedule.weekday == weekday,
+                    WorkerSchedule.start_time < end_time_obj,
+                    WorkerSchedule.end_time > start_time_obj
+                ).first()
+
+                if overlapping_schedule:
+
+                    db.session.rollback()
+
+                    return jsonify({
+                        "error": "Existem horários conflitantes"
+                    }), 400
+
+                schedule = WorkerSchedule(
+                    company_id=company_id,
+                    worker_id=worker.id,
+                    weekday=weekday,
+                    start_time=start_time_obj,
+                    end_time=end_time_obj,
+                    is_active=True
+                )
+
+                db.session.add(schedule)
 
             db.session.commit()
 
@@ -223,6 +326,93 @@ class WorkersController:
 
                     worker.services = services
 
+            # =====================================================
+            # UPDATE SCHEDULES
+            # =====================================================
+
+            if "schedules" in data:
+
+                WorkerSchedule.query.filter_by(
+                    worker_id=worker.id
+                ).delete()
+
+                schedules_data = data["schedules"]
+
+                for item in schedules_data:
+
+                    weekday = item.get("weekday")
+                    start_time = item.get("start_time")
+                    end_time = item.get("end_time")
+
+                    if weekday is None:
+                        db.session.rollback()
+
+                        return jsonify({
+                            "error": "weekday é obrigatório"
+                        }), 400
+
+                    if not start_time or not end_time:
+                        db.session.rollback()
+
+                        return jsonify({
+                            "error": "Horários inválidos"
+                        }), 400
+
+                    try:
+
+                        start_time_obj = datetime.strptime(
+                            start_time,
+                            "%H:%M"
+                        ).time()
+
+                        end_time_obj = datetime.strptime(
+                            end_time,
+                            "%H:%M"
+                        ).time()
+
+                    except ValueError:
+
+                        db.session.rollback()
+
+                        return jsonify({
+                            "error": "Formato de horário inválido"
+                        }), 400
+
+                    if start_time_obj >= end_time_obj:
+
+                        db.session.rollback()
+
+                        return jsonify({
+                            "error": "Horário final inválido"
+                        }), 400
+
+                    overlapping_schedule = WorkerSchedule.query.filter(
+                        WorkerSchedule.company_id == company_id,
+                        WorkerSchedule.worker_id == worker.id,
+                        WorkerSchedule.weekday == weekday,
+                        WorkerSchedule.start_time < end_time_obj,
+                        WorkerSchedule.end_time > start_time_obj
+                    ).first()
+
+                    if overlapping_schedule:
+
+                        db.session.rollback()
+
+                        return jsonify({
+                            "error": "Existem horários conflitantes"
+                        }), 400
+
+                    schedule = WorkerSchedule(
+                        company_id=company_id,
+                        worker_id=worker.id,
+                        weekday=weekday,
+                        start_time=start_time_obj,
+                        end_time=end_time_obj,
+                        is_active=True
+                    )
+
+                    db.session.add(schedule)
+
             db.session.commit()
 
             return jsonify({
@@ -264,6 +454,10 @@ class WorkersController:
                 }), 404
 
             WorkerService.query.filter_by(
+                worker_id=worker.id
+            ).delete()
+
+            WorkerSchedule.query.filter_by(
                 worker_id=worker.id
             ).delete()
 
