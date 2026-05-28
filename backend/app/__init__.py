@@ -147,7 +147,6 @@ def create_app():
     from app.routes.payment_routes import payment_bp
     from app.routes.products_routes import products_bp
     from app.routes.workers_routes import workers_bp
-    from app.routes.services_routes import services_bp
     from app.routes.webhook_routes import webhook_bp
 
     # =====================================================
