@@ -5,7 +5,7 @@ from flask_jwt_extended import get_jwt
 
 from app.database.db import db
 
-from app.models.schedule import Schedule
+from backend.app.models.schedules import Schedule
 from app.models.service import Service
 from app.models.worker import Worker
 
@@ -26,7 +26,7 @@ class AppointmentController:
 
             service_id = data.get("service_id")
             worker_id = data.get("worker_id")
-            start_datetime = data.get("start_datetime")
+            start_time = data.get("start_time")
 
             customer_name = data.get("name")
             customer_phone = data.get("phone")
@@ -42,9 +42,9 @@ class AppointmentController:
                     "error": "worker_id é obrigatório"
                 }), 400
 
-            if not start_datetime:
+            if not start_time:
                 return jsonify({
-                    "error": "start_datetime é obrigatório"
+                    "error": "start_time é obrigatório"
                 }), 400
 
             if not customer_name or not customer_phone:
@@ -54,8 +54,8 @@ class AppointmentController:
 
             try:
 
-                start_datetime_obj = datetime.fromisoformat(
-                    start_datetime
+                start_time_obj = datetime.fromisoformat(
+                    start_time
                 )
 
             except ValueError:
@@ -69,7 +69,7 @@ class AppointmentController:
             # =====================================================
 
             if (
-                start_datetime_obj.minute
+                start_time_obj.minute
                 % AppointmentController.SLOT_INTERVAL_MINUTES
             ) != 0:
 
@@ -121,7 +121,7 @@ class AppointmentController:
             # END DATETIME
             # =====================================================
 
-            end_datetime_obj = start_datetime_obj + timedelta(
+            end_datetime_obj = start_time_obj + timedelta(
                 minutes=service.duration
             )
 
@@ -132,8 +132,8 @@ class AppointmentController:
             conflicting_schedule = Schedule.query.filter(
                 Schedule.worker_id == worker.id,
                 Schedule.status != "cancelled",
-                Schedule.start_datetime < end_datetime_obj,
-                Schedule.end_datetime > start_datetime_obj
+                Schedule.start_time < end_datetime_obj,
+                Schedule.end_datetime > start_time_obj
             ).first()
 
             if conflicting_schedule:
@@ -154,7 +154,7 @@ class AppointmentController:
                 phone=customer_phone,
                 notes=notes,
 
-                start_datetime=start_datetime_obj,
+                start_time=start_time_obj,
                 end_datetime=end_datetime_obj,
 
                 status="pending"
@@ -168,7 +168,7 @@ class AppointmentController:
                 "message": "Agendamento realizado com sucesso!",
                 "schedule": {
                     "id": schedule.id,
-                    "start": schedule.start_datetime.isoformat(),
+                    "start": schedule.start_time.isoformat(),
                     "end": schedule.end_datetime.isoformat(),
                     "status": schedule.status
                 }
@@ -203,7 +203,7 @@ class AppointmentController:
             schedules = Schedule.query.filter_by(
                 company_id=company_id
             ).order_by(
-                Schedule.start_datetime.asc()
+                Schedule.start_time.asc()
             ).all()
 
             return jsonify([
@@ -224,8 +224,8 @@ class AppointmentController:
                     } if s.worker else None,
 
                     "start": (
-                        s.start_datetime.isoformat()
-                        if s.start_datetime
+                        s.start_time.isoformat()
+                        if s.start_time
                         else None
                     ),
 
