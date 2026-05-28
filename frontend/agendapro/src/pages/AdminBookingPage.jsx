@@ -1,6 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import { CalendarDays, Check, X, Clock, Search, User } from "lucide-react";
+
+import {
+  CalendarDays,
+  Check,
+  X,
+  Clock,
+  Search,
+  User,
+  Loader2,
+  CheckCircle2,
+  XCircle,
+  CalendarClock,
+} from "lucide-react";
 
 import { apiFetch } from "../services/api";
 import Button from "../components/Button";
@@ -9,9 +21,16 @@ const AdminBookingPage = () => {
   const { slug } = useParams();
 
   const [appointments, setAppointments] = useState([]);
+
   const [loading, setLoading] = useState(true);
+
   const [error, setError] = useState("");
+
   const [search, setSearch] = useState("");
+
+  // =========================================================
+  // LOAD
+  // =========================================================
 
   const loadAppointments = async () => {
     try {
@@ -30,6 +49,7 @@ const AdminBookingPage = () => {
       console.error(err);
 
       setError("Erro ao carregar agendamentos");
+
       setAppointments([]);
     } finally {
       setLoading(false);
@@ -41,6 +61,10 @@ const AdminBookingPage = () => {
       loadAppointments();
     }
   }, [slug]);
+
+  // =========================================================
+  // ACTIONS
+  // =========================================================
 
   const handleFinish = async (id) => {
     try {
@@ -86,6 +110,10 @@ const AdminBookingPage = () => {
     }
   };
 
+  // =========================================================
+  // FILTER
+  // =========================================================
+
   const filtered = useMemo(() => {
     return [...appointments]
       .filter((a) =>
@@ -93,25 +121,37 @@ const AdminBookingPage = () => {
       )
       .sort((a, b) => {
         if (!a.start) return 1;
+
         if (!b.start) return -1;
 
         return new Date(a.start) - new Date(b.start);
       });
   }, [appointments, search]);
 
+  // =========================================================
+  // STATS
+  // =========================================================
+
   const stats = useMemo(() => {
     return {
       total: appointments.length,
+
       finished: appointments.filter((a) => a.status === "finished").length,
+
       pending: appointments.filter((a) => a.status === "pending").length,
+
       cancelled: appointments.filter((a) => a.status === "cancelled").length,
     };
   }, [appointments]);
 
+  // =========================================================
+  // LOADING
+  // =========================================================
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#07090d] text-white">
-        <div className="w-12 h-12 border-4 border-white/10 border-t-white rounded-full animate-spin" />
+        <Loader2 className="animate-spin text-violet-400" size={42} />
       </div>
     );
   }
@@ -119,38 +159,70 @@ const AdminBookingPage = () => {
   return (
     <div className="min-h-screen bg-[#07090d] text-white p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
-        <div className="flex items-center gap-3 mb-8">
-          <div className="w-14 h-14 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center">
-            <CalendarDays size={26} />
-          </div>
+        {/* HEADER */}
 
-          <div>
-            <h1 className="text-3xl md:text-4xl font-black">Agendamentos</h1>
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 mb-8">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-[28px] bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border border-violet-400/20 flex items-center justify-center shadow-lg shadow-violet-500/10">
+              <CalendarDays size={30} className="text-violet-300" />
+            </div>
 
-            <p className="text-white/50 mt-1">
-              Gerencie os horários da sua empresa
-            </p>
+            <div>
+              <h1 className="text-3xl md:text-4xl font-black bg-gradient-to-r from-white via-violet-200 to-fuchsia-300 bg-clip-text text-transparent">
+                Agendamentos
+              </h1>
+
+              <p className="text-white/50 mt-1">
+                Gerencie os horários da sua empresa
+              </p>
+            </div>
           </div>
         </div>
 
+        {/* ERROR */}
+
         {error && (
-          <div className="mb-6 text-red-300 bg-red-500/10 border border-red-500/20 p-4 rounded-2xl">
+          <div className="mb-6 p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm">
             {error}
           </div>
         )}
 
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
-          <StatCard title="Total" value={stats.total} color="blue" />
+        {/* STATS */}
 
-          <StatCard title="Pendentes" value={stats.pending} color="yellow" />
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-5 mb-8">
+          <StatCard
+            title="Total"
+            value={stats.total}
+            icon={CalendarDays}
+            color="violet"
+          />
 
-          <StatCard title="Finalizados" value={stats.finished} color="green" />
+          <StatCard
+            title="Pendentes"
+            value={stats.pending}
+            icon={CalendarClock}
+            color="yellow"
+          />
 
-          <StatCard title="Cancelados" value={stats.cancelled} color="red" />
+          <StatCard
+            title="Finalizados"
+            value={stats.finished}
+            icon={CheckCircle2}
+            color="green"
+          />
+
+          <StatCard
+            title="Cancelados"
+            value={stats.cancelled}
+            icon={XCircle}
+            color="red"
+          />
         </div>
 
-        <div className="flex items-center gap-3 mb-8 bg-white/5 border border-white/10 rounded-3xl px-5 h-16 backdrop-blur-xl">
-          <Search size={18} className="text-white/40" />
+        {/* SEARCH */}
+
+        <div className="flex items-center gap-3 mb-8 bg-[#111827] border border-violet-500/10 rounded-3xl px-5 h-16 backdrop-blur-xl shadow-lg">
+          <Search size={18} className="text-violet-300" />
 
           <input
             value={search}
@@ -160,62 +232,93 @@ const AdminBookingPage = () => {
           />
         </div>
 
-        {/* DESKTOP */}
-        <div className="hidden lg:block overflow-hidden rounded-[32px] border border-white/10 bg-white/5 backdrop-blur-xl">
-          <div className="grid grid-cols-5 px-6 py-5 border-b border-white/10 text-white/50 text-sm font-semibold">
-            <div>Cliente</div>
-            <div>Serviço</div>
-            <div>Profissional</div>
-            <div>Data</div>
-            <div>Status</div>
-          </div>
+        {/* LIST */}
 
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
           {filtered.map((a) => (
             <div
               key={a.id}
-              className="grid grid-cols-5 px-6 py-5 border-b border-white/5 hover:bg-white/[0.03] transition-all items-center"
+              className="rounded-[32px] overflow-hidden border border-violet-500/10 bg-[#111827] shadow-xl shadow-black/20 transition-all duration-300 hover:-translate-y-1 hover:border-violet-400/30"
             >
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
-                  <User size={18} />
+              <div className="p-6">
+                {/* TOP */}
+
+                <div className="flex items-start justify-between gap-4 mb-5">
+                  <div className="flex items-center gap-4 min-w-0">
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500/10 to-fuchsia-500/10 border border-violet-500/20 flex items-center justify-center">
+                      <User size={22} className="text-violet-300" />
+                    </div>
+
+                    <div className="min-w-0">
+                      <h3 className="text-xl font-black truncate">
+                        {a.customer_name}
+                      </h3>
+
+                      <p className="text-white/40 text-sm truncate">
+                        {a.phone || "Sem telefone"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <StatusBadge status={a.status} />
                 </div>
 
-                <div>
-                  <p className="font-semibold">{a.customer_name}</p>
+                {/* INFO */}
 
-                  <p className="text-xs text-white/40">{a.phone}</p>
+                <div className="space-y-4 mb-6">
+                  <div className="rounded-2xl bg-black/20 border border-white/5 p-4">
+                    <p className="text-xs uppercase tracking-wide text-white/40 mb-1">
+                      Serviço
+                    </p>
+
+                    <p className="text-white font-semibold">
+                      {a.service_name || "Não informado"}
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl bg-black/20 border border-white/5 p-4">
+                    <p className="text-xs uppercase tracking-wide text-white/40 mb-1">
+                      Profissional
+                    </p>
+
+                    <p className="text-white font-semibold">
+                      {a.worker_name || "Não definido"}
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl bg-black/20 border border-white/5 p-4 flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-2xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
+                      <Clock size={18} className="text-violet-300" />
+                    </div>
+
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-white/40">
+                        Horário
+                      </p>
+
+                      <p className="text-white font-semibold">
+                        {a.start
+                          ? new Date(a.start).toLocaleString("pt-BR")
+                          : "Sem data"}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              <div className="text-white/70">{a.service_name}</div>
-
-              <div className="text-white/60 font-medium">
-                {a.worker_name || "Não definido"}
-              </div>
-
-              <div className="text-sm text-white/60 flex items-center gap-2">
-                <Clock size={15} />
-
-                {a.start
-                  ? new Date(a.start).toLocaleString("pt-BR")
-                  : "Sem data"}
-              </div>
-
-              <div className="flex items-center justify-between gap-3">
-                <StatusBadge status={a.status} />
+                {/* ACTIONS */}
 
                 {a.status === "pending" && (
-                  <div className="flex gap-2">
+                  <div className="grid grid-cols-2 gap-3">
                     <Button
                       onClick={() => handleFinish(a.id)}
-                      className="bg-green-600 hover:bg-green-700 h-11 px-4"
+                      className="h-12 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/20 rounded-2xl"
                     >
                       <Check size={16} />
                     </Button>
 
                     <Button
                       onClick={() => handleCancel(a.id)}
-                      className="bg-red-600 hover:bg-red-700 h-11 px-4"
+                      className="h-12 bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/20 rounded-2xl"
                     >
                       <X size={16} />
                     </Button>
@@ -224,101 +327,49 @@ const AdminBookingPage = () => {
               </div>
             </div>
           ))}
-
-          {filtered.length === 0 && (
-            <div className="p-10 text-center text-white/40">
-              Nenhum agendamento encontrado.
-            </div>
-          )}
         </div>
 
-        {/* MOBILE */}
-        <div className="lg:hidden space-y-4">
-          {filtered.map((a) => (
-            <div
-              key={a.id}
-              className="rounded-[28px] border border-white/10 bg-white/5 backdrop-blur-xl p-5"
-            >
-              <div className="flex items-start justify-between gap-4 mb-5">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
-                    <User size={18} />
-                  </div>
+        {/* EMPTY */}
 
-                  <div>
-                    <h3 className="font-bold">{a.customer_name}</h3>
-
-                    <p className="text-sm text-white/40">{a.phone}</p>
-                  </div>
-                </div>
-
-                <StatusBadge status={a.status} />
-              </div>
-
-              <div className="space-y-3 mb-5">
-                <p className="text-white/70 text-sm">
-                  Serviço: {a.service_name}
-                </p>
-
-                <p className="text-white/60 text-sm">
-                  Profissional: {a.worker_name || "Não definido"}
-                </p>
-
-                <div className="flex items-center gap-2 text-white/50 text-sm">
-                  <Clock size={14} />
-
-                  {a.start
-                    ? new Date(a.start).toLocaleString("pt-BR")
-                    : "Sem data"}
-                </div>
-              </div>
-
-              {a.status === "pending" && (
-                <div className="grid grid-cols-2 gap-3">
-                  <Button
-                    onClick={() => handleFinish(a.id)}
-                    className="bg-green-600 h-12"
-                  >
-                    <Check size={16} />
-                  </Button>
-
-                  <Button
-                    onClick={() => handleCancel(a.id)}
-                    className="bg-red-600 h-12"
-                  >
-                    <X size={16} />
-                  </Button>
-                </div>
-              )}
-            </div>
-          ))}
-
-          {filtered.length === 0 && (
-            <div className="text-center text-white/40 py-10">
-              Nenhum agendamento encontrado.
-            </div>
-          )}
-        </div>
+        {filtered.length === 0 && (
+          <div className="text-center py-20 text-white/40">
+            Nenhum agendamento encontrado.
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
-const StatCard = ({ title, value, color }) => {
-  const colors = {
-    blue: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-    yellow: "bg-yellow-500/10 text-yellow-300 border-yellow-500/20",
-    green: "bg-green-500/10 text-green-400 border-green-500/20",
-    red: "bg-red-500/10 text-red-400 border-red-500/20",
+const StatCard = ({ title, value, icon: Icon, color }) => {
+  const styles = {
+    violet:
+      "from-violet-500/10 to-fuchsia-500/10 border-violet-500/20 text-violet-300",
+
+    yellow:
+      "from-yellow-500/10 to-amber-500/10 border-yellow-500/20 text-yellow-300",
+
+    green:
+      "from-emerald-500/10 to-green-500/10 border-emerald-500/20 text-emerald-300",
+
+    red: "from-red-500/10 to-rose-500/10 border-red-500/20 text-red-300",
   };
 
   return (
     <div
-      className={`rounded-[28px] border p-5 backdrop-blur-xl ${colors[color]}`}
+      className={`rounded-[28px] border bg-gradient-to-br p-5 shadow-xl shadow-black/20 ${styles[color]}`}
     >
-      <p className="text-sm opacity-70">{title}</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm opacity-70">{title}</p>
 
-      <h3 className="text-3xl font-black mt-2">{value}</h3>
+          <h3 className="text-3xl font-black mt-2 text-white">{value}</h3>
+        </div>
+
+        <div className="w-14 h-14 rounded-2xl bg-black/20 border border-white/10 flex items-center justify-center">
+          <Icon size={24} />
+        </div>
+      </div>
     </div>
   );
 };
@@ -331,14 +382,16 @@ const StatusBadge = ({ status }) => {
   };
 
   const styles = {
-    pending: "bg-yellow-500/10 text-yellow-300 border border-yellow-500/20",
-    finished: "bg-green-500/10 text-green-400 border border-green-500/20",
-    cancelled: "bg-red-500/10 text-red-400 border border-red-500/20",
+    pending: "bg-yellow-500/10 text-yellow-300 border-yellow-500/20",
+
+    finished: "bg-emerald-500/10 text-emerald-300 border-emerald-500/20",
+
+    cancelled: "bg-red-500/10 text-red-300 border-red-500/20",
   };
 
   return (
     <span
-      className={`px-4 py-2 rounded-full text-xs font-bold ${styles[status]}`}
+      className={`px-3 py-1 rounded-full text-xs font-bold border whitespace-nowrap ${styles[status]}`}
     >
       {labels[status]}
     </span>
