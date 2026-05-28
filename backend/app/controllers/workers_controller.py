@@ -2,6 +2,7 @@ from flask import jsonify, request
 from flask_jwt_extended import get_jwt
 
 from app.database.db import db
+
 from app.models.worker import Worker
 from app.models.service import Service
 from app.models.worker_service import WorkerService
@@ -10,12 +11,13 @@ from app.models.worker_service import WorkerService
 class WorkersController:
 
     # =========================================================
-    # LISTAR WORKERS
+    # LIST WORKERS
     # =========================================================
     @staticmethod
     def list_workers():
         try:
             claims = get_jwt()
+
             company_id = claims.get("company_id")
 
             if not company_id:
@@ -31,8 +33,6 @@ class WorkersController:
 
             for worker in workers:
 
-                services = worker.services
-
                 response.append({
                     "id": worker.id,
                     "name": worker.name,
@@ -42,12 +42,12 @@ class WorkersController:
 
                     "services": [
                         {
-                            "id": s.id,
-                            "name": s.name,
-                            "price": float(s.price),
-                            "duration": s.duration
+                            "id": service.id,
+                            "name": service.name,
+                            "price": float(service.price),
+                            "duration": service.duration
                         }
-                        for s in services
+                        for service in worker.services
                     ]
                 })
 
@@ -60,12 +60,48 @@ class WorkersController:
             }), 500
 
     # =========================================================
-    # CRIAR WORKER
+    # LIST SERVICES
+    # =========================================================
+    @staticmethod
+    def list_services():
+        try:
+            claims = get_jwt()
+
+            company_id = claims.get("company_id")
+
+            if not company_id:
+                return jsonify({
+                    "error": "Empresa não identificada"
+                }), 401
+
+            services = Service.query.filter_by(
+                company_id=company_id
+            ).order_by(Service.id.desc()).all()
+
+            return jsonify([
+                {
+                    "id": service.id,
+                    "name": service.name,
+                    "price": float(service.price),
+                    "duration": service.duration
+                }
+                for service in services
+            ]), 200
+
+        except Exception as e:
+            return jsonify({
+                "error": "Erro ao buscar serviços",
+                "details": str(e)
+            }), 500
+
+    # =========================================================
+    # CREATE WORKER
     # =========================================================
     @staticmethod
     def create_worker():
         try:
             claims = get_jwt()
+
             company_id = claims.get("company_id")
 
             if not company_id:
@@ -78,6 +114,8 @@ class WorkersController:
             name = data.get("name")
             phone = data.get("phone")
             avatar_url = data.get("avatar_url")
+            is_active = data.get("is_active", True)
+
             service_ids = data.get("service_ids", [])
 
             if not name:
@@ -90,15 +128,18 @@ class WorkersController:
                 name=name,
                 phone=phone,
                 avatar_url=avatar_url,
-                is_active=True
+                is_active=is_active
             )
 
             db.session.add(worker)
+
             db.session.flush()
 
             if service_ids:
+
                 services = Service.query.filter(
-                    Service.id.in_(service_ids)
+                    Service.id.in_(service_ids),
+                    Service.company_id == company_id
                 ).all()
 
                 worker.services = services
@@ -109,14 +150,12 @@ class WorkersController:
                 "message": "Funcionário criado com sucesso",
                 "worker": {
                     "id": worker.id,
-                    "name": worker.name,
-                    "phone": worker.phone,
-                    "avatar_url": worker.avatar_url,
-                    "is_active": worker.is_active
+                    "name": worker.name
                 }
             }), 201
 
         except Exception as e:
+
             db.session.rollback()
 
             return jsonify({
@@ -125,12 +164,13 @@ class WorkersController:
             }), 500
 
     # =========================================================
-    # ATUALIZAR WORKER
+    # UPDATE WORKER
     # =========================================================
     @staticmethod
     def update_worker(worker_id):
         try:
             claims = get_jwt()
+
             company_id = claims.get("company_id")
 
             if not company_id:
@@ -151,28 +191,37 @@ class WorkersController:
             data = request.get_json()
 
             worker.name = data.get("name", worker.name)
+
             worker.phone = data.get("phone", worker.phone)
-            worker.avatar_url = data.get("avatar_url", worker.avatar_url)
+
+            worker.avatar_url = data.get(
+                "avatar_url",
+                worker.avatar_url
+            )
 
             if "is_active" in data:
                 worker.is_active = data["is_active"]
 
             # =====================================================
-            # UPDATE MANY-TO-MANY (WorkerService)
+            # UPDATE SERVICES
             # =====================================================
+
             if "service_ids" in data:
 
                 WorkerService.query.filter_by(
                     worker_id=worker.id
                 ).delete()
 
-                for service_id in data["service_ids"]:
-                    db.session.add(
-                        WorkerService(
-                            worker_id=worker.id,
-                            service_id=service_id
-                        )
-                    )
+                service_ids = data["service_ids"]
+
+                if service_ids:
+
+                    services = Service.query.filter(
+                        Service.id.in_(service_ids),
+                        Service.company_id == company_id
+                    ).all()
+
+                    worker.services = services
 
             db.session.commit()
 
@@ -181,6 +230,7 @@ class WorkersController:
             }), 200
 
         except Exception as e:
+
             db.session.rollback()
 
             return jsonify({
@@ -189,12 +239,13 @@ class WorkersController:
             }), 500
 
     # =========================================================
-    # DELETAR WORKER
+    # DELETE WORKER
     # =========================================================
     @staticmethod
     def delete_worker(worker_id):
         try:
             claims = get_jwt()
+
             company_id = claims.get("company_id")
 
             if not company_id:
@@ -212,7 +263,12 @@ class WorkersController:
                     "error": "Funcionário não encontrado"
                 }), 404
 
+            WorkerService.query.filter_by(
+                worker_id=worker.id
+            ).delete()
+
             db.session.delete(worker)
+
             db.session.commit()
 
             return jsonify({
@@ -220,6 +276,7 @@ class WorkersController:
             }), 200
 
         except Exception as e:
+
             db.session.rollback()
 
             return jsonify({

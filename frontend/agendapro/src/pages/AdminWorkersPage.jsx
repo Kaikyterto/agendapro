@@ -15,7 +15,13 @@ import {
 
 import Button from "../components/Button";
 
-import { apiFetch } from "../services/api";
+import {
+  getWorkers,
+  getServices,
+  createWorker,
+  updateWorker,
+  deleteWorker,
+} from "../services/workers";
 
 const initialForm = {
   name: "",
@@ -51,15 +57,8 @@ const AdminWorkersPage = () => {
       setLoading(true);
 
       const [workersData, servicesData] = await Promise.all([
-        apiFetch("/workers", {
-          method: "GET",
-          auth: true,
-        }),
-
-        apiFetch("/services", {
-          method: "GET",
-          auth: true,
-        }),
+        getWorkers(),
+        getServices(),
       ]);
 
       setWorkers(Array.isArray(workersData) ? workersData : []);
@@ -184,19 +183,11 @@ const AdminWorkersPage = () => {
       };
 
       if (editingWorker) {
-        await apiFetch(`/workers/${editingWorker.id}`, {
-          method: "PATCH",
-          auth: true,
-          body: JSON.stringify(payload),
-        });
+        await updateWorker(editingWorker.id, payload);
 
         setSuccess("Funcionário atualizado com sucesso!");
       } else {
-        await apiFetch("/workers", {
-          method: "POST",
-          auth: true,
-          body: JSON.stringify(payload),
-        });
+        await createWorker(payload);
 
         setSuccess("Funcionário criado com sucesso!");
       }
@@ -209,7 +200,11 @@ const AdminWorkersPage = () => {
     } catch (err) {
       console.error(err);
 
-      setError(err?.response?.data?.error || "Erro ao salvar funcionário");
+      setError(
+        err?.response?.data?.error ||
+          err?.message ||
+          "Erro ao salvar funcionário"
+      );
     } finally {
       setSubmitting(false);
     }
@@ -226,16 +221,17 @@ const AdminWorkersPage = () => {
     if (!confirmed) return;
 
     try {
-      await apiFetch(`/workers/${id}`, {
-        method: "DELETE",
-        auth: true,
-      });
+      await deleteWorker(id);
 
       setWorkers((prev) => prev.filter((worker) => worker.id !== id));
     } catch (err) {
       console.error(err);
 
-      alert(err?.response?.data?.error || "Erro ao remover funcionário");
+      alert(
+        err?.response?.data?.error ||
+          err?.message ||
+          "Erro ao remover funcionário"
+      );
     }
   };
 
@@ -300,8 +296,6 @@ const AdminWorkersPage = () => {
               key={worker.id}
               className="rounded-[32px] overflow-hidden border border-violet-500/10 bg-[#111827] shadow-xl shadow-black/20 transition-all duration-300 hover:-translate-y-1 hover:border-violet-400/30"
             >
-              {/* AVATAR */}
-
               <div className="h-52 bg-black/30 overflow-hidden">
                 {worker.avatar_url ? (
                   <img
@@ -317,8 +311,6 @@ const AdminWorkersPage = () => {
                   </div>
                 )}
               </div>
-
-              {/* CONTENT */}
 
               <div className="p-5">
                 <div className="flex items-start justify-between gap-4 mb-4">
@@ -345,8 +337,6 @@ const AdminWorkersPage = () => {
                   </div>
                 </div>
 
-                {/* SERVICES */}
-
                 <div className="mb-5">
                   <div className="flex items-center gap-2 mb-3">
                     <Briefcase size={15} className="text-violet-300" />
@@ -372,8 +362,6 @@ const AdminWorkersPage = () => {
                   </div>
                 </div>
 
-                {/* ACTIONS */}
-
                 <div className="grid grid-cols-2 gap-3">
                   <Button
                     onClick={() => handleOpenEdit(worker)}
@@ -394,173 +382,9 @@ const AdminWorkersPage = () => {
           ))}
         </div>
 
-        {/* EMPTY */}
-
         {filteredWorkers.length === 0 && (
           <div className="text-center py-20 text-white/40">
             Nenhum funcionário encontrado.
-          </div>
-        )}
-
-        {/* MODAL */}
-
-        {openModal && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="w-full max-w-2xl max-h-[95vh] overflow-y-auto rounded-[32px] border border-violet-500/20 bg-[#0f172a] p-6 shadow-2xl shadow-violet-500/10">
-              <div className="flex items-start justify-between gap-4 mb-6">
-                <div>
-                  <h2 className="text-3xl font-black">
-                    {editingWorker ? "Editar Funcionário" : "Novo Funcionário"}
-                  </h2>
-
-                  <p className="text-white/40 text-sm mt-1">
-                    Preencha as informações abaixo
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleCloseModal}
-                  className="min-w-[44px] h-11 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="md:col-span-2">
-                    <label className="text-sm text-white/60 mb-2 block">
-                      Nome
-                    </label>
-
-                    <input
-                      value={form.name}
-                      onChange={(e) => handleChange("name", e.target.value)}
-                      required
-                      className="w-full h-14 rounded-2xl bg-[#111827] border border-white/10 px-4 outline-none focus:border-violet-400 transition-all"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm text-white/60 mb-2 block">
-                      Telefone
-                    </label>
-
-                    <input
-                      value={form.phone}
-                      onChange={(e) => handleChange("phone", e.target.value)}
-                      className="w-full h-14 rounded-2xl bg-[#111827] border border-white/10 px-4 outline-none focus:border-violet-400 transition-all"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm text-white/60 mb-2 block">
-                      URL do avatar
-                    </label>
-
-                    <input
-                      value={form.avatar_url}
-                      onChange={(e) =>
-                        handleChange("avatar_url", e.target.value)
-                      }
-                      className="w-full h-14 rounded-2xl bg-[#111827] border border-white/10 px-4 outline-none focus:border-violet-400 transition-all"
-                    />
-                  </div>
-                </div>
-
-                {/* PREVIEW */}
-
-                {form.avatar_url && (
-                  <div className="rounded-3xl overflow-hidden border border-violet-500/20">
-                    <img
-                      src={form.avatar_url}
-                      alt="Preview"
-                      className="w-full h-56 object-cover"
-                    />
-                  </div>
-                )}
-
-                {/* SERVICES */}
-
-                <div>
-                  <label className="text-sm text-white/60 mb-3 block">
-                    Serviços
-                  </label>
-
-                  <div className="flex flex-wrap gap-3">
-                    {services.map((service) => {
-                      const selected = form.service_ids.includes(service.id);
-
-                      return (
-                        <button
-                          key={service.id}
-                          type="button"
-                          onClick={() => toggleService(service.id)}
-                          className={`px-4 py-2 rounded-2xl border text-sm transition-all ${
-                            selected
-                              ? "bg-violet-500 text-white border-violet-400"
-                              : "bg-[#111827] border-white/10 text-white/60 hover:border-violet-500/30"
-                          }`}
-                        >
-                          {service.name}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* ACTIVE */}
-
-                <div className="flex items-center justify-between rounded-2xl bg-[#111827] border border-white/10 px-4 h-14">
-                  <span className="text-white/70">Funcionário ativo</span>
-
-                  <input
-                    type="checkbox"
-                    checked={form.is_active}
-                    onChange={(e) =>
-                      handleChange("is_active", e.target.checked)
-                    }
-                    className="w-5 h-5 accent-violet-500"
-                  />
-                </div>
-
-                {/* ERROR */}
-
-                {error && (
-                  <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm">
-                    {error}
-                  </div>
-                )}
-
-                {/* SUCCESS */}
-
-                {success && (
-                  <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm">
-                    {success}
-                  </div>
-                )}
-
-                {/* SUBMIT */}
-
-                <Button
-                  type="submit"
-                  disabled={submitting}
-                  className="w-full h-14 bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:opacity-90 text-white rounded-2xl font-bold mt-2 disabled:opacity-60 border-0"
-                >
-                  {submitting ? (
-                    <>
-                      <Loader2 size={18} className="animate-spin" />
-                      Salvando...
-                    </>
-                  ) : editingWorker ? (
-                    "Salvar Alterações"
-                  ) : (
-                    "Criar Funcionário"
-                  )}
-                </Button>
-              </form>
-            </div>
           </div>
         )}
       </div>
