@@ -50,7 +50,7 @@ public_bp.route(
     '/public/company/<string:slug>/services/<int:service_id>/workers/<int:worker_id>/slots',
     methods=['GET']
 )(
-    PublicController.get_service_available_slots
+    PublicController.get_company_available_slots
 )
 
 public_bp.route(
