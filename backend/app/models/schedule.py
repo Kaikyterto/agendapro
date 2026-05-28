@@ -9,31 +9,33 @@ class Schedule(db.Model):
     company_id = db.Column(
         db.Integer,
         db.ForeignKey("companies.id", ondelete="CASCADE"),
-        nullable=False
+        nullable=False,
+        index=True
     )
 
-    # Slot escolhido (horário)
-    slot_id = db.Column(
+    worker_id = db.Column(
         db.Integer,
-        db.ForeignKey("time_slots.id"),
+        db.ForeignKey("workers.id", ondelete="CASCADE"),
         nullable=False,
-        unique=True
+        index=True
     )
 
     service_id = db.Column(
         db.Integer,
-        db.ForeignKey("services.id"),
-        nullable=False
+        db.ForeignKey("services.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True
     )
 
-    worker_id = db.Column(
-    db.Integer,
-    db.ForeignKey("workers.id"),
-    nullable=True
-)
+    # 👇 HORÁRIO REAL DO AGENDAMENTO
+    start_time = db.Column(db.DateTime, nullable=False, index=True)
+    end_time = db.Column(db.DateTime, nullable=False, index=True)
 
-    name = db.Column(db.String(100), nullable=False)
-    phone = db.Column(db.String(20), nullable=False)
+    # 👇 DADOS DO CLIENTE (MANTIDOS COMO VOCÊ QUER)
+    name = db.Column(db.String(120), nullable=False)
+    phone = db.Column(db.String(30), nullable=False)
+
+    notes = db.Column(db.Text, nullable=True)
 
     status = db.Column(
         db.String(20),
@@ -41,32 +43,26 @@ class Schedule(db.Model):
         default="pending"
     )
 
-    notes = db.Column(db.Text, nullable=True)
-
     created_at = db.Column(
         db.DateTime,
-        nullable=False,
-        server_default=db.func.now()
+        server_default=db.func.now(),
+        nullable=False
     )
 
     updated_at = db.Column(
         db.DateTime,
-        nullable=False,
         server_default=db.func.now(),
-        onupdate=db.func.now()
+        onupdate=db.func.now(),
+        nullable=False
     )
 
-    slot = db.relationship(
-        "TimeSlot",
-        backref=db.backref("schedule", uselist=False)
-    )
-
+    
     service = db.relationship(
         "Service",
-        backref=db.backref("schedules", lazy=True)
+        backref=db.backref("schedule", lazy=True)
     )
 
     worker = db.relationship(
         "Worker",
-        backref=db.backref("schedules", lazy=True)
+        backref=db.backref("schedule", lazy=True)
     )

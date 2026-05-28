@@ -88,7 +88,7 @@ class AuthController:
         )
 
         # =====================================================
-        # RESPOSTA FINAL (AQUI ESTAVA O ERRO)
+        # RESPOSTA FINAL 
         # =====================================================
         return jsonify({
             "access_token": access_token,
@@ -99,7 +99,7 @@ class AuthController:
                 "company_id": user.company_id
             },
 
-            # 🔥 ESSENCIAL PRA SUA APLICAÇÃO
+ 
             "company": {
                 "id": company.id,
                 "name": company.name,
@@ -109,7 +109,7 @@ class AuthController:
         }), 200
 
     # =========================================================
-    # REGISTER (mantido igual)
+    # REGISTER 
     # =========================================================
     @staticmethod
     def register():

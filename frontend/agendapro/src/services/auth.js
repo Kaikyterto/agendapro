@@ -30,11 +30,22 @@ export const loginService = async (credentials) => {
     // ERROR
     // =====================================================
     if (!response.ok) {
-      throw (
-        data || {
-          message: "Erro ao realizar login",
-        }
-      );
+      let errorMessage = "Erro ao realizar login";
+
+      try {
+        const errorData = await response.json();
+
+        errorMessage =
+          errorData?.message ||
+          errorData?.error ||
+          errorData?.msg ||
+          errorMessage;
+      } catch (e) {
+        // resposta não era JSON
+        errorMessage = (await response.text()) || errorMessage;
+      }
+
+      throw new Error(errorMessage);
     }
 
     return data;
