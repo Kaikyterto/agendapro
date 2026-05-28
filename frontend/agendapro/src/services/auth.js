@@ -7,51 +7,45 @@ export const loginService = async (credentials) => {
   try {
     const response = await fetch(`${API_URL_AUTH}/login`, {
       method: "POST",
-
       headers: {
         "Content-Type": "application/json",
       },
-
       body: JSON.stringify({
         email: credentials.email,
         password: credentials.password,
       }),
     });
 
+    // =====================================================
+    // LEITURA ÚNICA DA RESPONSE (CORRETO)
+    // =====================================================
+    const contentType = response.headers.get("content-type");
+
     let data;
 
-    try {
+    if (contentType?.includes("application/json")) {
       data = await response.json();
-    } catch {
-      data = null;
+    } else {
+      data = await response.text();
     }
 
     // =====================================================
-    // ERROR
+    // ERROR HANDLING
     // =====================================================
     if (!response.ok) {
-      let errorMessage = "Erro ao realizar login";
+      const message =
+        data?.message ||
+        data?.error ||
+        data?.msg ||
+        data ||
+        "Erro ao realizar login";
 
-      try {
-        const errorData = await response.json();
-
-        errorMessage =
-          errorData?.message ||
-          errorData?.error ||
-          errorData?.msg ||
-          errorMessage;
-      } catch (e) {
-        // resposta não era JSON
-        errorMessage = (await response.text()) || errorMessage;
-      }
-
-      throw new Error(errorMessage);
+      throw new Error(message);
     }
 
     return data;
   } catch (error) {
     console.error("Auth Service Error:", error);
-
     throw error;
   }
 };
@@ -60,9 +54,7 @@ export const loginService = async (credentials) => {
 // AUTH CHECK
 // =========================================================
 export const isAuthenticated = () => {
-  const token = localStorage.getItem("@AgendaPro:token");
-
-  return !!token;
+  return !!localStorage.getItem("@AgendaPro:token");
 };
 
 // =========================================================
@@ -70,6 +62,5 @@ export const isAuthenticated = () => {
 // =========================================================
 export const logout = () => {
   localStorage.removeItem("@AgendaPro:token");
-
   localStorage.removeItem("@AgendaPro:user");
 };
