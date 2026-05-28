@@ -31,48 +31,35 @@ class AppointmentController:
             customer_phone = data.get("phone")
             notes = data.get("notes")
 
-            if not service_id:
-                return jsonify({"error": "service_id é obrigatório"}), 400
-
-            if not worker_id:
-                return jsonify({"error": "worker_id é obrigatório"}), 400
-
-            if not start_datetime:
-                return jsonify({"error": "start_datetime é obrigatório"}), 400
+            if not service_id or not worker_id or not start_datetime:
+                return jsonify({"error": "Dados obrigatórios faltando"}), 400
 
             if not customer_name or not customer_phone:
                 return jsonify({"error": "Nome e telefone são obrigatórios"}), 400
 
-            # parse datetime
             try:
                 start_datetime_obj = datetime.fromisoformat(start_datetime)
             except ValueError:
                 return jsonify({"error": "Formato de data inválido"}), 400
 
-            # valida intervalo
-            if (start_datetime_obj.minute % AppointmentController.SLOT_INTERVAL_MINUTES) != 0:
+            if start_datetime_obj.minute % self.SLOT_INTERVAL_MINUTES != 0:
                 return jsonify({
-                    "error": f"Horário deve respeitar intervalos de {AppointmentController.SLOT_INTERVAL_MINUTES} minutos"
+                    "error": f"Horário deve ser múltiplo de {self.SLOT_INTERVAL_MINUTES} minutos"
                 }), 400
 
             service = Service.query.get(service_id)
-            if not service:
-                return jsonify({"error": "Serviço não encontrado"}), 404
+            if not service or service.company_id is None:
+                return jsonify({"error": "Serviço inválido"}), 404
 
             worker = Worker.query.get(worker_id)
-            if not worker:
-                return jsonify({"error": "Funcionário não encontrado"}), 404
-
-            if not worker.is_active:
-                return jsonify({"error": "Funcionário inativo"}), 400
+            if not worker or not worker.is_active:
+                return jsonify({"error": "Funcionário inválido"}), 404
 
             if worker not in service.workers:
-                return jsonify({"error": "Funcionário não pertence a este serviço"}), 400
+                return jsonify({"error": "Funcionário não pertence ao serviço"}), 400
 
-            # end time
             end_datetime_obj = start_datetime_obj + timedelta(minutes=service.duration)
 
-            # conflito
             conflicting_schedule = Schedule.query.filter(
                 Schedule.worker_id == worker.id,
                 Schedule.status != "cancelled",
@@ -84,7 +71,7 @@ class AppointmentController:
                 return jsonify({"error": "Horário indisponível"}), 400
 
             schedule = Schedule(
-                company_id=worker.company_id,
+                company_id=worker.company_id or service.company_id,
                 service_id=service.id,
                 worker_id=worker.id,
 
@@ -125,8 +112,7 @@ class AppointmentController:
     def list_company_schedules():
 
         try:
-            claims = get_jwt()
-            company_id = claims.get("company_id")
+            company_id = get_jwt().get("company_id")
 
             schedules = Schedule.query.filter_by(
                 company_id=company_id
@@ -139,20 +125,16 @@ class AppointmentController:
                     "id": s.id,
                     "customer_name": s.name,
                     "phone": s.phone,
-
                     "service": {
                         "id": s.service.id,
                         "name": s.service.name
                     } if s.service else None,
-
                     "worker": {
                         "id": s.worker.id,
                         "name": s.worker.name
                     } if s.worker else None,
-
                     "start": s.start_datetime.isoformat() if s.start_datetime else None,
                     "end": s.end_datetime.isoformat() if s.end_datetime else None,
-
                     "status": s.status,
                     "notes": s.notes
                 }
@@ -162,69 +144,5 @@ class AppointmentController:
         except Exception as e:
             return jsonify({
                 "error": "Erro ao buscar agendamentos",
-                "details": str(e)
-            }), 500
-
-    # =========================================================
-    # CANCEL
-    # =========================================================
-    @staticmethod
-    def cancel_appointment(id):
-
-        try:
-            company_id = get_jwt().get("company_id")
-
-            schedule = Schedule.query.filter_by(
-                id=id,
-                company_id=company_id
-            ).first()
-
-            if not schedule:
-                return jsonify({"error": "Agendamento não encontrado"}), 404
-
-            if schedule.status in ["cancelled", "completed"]:
-                return jsonify({"error": "Agendamento não pode ser alterado"}), 400
-
-            schedule.status = "cancelled"
-            db.session.commit()
-
-            return jsonify({"message": "Cancelado com sucesso"}), 200
-
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({
-                "error": "Erro ao cancelar agendamento",
-                "details": str(e)
-            }), 500
-
-    # =========================================================
-    # FINISH
-    # =========================================================
-    @staticmethod
-    def finish_appointment(id):
-
-        try:
-            company_id = get_jwt().get("company_id")
-
-            schedule = Schedule.query.filter_by(
-                id=id,
-                company_id=company_id
-            ).first()
-
-            if not schedule:
-                return jsonify({"error": "Agendamento não encontrado"}), 404
-
-            if schedule.status in ["cancelled", "completed"]:
-                return jsonify({"error": "Agendamento não pode ser alterado"}), 400
-
-            schedule.status = "completed"
-            db.session.commit()
-
-            return jsonify({"message": "Finalizado com sucesso"}), 200
-
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({
-                "error": "Erro ao finalizar agendamento",
                 "details": str(e)
             }), 500
