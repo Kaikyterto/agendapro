@@ -167,7 +167,6 @@ def create_app():
         payment_bp,
         products_bp,
         workers_bp,
-        services_bp
     ]
 
     for blueprint in api_blueprints:
