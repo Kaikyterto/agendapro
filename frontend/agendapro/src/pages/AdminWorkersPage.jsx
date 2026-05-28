@@ -116,10 +116,8 @@ const AdminWorkersPage = () => {
       name: worker?.name || "",
       phone: worker?.phone || "",
       avatar_url: worker?.avatar_url || "",
-
       is_active:
         typeof worker?.is_active === "boolean" ? worker.is_active : true,
-
       service_ids: worker?.services?.map((service) => service.id) || [],
     });
 
@@ -170,21 +168,17 @@ const AdminWorkersPage = () => {
       setError("");
       setSuccess("");
 
-      if (!form.name.trim()) {
+      if (!form.name?.trim()) {
         setError("Nome é obrigatório");
         return;
       }
 
       const payload = {
-        name: form.name.trim(),
-
-        phone: form.phone.trim(),
-
-        avatar_url: form.avatar_url.trim(),
-
+        name: form.name?.trim() || "",
+        phone: form.phone?.trim() || "",
+        avatar_url: form.avatar_url?.trim() || "",
         is_active: form.is_active,
-
-        service_ids: form.service_ids,
+        service_ids: form.service_ids || [],
       };
 
       if (editingWorker) {
@@ -274,10 +268,11 @@ const AdminWorkersPage = () => {
           </div>
 
           <Button
+            type="button"
             onClick={handleOpenCreate}
-            className="bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:opacity-90 text-white h-14 px-6 rounded-2xl font-bold border-0 shadow-xl shadow-violet-500/20"
+            icon={Plus}
+            className="bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:opacity-90 h-14 px-6 rounded-2xl font-bold border-0 shadow-xl shadow-violet-500/20"
           >
-            <Plus size={18} />
             Novo Funcionário
           </Button>
         </div>
@@ -313,7 +308,6 @@ const AdminWorkersPage = () => {
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center text-white/20 gap-2">
                     <ImageIcon size={42} />
-
                     <span className="text-sm">Sem avatar</span>
                   </div>
                 )}
@@ -328,7 +322,6 @@ const AdminWorkersPage = () => {
 
                     <p className="text-white/50 text-sm mt-1 flex items-center gap-2">
                       <Phone size={14} />
-
                       {worker.phone || "Sem telefone"}
                     </p>
                   </div>
@@ -360,17 +353,12 @@ const AdminWorkersPage = () => {
                         {service.name}
                       </span>
                     ))}
-
-                    {worker?.services?.length > 4 && (
-                      <span className="px-3 py-1 rounded-full text-xs bg-white/5 text-white/50 border border-white/10">
-                        +{worker.services.length - 4}
-                      </span>
-                    )}
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <Button
+                    type="button"
                     onClick={() => handleOpenEdit(worker)}
                     className="h-12 bg-violet-500/10 hover:bg-violet-500/20 text-violet-300 border border-violet-500/20 rounded-2xl"
                   >
@@ -378,6 +366,7 @@ const AdminWorkersPage = () => {
                   </Button>
 
                   <Button
+                    type="button"
                     onClick={() => handleDelete(worker.id)}
                     className="h-12 bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/20 rounded-2xl"
                   >
@@ -388,12 +377,6 @@ const AdminWorkersPage = () => {
             </div>
           ))}
         </div>
-
-        {filteredWorkers.length === 0 && (
-          <div className="text-center py-20 text-white/40">
-            Nenhum funcionário encontrado.
-          </div>
-        )}
 
         {/* MODAL */}
 
@@ -462,18 +445,6 @@ const AdminWorkersPage = () => {
                   </div>
                 </div>
 
-                {form.avatar_url && (
-                  <div className="rounded-3xl overflow-hidden border border-violet-500/20">
-                    <img
-                      src={form.avatar_url}
-                      alt="Preview"
-                      className="w-full h-56 object-cover"
-                    />
-                  </div>
-                )}
-
-                {/* SERVICES */}
-
                 <div>
                   <label className="text-sm text-white/60 mb-3 block">
                     Serviços
@@ -501,43 +472,10 @@ const AdminWorkersPage = () => {
                   </div>
                 </div>
 
-                {/* ACTIVE */}
-
-                <div className="flex items-center justify-between rounded-2xl bg-[#111827] border border-white/10 px-4 h-14">
-                  <span className="text-white/70">Funcionário ativo</span>
-
-                  <input
-                    type="checkbox"
-                    checked={form.is_active}
-                    onChange={(e) =>
-                      handleChange("is_active", e.target.checked)
-                    }
-                    className="w-5 h-5 accent-violet-500"
-                  />
-                </div>
-
-                {/* ERROR */}
-
-                {error && (
-                  <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm">
-                    {error}
-                  </div>
-                )}
-
-                {/* SUCCESS */}
-
-                {success && (
-                  <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm">
-                    {success}
-                  </div>
-                )}
-
-                {/* SUBMIT */}
-
                 <Button
                   type="submit"
                   disabled={submitting}
-                  className="w-full h-14 bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:opacity-90 text-white rounded-2xl font-bold mt-2 disabled:opacity-60 border-0"
+                  className="w-full h-14 bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:opacity-90 rounded-2xl font-bold mt-2 disabled:opacity-60 border-0"
                 >
                   {submitting ? (
                     <>

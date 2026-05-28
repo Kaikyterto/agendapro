@@ -5,30 +5,40 @@ import { apiFetch } from "./api";
 // =========================================================
 
 export async function getWorkers() {
-  return apiFetch("/workers", {
+  return await apiFetch("/workers", {
     method: "GET",
     auth: true,
   });
 }
 
 export async function createWorker(data) {
-  return apiFetch("/workers", {
+  return await apiFetch("/workers", {
     method: "POST",
     auth: true,
+
+    headers: {
+      "Content-Type": "application/json",
+    },
+
     body: JSON.stringify(data),
   });
 }
 
 export async function updateWorker(workerId, data) {
-  return apiFetch(`/workers/${workerId}`, {
+  return await apiFetch(`/workers/${workerId}`, {
     method: "PATCH",
     auth: true,
+
+    headers: {
+      "Content-Type": "application/json",
+    },
+
     body: JSON.stringify(data),
   });
 }
 
 export async function deleteWorker(workerId) {
-  return apiFetch(`/workers/${workerId}`, {
+  return await apiFetch(`/workers/${workerId}`, {
     method: "DELETE",
     auth: true,
   });
@@ -39,7 +49,7 @@ export async function deleteWorker(workerId) {
 // =========================================================
 
 export async function getServices() {
-  return apiFetch("/services", {
+  return await apiFetch("/services", {
     method: "GET",
     auth: true,
   });
