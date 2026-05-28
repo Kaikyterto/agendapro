@@ -28,8 +28,12 @@ const AdminBookingPage = () => {
 
   const [search, setSearch] = useState("");
 
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  const [dateFilter, setDateFilter] = useState("");
+
   // =========================================================
-  // LOAD
+  // LOAD APPOINTMENTS
   // =========================================================
 
   const loadAppointments = async () => {
@@ -116,9 +120,24 @@ const AdminBookingPage = () => {
 
   const filtered = useMemo(() => {
     return [...appointments]
-      .filter((a) =>
-        a.customer_name?.toLowerCase().includes(search.toLowerCase())
-      )
+      .filter((a) => {
+        const matchesSearch = a.customer_name
+          ?.toLowerCase()
+          .includes(search.toLowerCase());
+
+        const matchesStatus =
+          statusFilter === "all" ? true : a.status === statusFilter;
+
+        let matchesDate = true;
+
+        if (dateFilter && a.start) {
+          const appointmentDate = new Date(a.start).toISOString().split("T")[0];
+
+          matchesDate = appointmentDate === dateFilter;
+        }
+
+        return matchesSearch && matchesStatus && matchesDate;
+      })
       .sort((a, b) => {
         if (!a.start) return 1;
 
@@ -126,7 +145,7 @@ const AdminBookingPage = () => {
 
         return new Date(a.start) - new Date(b.start);
       });
-  }, [appointments, search]);
+  }, [appointments, search, statusFilter, dateFilter]);
 
   // =========================================================
   // STATS
@@ -221,7 +240,7 @@ const AdminBookingPage = () => {
 
         {/* SEARCH */}
 
-        <div className="flex items-center gap-3 mb-8 bg-[#111827] border border-violet-500/10 rounded-3xl px-5 h-16 backdrop-blur-xl shadow-lg">
+        <div className="flex items-center gap-3 mb-4 bg-[#111827] border border-violet-500/10 rounded-3xl px-5 h-16 backdrop-blur-xl shadow-lg">
           <Search size={18} className="text-violet-300" />
 
           <input
@@ -232,93 +251,108 @@ const AdminBookingPage = () => {
           />
         </div>
 
-        {/* LIST */}
+        {/* FILTERS */}
 
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          {/* STATUS */}
+
+          <div className="bg-[#111827] border border-violet-500/10 rounded-3xl px-5 h-16 flex items-center shadow-lg">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="bg-transparent outline-none w-full text-white"
+            >
+              <option value="all" className="bg-[#111827]">
+                Todos os status
+              </option>
+
+              <option value="pending" className="bg-[#111827]">
+                Pendentes
+              </option>
+
+              <option value="finished" className="bg-[#111827]">
+                Finalizados
+              </option>
+
+              <option value="cancelled" className="bg-[#111827]">
+                Cancelados
+              </option>
+            </select>
+          </div>
+
+          {/* DATE */}
+
+          <div className="bg-[#111827] border border-violet-500/10 rounded-3xl px-5 h-16 flex items-center shadow-lg">
+            <input
+              type="date"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="bg-transparent outline-none w-full text-white"
+            />
+          </div>
+        </div>
+
+        {/* TABLE */}
+
+        <div className="hidden lg:block overflow-hidden rounded-[32px] border border-violet-500/10 bg-[#111827] shadow-xl shadow-black/20">
+          <div className="grid grid-cols-5 px-6 py-5 border-b border-white/10 text-white/50 text-sm font-semibold">
+            <div>Cliente</div>
+
+            <div>Serviço</div>
+
+            <div>Profissional</div>
+
+            <div>Data</div>
+
+            <div>Status</div>
+          </div>
+
           {filtered.map((a) => (
             <div
               key={a.id}
-              className="rounded-[32px] overflow-hidden border border-violet-500/10 bg-[#111827] shadow-xl shadow-black/20 transition-all duration-300 hover:-translate-y-1 hover:border-violet-400/30"
+              className="grid grid-cols-5 px-6 py-5 border-b border-white/5 hover:bg-white/[0.03] transition-all items-center"
             >
-              <div className="p-6">
-                {/* TOP */}
-
-                <div className="flex items-start justify-between gap-4 mb-5">
-                  <div className="flex items-center gap-4 min-w-0">
-                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500/10 to-fuchsia-500/10 border border-violet-500/20 flex items-center justify-center">
-                      <User size={22} className="text-violet-300" />
-                    </div>
-
-                    <div className="min-w-0">
-                      <h3 className="text-xl font-black truncate">
-                        {a.customer_name}
-                      </h3>
-
-                      <p className="text-white/40 text-sm truncate">
-                        {a.phone || "Sem telefone"}
-                      </p>
-                    </div>
-                  </div>
-
-                  <StatusBadge status={a.status} />
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
+                  <User size={18} className="text-violet-300" />
                 </div>
 
-                {/* INFO */}
+                <div>
+                  <p className="font-semibold">{a.customer_name}</p>
 
-                <div className="space-y-4 mb-6">
-                  <div className="rounded-2xl bg-black/20 border border-white/5 p-4">
-                    <p className="text-xs uppercase tracking-wide text-white/40 mb-1">
-                      Serviço
-                    </p>
-
-                    <p className="text-white font-semibold">
-                      {a.service_name || "Não informado"}
-                    </p>
-                  </div>
-
-                  <div className="rounded-2xl bg-black/20 border border-white/5 p-4">
-                    <p className="text-xs uppercase tracking-wide text-white/40 mb-1">
-                      Profissional
-                    </p>
-
-                    <p className="text-white font-semibold">
-                      {a.worker_name || "Não definido"}
-                    </p>
-                  </div>
-
-                  <div className="rounded-2xl bg-black/20 border border-white/5 p-4 flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-2xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
-                      <Clock size={18} className="text-violet-300" />
-                    </div>
-
-                    <div>
-                      <p className="text-xs uppercase tracking-wide text-white/40">
-                        Horário
-                      </p>
-
-                      <p className="text-white font-semibold">
-                        {a.start
-                          ? new Date(a.start).toLocaleString("pt-BR")
-                          : "Sem data"}
-                      </p>
-                    </div>
-                  </div>
+                  <p className="text-xs text-white/40">{a.phone}</p>
                 </div>
+              </div>
 
-                {/* ACTIONS */}
+              <div className="text-white/70">{a.service_name}</div>
+
+              <div className="text-white/60 font-medium">
+                {a.worker_name || "Não definido"}
+              </div>
+
+              <div className="text-sm text-white/60 flex items-center gap-2">
+                <Clock size={15} />
+
+                {a.start
+                  ? new Date(a.start).toLocaleString("pt-BR")
+                  : "Sem data"}
+              </div>
+
+              <div className="flex items-center justify-between gap-3">
+                <StatusBadge status={a.status} />
 
                 {a.status === "pending" && (
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="flex gap-2">
                     <Button
                       onClick={() => handleFinish(a.id)}
-                      className="h-12 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/20 rounded-2xl"
+                      className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/20 h-11 px-4 rounded-2xl"
                     >
                       <Check size={16} />
                     </Button>
 
                     <Button
                       onClick={() => handleCancel(a.id)}
-                      className="h-12 bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/20 rounded-2xl"
+                      className="bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/20 h-11 px-4 rounded-2xl"
                     >
                       <X size={16} />
                     </Button>
@@ -327,15 +361,82 @@ const AdminBookingPage = () => {
               </div>
             </div>
           ))}
+
+          {filtered.length === 0 && (
+            <div className="p-10 text-center text-white/40">
+              Nenhum agendamento encontrado.
+            </div>
+          )}
         </div>
 
-        {/* EMPTY */}
+        {/* MOBILE */}
 
-        {filtered.length === 0 && (
-          <div className="text-center py-20 text-white/40">
-            Nenhum agendamento encontrado.
-          </div>
-        )}
+        <div className="lg:hidden space-y-4">
+          {filtered.map((a) => (
+            <div
+              key={a.id}
+              className="rounded-[28px] border border-violet-500/10 bg-[#111827] p-5 shadow-xl shadow-black/20"
+            >
+              <div className="flex items-start justify-between gap-4 mb-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
+                    <User size={18} className="text-violet-300" />
+                  </div>
+
+                  <div>
+                    <h3 className="font-bold">{a.customer_name}</h3>
+
+                    <p className="text-sm text-white/40">{a.phone}</p>
+                  </div>
+                </div>
+
+                <StatusBadge status={a.status} />
+              </div>
+
+              <div className="space-y-3 mb-5">
+                <p className="text-white/70 text-sm">
+                  Serviço: {a.service_name}
+                </p>
+
+                <p className="text-white/60 text-sm">
+                  Profissional: {a.worker_name || "Não definido"}
+                </p>
+
+                <div className="flex items-center gap-2 text-white/50 text-sm">
+                  <Clock size={14} />
+
+                  {a.start
+                    ? new Date(a.start).toLocaleString("pt-BR")
+                    : "Sem data"}
+                </div>
+              </div>
+
+              {a.status === "pending" && (
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    onClick={() => handleFinish(a.id)}
+                    className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/20 h-12 rounded-2xl"
+                  >
+                    <Check size={16} />
+                  </Button>
+
+                  <Button
+                    onClick={() => handleCancel(a.id)}
+                    className="bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/20 h-12 rounded-2xl"
+                  >
+                    <X size={16} />
+                  </Button>
+                </div>
+              )}
+            </div>
+          ))}
+
+          {filtered.length === 0 && (
+            <div className="text-center text-white/40 py-10">
+              Nenhum agendamento encontrado.
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -382,16 +483,16 @@ const StatusBadge = ({ status }) => {
   };
 
   const styles = {
-    pending: "bg-yellow-500/10 text-yellow-300 border-yellow-500/20",
+    pending: "bg-yellow-500/10 text-yellow-300 border border-yellow-500/20",
 
-    finished: "bg-emerald-500/10 text-emerald-300 border-emerald-500/20",
+    finished: "bg-emerald-500/10 text-emerald-300 border border-emerald-500/20",
 
-    cancelled: "bg-red-500/10 text-red-300 border-red-500/20",
+    cancelled: "bg-red-500/10 text-red-300 border border-red-500/20",
   };
 
   return (
     <span
-      className={`px-3 py-1 rounded-full text-xs font-bold border whitespace-nowrap ${styles[status]}`}
+      className={`px-4 py-2 rounded-full text-xs font-bold ${styles[status]}`}
     >
       {labels[status]}
     </span>
