@@ -122,7 +122,7 @@ class PublicController:
     # =====================================================
     @staticmethod
     @public_company_active
-    def get_service_available_slots(
+    def get_company_available_slots(
         slug,
         service_id,
         worker_id,
