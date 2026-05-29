@@ -216,6 +216,10 @@ const CompanyBookingPage = () => {
 
         worker_id: selectedWorker.id,
 
+        // =====================================================
+        // NOVA LÓGICA
+        // =====================================================
+
         start_datetime: selectedSlot.datetime || selectedSlot.start,
 
         name: form.name,
