@@ -225,9 +225,12 @@ class AppointmentController:
             result = []
 
             for s in schedules:
+                print(s.worker_id)
 
                 worker = Worker.query.get(s.worker_id)
                 service = s.service
+
+                print(worker)
 
                 result.append({
                     "id": s.id,
