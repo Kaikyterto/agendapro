@@ -1,5 +1,6 @@
 
 from datetime import datetime, timedelta
+from sqlalchemy.orm import joinedload
 
 from flask import request, jsonify
 from flask_jwt_extended import get_jwt
@@ -202,9 +203,6 @@ class AppointmentController:
                 "details": str(e)
             }), 500
 
-    # =========================================================
-    # LIST COMPANY SCHEDULES
-    # =========================================================
     @staticmethod
     def list_company_schedules():
 
@@ -213,51 +211,46 @@ class AppointmentController:
             company_id = get_jwt().get("company_id")
 
             if not company_id:
-                return jsonify({
-                    "error": "Empresa não identificada"
-                }), 401
+                return jsonify({"error": "Empresa não identificada"}), 401
 
             schedules = (
                 Schedule.query
+                .options(
+                    joinedload(Schedule.service),
+                    joinedload(Schedule.worker)
+                )
                 .filter_by(company_id=company_id)
                 .order_by(Schedule.start_time.asc())
                 .all()
             )
 
-            result = []
-
-            for s in schedules:
-
-                worker = Worker.query.get(s.worker_id)
-                service = Service.query.get(s.service_id)
-
-                result.append({
+            return jsonify([
+                {
                     "id": s.id,
 
                     "customer_name": s.name,
                     "phone": s.phone,
 
                     "service": {
-                        "id": service.id,
-                        "name": service.name
-                    } if service else None,
+                        "id": s.service.id,
+                        "name": s.service.name
+                    } if s.service else None,
 
                     "worker": {
-                        "id": worker.id,
-                        "name": worker.name
-                    } if worker else None,
+                        "id": s.worker.id,
+                        "name": s.worker.name
+                    } if s.worker else None,
 
                     "start": s.start_time.isoformat() if s.start_time else None,
                     "end": s.end_time.isoformat() if s.end_time else None,
 
                     "status": s.status,
                     "notes": s.notes
-                })
-
-            return jsonify(result), 200
+                }
+                for s in schedules
+            ]), 200
 
         except Exception as e:
-
             return jsonify({
                 "error": "Erro ao buscar agendamentos",
                 "details": str(e)
