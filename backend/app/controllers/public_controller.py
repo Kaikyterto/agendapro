@@ -11,7 +11,6 @@ from app.models.worker_schedule import WorkerSchedule
 
 
 class PublicController:
-
     SLOT_INTERVAL_MINUTES = 15
 
     # =====================================================
@@ -19,18 +18,17 @@ class PublicController:
     # =====================================================
     @staticmethod
     def generate_available_slots(company_id, worker, service, selected_date):
-
         try:
+            now = datetime.now() # Se usar UTC no banco, mude para datetime.utcnow()
+
+            # Evita processar e exibir vagas para dias que já passaram
+            if selected_date < now.date():
+                return []
 
             # =================================================
-            # BANCO:
-            # segunda = 1
-            # terça = 2
-            # quarta = 3
-            # quinta = 4
-            # sexta = 5
+            # BANCO: segunda = 1, ... domingo = 7
+            # Python weekday(): segunda = 0, ... domingo = 6
             # =================================================
-
             weekday = selected_date.weekday() + 1
 
             schedules = WorkerSchedule.query.filter_by(
@@ -51,62 +49,39 @@ class PublicController:
             start_of_day = datetime.combine(selected_date, time.min)
             end_of_day = datetime.combine(selected_date, time.max)
 
+            # Filtro melhorado para pegar agendamentos que cruzam o dia
             appointments = Schedule.query.filter(
                 Schedule.company_id == company_id,
                 Schedule.worker_id == worker.id,
                 Schedule.status != "cancelled",
-                Schedule.start_datetime >= start_of_day,
-                Schedule.start_datetime <= end_of_day
+                Schedule.start_datetime <= end_of_day,
+                Schedule.end_datetime >= start_of_day
             ).all()
 
             duration = timedelta(minutes=service.duration)
-
             available_slots = []
-
-            # =================================================
-            # USA HORÁRIO LOCAL
-            # =================================================
-
-            now = datetime.now()
+            slot_interval = timedelta(minutes=PublicController.SLOT_INTERVAL_MINUTES)
 
             for schedule in schedules:
-
                 if not schedule.start_time or not schedule.end_time:
                     continue
 
-                current_datetime = datetime.combine(
-                    selected_date,
-                    schedule.start_time
-                )
-
-                end_datetime = datetime.combine(
-                    selected_date,
-                    schedule.end_time
-                )
+                current_datetime = datetime.combine(selected_date, schedule.start_time)
+                end_datetime = datetime.combine(selected_date, schedule.end_time)
 
                 while current_datetime + duration <= end_datetime:
-
                     slot_end = current_datetime + duration
 
                     # =============================================
-                    # IGNORA HORÁRIOS PASSADOS SOMENTE HOJE
+                    # IGNORA HORÁRIOS PASSADOS (Válido para HOJE)
                     # =============================================
-
-                    if (
-                        selected_date == now.date()
-                        and current_datetime <= now
-                    ):
-
-                        current_datetime += timedelta(
-                            minutes=PublicController.SLOT_INTERVAL_MINUTES
-                        )
-
+                    if selected_date == now.date() and current_datetime <= now:
+                        current_datetime += slot_interval
                         continue
 
                     # =============================================
                     # VERIFICA CONFLITOS
                     # =============================================
-
                     has_conflict = any(
                         current_datetime < appointment.end_datetime
                         and slot_end > appointment.start_datetime
@@ -114,7 +89,6 @@ class PublicController:
                     )
 
                     if not has_conflict:
-
                         available_slots.append({
                             "datetime": current_datetime.isoformat(),
                             "start": current_datetime.isoformat(),
@@ -122,18 +96,14 @@ class PublicController:
                             "time": current_datetime.strftime("%H:%M")
                         })
 
-                    current_datetime += timedelta(
-                        minutes=PublicController.SLOT_INTERVAL_MINUTES
-                    )
+                    # O incremento acontece sempre aqui de forma limpa
+                    current_datetime += slot_interval
 
             print("AVAILABLE SLOTS:", available_slots)
-
             return available_slots
 
         except Exception as e:
-
             print("ERRO generate_available_slots:", str(e))
-
             return []
 
     # =====================================================
