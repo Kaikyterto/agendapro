@@ -324,10 +324,12 @@ const AdminBookingPage = () => {
                 </div>
               </div>
 
-              <div className="text-white/70">{a.service_name}</div>
+              <div className="text-white/70">
+                {a.service?.name || "Sem serviço"}
+              </div>
 
               <div className="text-white/60 font-medium">
-                {a.worker_name || "Não definido"}
+                {a.worker?.name || "Não definido"}
               </div>
 
               <div className="text-sm text-white/60 flex items-center gap-2">
