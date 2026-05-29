@@ -1,17 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
-import {
-  User,
-  Plus,
-  Search,
-  Pencil,
-  Trash2,
-  X,
-  Loader2,
-  Phone,
-  Image as ImageIcon,
-  Briefcase,
-} from "lucide-react";
+import { User, Plus, Search, Pencil, Trash2, X, Loader2 } from "lucide-react";
 
 import Button from "../components/Button";
 
@@ -21,6 +10,10 @@ import {
   createWorker,
   updateWorker,
   deleteWorker,
+  getWorkerSchedules,
+  createWorkerSchedule,
+  updateWorkerSchedule,
+  deleteWorkerSchedule,
 } from "../services/workers";
 
 const initialForm = {
@@ -29,6 +22,22 @@ const initialForm = {
   avatar_url: "",
   is_active: true,
   service_ids: [],
+};
+
+const weekDays = [
+  { value: 0, label: "Domingo" },
+  { value: 1, label: "Segunda" },
+  { value: 2, label: "Terça" },
+  { value: 3, label: "Quarta" },
+  { value: 4, label: "Quinta" },
+  { value: 5, label: "Sexta" },
+  { value: 6, label: "Sábado" },
+];
+
+const initialSchedule = {
+  weekday: 1,
+  start_time: "08:00",
+  end_time: "18:00",
 };
 
 const AdminWorkersPage = () => {
@@ -45,6 +54,9 @@ const AdminWorkersPage = () => {
 
   const [form, setForm] = useState(initialForm);
 
+  const [schedules, setSchedules] = useState([]);
+  const [newSchedule, setNewSchedule] = useState(initialSchedule);
+
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -60,12 +72,13 @@ const AdminWorkersPage = () => {
         getServices(),
       ]);
 
-      // segurança contra API quebrada
       setWorkers(Array.isArray(workersRes) ? workersRes : []);
       setServices(Array.isArray(servicesRes) ? servicesRes : []);
     } catch (err) {
       console.error(err);
+
       setError("Erro ao carregar dados");
+
       setWorkers([]);
       setServices([]);
     } finally {
@@ -93,7 +106,12 @@ const AdminWorkersPage = () => {
   // =========================================================
   const resetForm = () => {
     setForm(initialForm);
+
+    setSchedules([]);
+    setNewSchedule(initialSchedule);
+
     setEditingWorker(null);
+
     setError("");
     setSuccess("");
   };
@@ -103,18 +121,27 @@ const AdminWorkersPage = () => {
     setOpenModal(true);
   };
 
-  const handleOpenEdit = (worker) => {
-    setEditingWorker(worker);
+  const handleOpenEdit = async (worker) => {
+    try {
+      setEditingWorker(worker);
 
-    setForm({
-      name: worker?.name || "",
-      phone: worker?.phone || "",
-      avatar_url: worker?.avatar_url || "",
-      is_active: worker?.is_active ?? true,
-      service_ids: worker?.services?.map((s) => s.id) || [],
-    });
+      setForm({
+        name: worker?.name || "",
+        phone: worker?.phone || "",
+        avatar_url: worker?.avatar_url || "",
+        is_active: worker?.is_active ?? true,
+        service_ids: worker?.services?.map((s) => s.id) || [],
+      });
 
-    setOpenModal(true);
+      const schedulesRes = await getWorkerSchedules(worker.id);
+
+      setSchedules(Array.isArray(schedulesRes) ? schedulesRes : []);
+
+      setOpenModal(true);
+    } catch (err) {
+      console.error(err);
+      setError("Erro ao carregar horários");
+    }
   };
 
   const handleCloseModal = () => {
@@ -123,7 +150,10 @@ const AdminWorkersPage = () => {
   };
 
   const handleChange = (field, value) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+    setForm((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
   };
 
   const toggleService = (id) => {
@@ -133,6 +163,55 @@ const AdminWorkersPage = () => {
         ? prev.service_ids.filter((x) => x !== id)
         : [...prev.service_ids, id],
     }));
+  };
+
+  // =========================================================
+  // SCHEDULES
+  // =========================================================
+  const addSchedule = () => {
+    if (!newSchedule.start_time || !newSchedule.end_time) {
+      return;
+    }
+
+    setSchedules((prev) => [
+      ...prev,
+      {
+        ...newSchedule,
+        temp_id: Date.now(),
+      },
+    ]);
+
+    setNewSchedule(initialSchedule);
+  };
+
+  const removeSchedule = async (schedule) => {
+    try {
+      if (schedule.id) {
+        await deleteWorkerSchedule(schedule.id);
+      }
+
+      setSchedules((prev) =>
+        prev.filter(
+          (s) => (s.id || s.temp_id) !== (schedule.id || schedule.temp_id)
+        )
+      );
+    } catch (err) {
+      console.error(err);
+      alert("Erro ao remover horário");
+    }
+  };
+
+  const updateScheduleField = (index, field, value) => {
+    setSchedules((prev) =>
+      prev.map((s, i) =>
+        i === index
+          ? {
+              ...s,
+              [field]: value,
+            }
+          : s
+      )
+    );
   };
 
   // =========================================================
@@ -148,6 +227,7 @@ const AdminWorkersPage = () => {
 
     try {
       setSubmitting(true);
+
       setError("");
       setSuccess("");
 
@@ -159,12 +239,38 @@ const AdminWorkersPage = () => {
         service_ids: form.service_ids || [],
       };
 
+      let workerResponse;
+
       if (editingWorker) {
         await updateWorker(editingWorker.id, payload);
+
+        workerResponse = editingWorker;
+
         setSuccess("Funcionário atualizado!");
       } else {
-        await createWorker(payload);
+        workerResponse = await createWorker(payload);
+
         setSuccess("Funcionário criado!");
+      }
+
+      const workerId =
+        workerResponse?.worker?.id || workerResponse?.id || editingWorker?.id;
+
+      if (workerId) {
+        for (const schedule of schedules) {
+          const schedulePayload = {
+            weekday: Number(schedule.weekday),
+            start_time: schedule.start_time,
+            end_time: schedule.end_time,
+            is_active: true,
+          };
+
+          if (schedule.id) {
+            await updateWorkerSchedule(schedule.id, schedulePayload);
+          } else {
+            await createWorkerSchedule(workerId, schedulePayload);
+          }
+        }
       }
 
       await loadData();
@@ -190,13 +296,16 @@ const AdminWorkersPage = () => {
   // =========================================================
   const handleDelete = async (id) => {
     const ok = window.confirm("Deseja realmente remover este funcionário?");
+
     if (!ok) return;
 
     try {
       await deleteWorker(id);
+
       setWorkers((prev) => prev.filter((w) => w.id !== id));
     } catch (err) {
       console.error(err);
+
       alert(err?.message || "Erro ao deletar");
     }
   };
@@ -219,8 +328,10 @@ const AdminWorkersPage = () => {
         <div className="flex justify-between items-center mb-8">
           <div className="flex items-center gap-4">
             <User size={32} />
+
             <div>
               <h1 className="text-3xl font-black">Funcionários</h1>
+
               <p className="text-white/50">Gerencie sua equipe</p>
             </div>
           </div>
@@ -233,6 +344,7 @@ const AdminWorkersPage = () => {
         {/* SEARCH */}
         <div className="flex items-center gap-3 mb-6 bg-[#111827] px-4 h-14 rounded-2xl">
           <Search size={18} />
+
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -248,6 +360,7 @@ const AdminWorkersPage = () => {
               <div className="flex justify-between">
                 <div>
                   <h3 className="font-bold text-lg">{worker.name}</h3>
+
                   <p className="text-white/50 text-sm">{worker.phone}</p>
                 </div>
 
@@ -255,6 +368,7 @@ const AdminWorkersPage = () => {
                   <button onClick={() => handleOpenEdit(worker)}>
                     <Pencil size={16} />
                   </button>
+
                   <button onClick={() => handleDelete(worker.id)}>
                     <Trash2 size={16} />
                   </button>
@@ -277,11 +391,11 @@ const AdminWorkersPage = () => {
 
         {/* MODAL */}
         {openModal && (
-          <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4">
-            <div className="bg-[#0f172a] w-full max-w-xl p-6 rounded-3xl">
-              <div className="flex justify-between mb-4">
-                <h2 className="text-xl font-bold">
-                  {editingWorker ? "Editar" : "Criar"}
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
+            <div className="bg-[#0f172a] w-full max-w-2xl p-6 rounded-3xl max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between mb-6">
+                <h2 className="text-2xl font-bold">
+                  {editingWorker ? "Editar Funcionário" : "Novo Funcionário"}
                 </h2>
 
                 <button onClick={handleCloseModal}>
@@ -289,7 +403,7 @@ const AdminWorkersPage = () => {
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-5">
                 <input
                   placeholder="Nome"
                   value={form.name}
@@ -304,24 +418,158 @@ const AdminWorkersPage = () => {
                   className="w-full h-12 bg-[#111827] rounded-xl px-4"
                 />
 
-                <div className="flex flex-wrap gap-2">
-                  {services.map((s) => (
+                <input
+                  placeholder="URL da imagem"
+                  value={form.avatar_url}
+                  onChange={(e) => handleChange("avatar_url", e.target.value)}
+                  className="w-full h-12 bg-[#111827] rounded-xl px-4"
+                />
+
+                {/* SERVICES */}
+                <div className="bg-[#111827] rounded-2xl p-4">
+                  <h3 className="font-bold mb-3">Serviços</h3>
+
+                  <div className="flex flex-wrap gap-2">
+                    {services.map((s) => (
+                      <button
+                        type="button"
+                        key={s.id}
+                        onClick={() => toggleService(s.id)}
+                        className={`px-3 py-2 rounded-full text-sm transition ${
+                          form.service_ids.includes(s.id)
+                            ? "bg-violet-500"
+                            : "bg-white/10"
+                        }`}
+                      >
+                        {s.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* SCHEDULES */}
+                <div className="bg-[#111827] rounded-2xl p-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-bold">Horários</h3>
+
                     <button
                       type="button"
-                      key={s.id}
-                      onClick={() => toggleService(s.id)}
-                      className={`px-3 py-1 rounded-full text-sm ${
-                        form.service_ids.includes(s.id)
-                          ? "bg-violet-500"
-                          : "bg-white/10"
-                      }`}
+                      onClick={addSchedule}
+                      className="bg-violet-500 px-3 py-2 rounded-xl text-sm"
                     >
-                      {s.name}
+                      Adicionar
                     </button>
-                  ))}
+                  </div>
+
+                  <div className="grid md:grid-cols-3 gap-3">
+                    <select
+                      value={newSchedule.weekday}
+                      onChange={(e) =>
+                        setNewSchedule((prev) => ({
+                          ...prev,
+                          weekday: Number(e.target.value),
+                        }))
+                      }
+                      className="h-12 bg-[#0b1220] rounded-xl px-3"
+                    >
+                      {weekDays.map((day) => (
+                        <option key={day.value} value={day.value}>
+                          {day.label}
+                        </option>
+                      ))}
+                    </select>
+
+                    <input
+                      type="time"
+                      value={newSchedule.start_time}
+                      onChange={(e) =>
+                        setNewSchedule((prev) => ({
+                          ...prev,
+                          start_time: e.target.value,
+                        }))
+                      }
+                      className="h-12 bg-[#0b1220] rounded-xl px-3"
+                    />
+
+                    <input
+                      type="time"
+                      value={newSchedule.end_time}
+                      onChange={(e) =>
+                        setNewSchedule((prev) => ({
+                          ...prev,
+                          end_time: e.target.value,
+                        }))
+                      }
+                      className="h-12 bg-[#0b1220] rounded-xl px-3"
+                    />
+                  </div>
+
+                  <div className="space-y-3">
+                    {schedules.map((schedule, index) => (
+                      <div
+                        key={schedule.id || schedule.temp_id}
+                        className="bg-[#0b1220] rounded-2xl p-3 flex flex-col md:flex-row md:items-center justify-between gap-3"
+                      >
+                        <div className="flex flex-col md:flex-row gap-3">
+                          <select
+                            value={schedule.weekday}
+                            onChange={(e) =>
+                              updateScheduleField(
+                                index,
+                                "weekday",
+                                Number(e.target.value)
+                              )
+                            }
+                            className="bg-[#111827] rounded-xl px-3 py-2"
+                          >
+                            {weekDays.map((day) => (
+                              <option key={day.value} value={day.value}>
+                                {day.label}
+                              </option>
+                            ))}
+                          </select>
+
+                          <input
+                            type="time"
+                            value={schedule.start_time}
+                            onChange={(e) =>
+                              updateScheduleField(
+                                index,
+                                "start_time",
+                                e.target.value
+                              )
+                            }
+                            className="bg-[#111827] rounded-xl px-3 py-2"
+                          />
+
+                          <input
+                            type="time"
+                            value={schedule.end_time}
+                            onChange={(e) =>
+                              updateScheduleField(
+                                index,
+                                "end_time",
+                                e.target.value
+                              )
+                            }
+                            className="bg-[#111827] rounded-xl px-3 py-2"
+                          />
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => removeSchedule(schedule)}
+                          className="text-red-400"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 {error && <p className="text-red-400">{error}</p>}
+
                 {success && <p className="text-green-400">{success}</p>}
 
                 <Button type="submit" disabled={submitting} className="w-full">
