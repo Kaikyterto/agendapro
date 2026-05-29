@@ -14,15 +14,23 @@ class PublicController:
 
     SLOT_INTERVAL_MINUTES = 15
 
-    # =====================================================
-    # GENERATE AVAILABLE SLOTS
-    # =====================================================
-    @staticmethod
-    def generate_available_slots(company_id, worker, service, selected_date):
+# =====================================================
+# GENERATE AVAILABLE SLOTS
+# =====================================================
+@staticmethod
+def generate_available_slots(company_id, worker, service, selected_date):
 
+    try:
 
+        # =================================================
+        # AJUSTE DO WEEKDAY
+        # BANCO:
+        # segunda = 1
+        # terça = 2
+        # ...
+        # =================================================
 
-        weekday = selected_date.isoweekday()
+        weekday = selected_date.weekday() + 1
 
         schedules = WorkerSchedule.query.filter_by(
             company_id=company_id,
@@ -51,7 +59,7 @@ class PublicController:
 
         available_slots = []
 
-        now = datetime.now()
+        now = datetime.utcnow()
 
         for schedule in schedules:
 
@@ -73,17 +81,21 @@ class PublicController:
                 slot_end = current_datetime + duration
 
                 # =============================================
-                # NÃO MOSTRAR HORÁRIOS PASSADOS
+                # IGNORA HORÁRIOS PASSADOS
                 # =============================================
 
-                if current_datetime < now:
-                    current_datetime += timedelta(
-                        minutes=PublicController.SLOT_INTERVAL_MINUTES
-                    )
-                    continue
+                if selected_date == now.date():
+
+                    if current_datetime <= now:
+
+                        current_datetime += timedelta(
+                            minutes=PublicController.SLOT_INTERVAL_MINUTES
+                        )
+
+                        continue
 
                 # =============================================
-                # CONFLITO COM AGENDAMENTO
+                # VERIFICA CONFLITOS
                 # =============================================
 
                 has_conflict = any(
@@ -107,40 +119,58 @@ class PublicController:
 
         return available_slots
 
-    # =====================================================
-    # EMPRESA
-    # =====================================================
-    @staticmethod
-    @public_company_active
-    def get_public_company_data(slug, company):
+    except Exception as e:
 
-        return jsonify({
-            "id": company.id,
-            "name": company.name,
-            "logo": company.logo_url,
-            "about": company.about,
-            "colors": {
-                "primary": company.primary_color,
-                "secondary": company.secondary_color
-            }
-        }), 200
+        print("ERRO generate_available_slots:", str(e))
 
-    # =====================================================
-    # AVAILABLE SLOTS
-    # =====================================================
-    @staticmethod
-    @public_company_active
-    def get_company_available_slots(slug, service_id, worker_id, company):
+        return []
+
+
+# =====================================================
+# EMPRESA
+# =====================================================
+@staticmethod
+@public_company_active
+def get_public_company_data(slug, company):
+
+    return jsonify({
+        "id": company.id,
+        "name": company.name,
+        "logo": company.logo_url,
+        "about": company.about,
+        "colors": {
+            "primary": company.primary_color,
+            "secondary": company.secondary_color
+        }
+    }), 200
+
+
+# =====================================================
+# AVAILABLE SLOTS
+# =====================================================
+@staticmethod
+@public_company_active
+def get_company_available_slots(slug, service_id, worker_id, company):
+
+    try:
 
         date_str = request.args.get("date")
 
         if not date_str:
-            return jsonify({"error": "date é obrigatório"}), 400
+            return jsonify({
+                "error": "date é obrigatório"
+            }), 400
 
         try:
-            selected_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+            selected_date = datetime.strptime(
+                date_str,
+                "%Y-%m-%d"
+            ).date()
+
         except ValueError:
-            return jsonify({"error": "Formato inválido (YYYY-MM-DD)"}), 400
+            return jsonify({
+                "error": "Formato inválido (YYYY-MM-DD)"
+            }), 400
 
         service = Service.query.filter_by(
             id=service_id,
@@ -148,7 +178,9 @@ class PublicController:
         ).first()
 
         if not service:
-            return jsonify({"error": "Serviço não encontrado"}), 404
+            return jsonify({
+                "error": "Serviço não encontrado"
+            }), 404
 
         worker = Worker.query.filter_by(
             id=worker_id,
@@ -157,10 +189,14 @@ class PublicController:
         ).first()
 
         if not worker:
-            return jsonify({"error": "Funcionário não encontrado"}), 404
+            return jsonify({
+                "error": "Funcionário não encontrado"
+            }), 404
 
         if worker not in service.workers:
-            return jsonify({"error": "Funcionário não pertence ao serviço"}), 400
+            return jsonify({
+                "error": "Funcionário não pertence ao serviço"
+            }), 400
 
         slots = PublicController.generate_available_slots(
             company.id,
@@ -183,6 +219,14 @@ class PublicController:
             },
             "slots": slots
         }), 200
+
+    except Exception as e:
+
+        print("ERRO get_company_available_slots:", str(e))
+
+        return jsonify({
+            "error": str(e)
+        }), 500
 
     # =====================================================
     # PRODUTOS
