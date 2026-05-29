@@ -46,17 +46,18 @@ class AppointmentController:
                 }), 400
 
             try:
-                start_datetime_obj = datetime.fromisoformat(start_datetime)
+                start_datetime_obj = datetime.fromisoformat(
+                    start_datetime
+                )
             except ValueError:
                 return jsonify({
                     "error": "Formato de data inválido"
                 }), 400
 
             if (
-                start_datetime_obj.minute
-                % AppointmentController.SLOT_INTERVAL_MINUTES
-                != 0
-            ):
+                start_datetime_obj.minute %
+                AppointmentController.SLOT_INTERVAL_MINUTES
+            ) != 0:
                 return jsonify({
                     "error": (
                         f"Horário deve ser múltiplo de "
@@ -92,7 +93,7 @@ class AppointmentController:
                 }), 400
 
             # =====================================================
-            # DATETIME
+            # END TIME
             # =====================================================
 
             end_datetime_obj = start_datetime_obj + timedelta(
@@ -106,8 +107,8 @@ class AppointmentController:
             conflicting_schedule = Schedule.query.filter(
                 Schedule.worker_id == worker.id,
                 Schedule.status != "cancelled",
-                Schedule.start_datetime < end_datetime_obj,
-                Schedule.end_datetime > start_datetime_obj
+                Schedule.start_time < end_datetime_obj,
+                Schedule.end_time > start_datetime_obj
             ).first()
 
             if conflicting_schedule:
@@ -116,7 +117,7 @@ class AppointmentController:
                 }), 400
 
             # =====================================================
-            # CREATE
+            # CREATE SCHEDULE
             # =====================================================
 
             schedule = Schedule(
@@ -128,8 +129,8 @@ class AppointmentController:
                 phone=customer_phone,
                 notes=notes,
 
-                start_datetime=start_datetime_obj,
-                end_datetime=end_datetime_obj,
+                start_time=start_datetime_obj,
+                end_time=end_datetime_obj,
 
                 status="pending"
             )
@@ -145,8 +146,8 @@ class AppointmentController:
                     "phone": schedule.phone,
                     "service_id": schedule.service_id,
                     "worker_id": schedule.worker_id,
-                    "start": schedule.start_datetime.isoformat(),
-                    "end": schedule.end_datetime.isoformat(),
+                    "start": schedule.start_time.isoformat(),
+                    "end": schedule.end_time.isoformat(),
                     "status": schedule.status,
                     "notes": schedule.notes
                 }
@@ -177,7 +178,7 @@ class AppointmentController:
             schedules = (
                 Schedule.query
                 .filter_by(company_id=company_id)
-                .order_by(Schedule.start_datetime.asc())
+                .order_by(Schedule.start_time.asc())
                 .all()
             )
 
@@ -199,13 +200,13 @@ class AppointmentController:
                     } if s.worker else None,
 
                     "start": (
-                        s.start_datetime.isoformat()
-                        if s.start_datetime else None
+                        s.start_time.isoformat()
+                        if s.start_time else None
                     ),
 
                     "end": (
-                        s.end_datetime.isoformat()
-                        if s.end_datetime else None
+                        s.end_time.isoformat()
+                        if s.end_time else None
                     ),
 
                     "status": s.status,
