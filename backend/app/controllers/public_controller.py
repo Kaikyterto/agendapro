@@ -20,7 +20,9 @@ class PublicController:
     @staticmethod
     def generate_available_slots(company_id, worker, service, selected_date):
 
-        weekday = selected_date.weekday()
+
+
+        weekday = selected_date.isoweekday()
 
         schedules = WorkerSchedule.query.filter_by(
             company_id=company_id,
@@ -49,31 +51,59 @@ class PublicController:
 
         available_slots = []
 
+        now = datetime.now()
+
         for schedule in schedules:
 
-            # garante segurança caso venha None
             if not schedule.start_time or not schedule.end_time:
                 continue
 
-            current_datetime = datetime.combine(selected_date, schedule.start_time)
-            end_datetime = datetime.combine(selected_date, schedule.end_time)
+            current_datetime = datetime.combine(
+                selected_date,
+                schedule.start_time
+            )
+
+            end_datetime = datetime.combine(
+                selected_date,
+                schedule.end_time
+            )
 
             while current_datetime + duration <= end_datetime:
 
                 slot_end = current_datetime + duration
 
+                # =============================================
+                # NÃO MOSTRAR HORÁRIOS PASSADOS
+                # =============================================
+
+                if current_datetime < now:
+                    current_datetime += timedelta(
+                        minutes=PublicController.SLOT_INTERVAL_MINUTES
+                    )
+                    continue
+
+                # =============================================
+                # CONFLITO COM AGENDAMENTO
+                # =============================================
+
                 has_conflict = any(
-                    current_datetime < a.end_datetime and slot_end > a.start_datetime
-                    for a in appointments
+                    current_datetime < appointment.end_datetime
+                    and slot_end > appointment.start_datetime
+                    for appointment in appointments
                 )
 
                 if not has_conflict:
+
                     available_slots.append({
+                        "datetime": current_datetime.isoformat(),
                         "start": current_datetime.isoformat(),
-                        "end": slot_end.isoformat()
+                        "end": slot_end.isoformat(),
+                        "time": current_datetime.strftime("%H:%M")
                     })
 
-                current_datetime += timedelta(minutes=PublicController.SLOT_INTERVAL_MINUTES)
+                current_datetime += timedelta(
+                    minutes=PublicController.SLOT_INTERVAL_MINUTES
+                )
 
         return available_slots
 
