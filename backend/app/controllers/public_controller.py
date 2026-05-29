@@ -11,7 +11,7 @@ from app.models.worker_service import WorkerService
 
 
 class PublicController:
-    SLOT_INTERVAL_MINUTES = 15
+    SLOT_INTERVAL_MINUTES = 30
 
     # =====================================================
     # GENERATE AVAILABLE SLOTS
