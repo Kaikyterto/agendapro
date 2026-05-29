@@ -26,7 +26,9 @@ class PublicController:
             # BANCO:
             # segunda = 1
             # terça = 2
-            # ...
+            # quarta = 3
+            # quinta = 4
+            # sexta = 5
             # =================================================
 
             weekday = selected_date.weekday() + 1
@@ -40,25 +42,32 @@ class PublicController:
                 WorkerSchedule.start_time.asc()
             ).all()
 
+            print("WEEKDAY:", weekday)
+            print("SCHEDULES:", schedules)
+
             if not schedules:
                 return []
 
             start_of_day = datetime.combine(selected_date, time.min)
-            end_of_day = start_of_day + timedelta(days=1)
+            end_of_day = datetime.combine(selected_date, time.max)
 
             appointments = Schedule.query.filter(
                 Schedule.company_id == company_id,
                 Schedule.worker_id == worker.id,
                 Schedule.status != "cancelled",
-                Schedule.start_datetime < end_of_day,
-                Schedule.end_datetime > start_of_day
+                Schedule.start_datetime >= start_of_day,
+                Schedule.start_datetime <= end_of_day
             ).all()
 
             duration = timedelta(minutes=service.duration)
 
             available_slots = []
 
-            now = datetime.utcnow()
+            # =================================================
+            # USA HORÁRIO LOCAL
+            # =================================================
+
+            now = datetime.now()
 
             for schedule in schedules:
 
@@ -80,18 +89,19 @@ class PublicController:
                     slot_end = current_datetime + duration
 
                     # =============================================
-                    # IGNORA HORÁRIOS PASSADOS
+                    # IGNORA HORÁRIOS PASSADOS SOMENTE HOJE
                     # =============================================
 
-                    if selected_date == now.date():
+                    if (
+                        selected_date == now.date()
+                        and current_datetime <= now
+                    ):
 
-                        if current_datetime <= now:
+                        current_datetime += timedelta(
+                            minutes=PublicController.SLOT_INTERVAL_MINUTES
+                        )
 
-                            current_datetime += timedelta(
-                                minutes=PublicController.SLOT_INTERVAL_MINUTES
-                            )
-
-                            continue
+                        continue
 
                     # =============================================
                     # VERIFICA CONFLITOS
@@ -115,6 +125,8 @@ class PublicController:
                     current_datetime += timedelta(
                         minutes=PublicController.SLOT_INTERVAL_MINUTES
                     )
+
+            print("AVAILABLE SLOTS:", available_slots)
 
             return available_slots
 
@@ -159,12 +171,14 @@ class PublicController:
                 }), 400
 
             try:
+
                 selected_date = datetime.strptime(
                     date_str,
                     "%Y-%m-%d"
                 ).date()
 
             except ValueError:
+
                 return jsonify({
                     "error": "Formato inválido (YYYY-MM-DD)"
                 }), 400
@@ -175,6 +189,7 @@ class PublicController:
             ).first()
 
             if not service:
+
                 return jsonify({
                     "error": "Serviço não encontrado"
                 }), 404
@@ -186,11 +201,13 @@ class PublicController:
             ).first()
 
             if not worker:
+
                 return jsonify({
                     "error": "Funcionário não encontrado"
                 }), 404
 
             if worker not in service.workers:
+
                 return jsonify({
                     "error": "Funcionário não pertence ao serviço"
                 }), 400
