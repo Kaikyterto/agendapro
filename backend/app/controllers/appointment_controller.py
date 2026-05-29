@@ -1,3 +1,4 @@
+
 from datetime import datetime, timedelta
 
 from flask import request, jsonify
@@ -8,6 +9,7 @@ from app.database.db import db
 from app.models.schedule import Schedule
 from app.models.service import Service
 from app.models.worker import Worker
+from app.models.worker_schedule import WorkerSchedule
 
 
 class AppointmentController:
@@ -23,6 +25,7 @@ class AppointmentController:
         data = request.get_json() or {}
 
         try:
+
             service_id = data.get("service_id")
             worker_id = data.get("worker_id")
             start_datetime = data.get("start_datetime")
@@ -46,10 +49,23 @@ class AppointmentController:
                 }), 400
 
             try:
-                start_datetime_obj = datetime.fromisoformat(
+
+                start_datetime_clean = (
                     start_datetime
+                    .replace("Z", "+00:00")
                 )
+
+                start_datetime_obj = datetime.fromisoformat(
+                    start_datetime_clean
+                )
+
+                # remove timezone
+                start_datetime_obj = (
+                    start_datetime_obj.replace(tzinfo=None)
+                )
+
             except ValueError:
+
                 return jsonify({
                     "error": "Formato de data inválido"
                 }), 400
@@ -101,6 +117,29 @@ class AppointmentController:
             )
 
             # =====================================================
+            # VALIDATE WORKER SCHEDULE
+            # =====================================================
+
+            weekday = start_datetime_obj.weekday()
+
+            appointment_start_time = start_datetime_obj.time()
+
+            appointment_end_time = end_datetime_obj.time()
+
+            worker_schedule = WorkerSchedule.query.filter(
+                WorkerSchedule.worker_id == worker.id,
+                WorkerSchedule.weekday == weekday,
+                WorkerSchedule.is_active == True,
+                WorkerSchedule.start_time <= appointment_start_time,
+                WorkerSchedule.end_time >= appointment_end_time
+            ).first()
+
+            if not worker_schedule:
+                return jsonify({
+                    "error": "Funcionário não atende neste horário"
+                }), 400
+
+            # =====================================================
             # CONFLICT VALIDATION
             # =====================================================
 
@@ -136,6 +175,7 @@ class AppointmentController:
             )
 
             db.session.add(schedule)
+
             db.session.commit()
 
             return jsonify({
@@ -154,6 +194,7 @@ class AppointmentController:
             }), 201
 
         except Exception as e:
+
             db.session.rollback()
 
             return jsonify({
@@ -168,6 +209,7 @@ class AppointmentController:
     def list_company_schedules():
 
         try:
+
             company_id = get_jwt().get("company_id")
 
             if not company_id:
@@ -216,6 +258,7 @@ class AppointmentController:
             ]), 200
 
         except Exception as e:
+
             return jsonify({
                 "error": "Erro ao buscar agendamentos",
                 "details": str(e)
@@ -228,6 +271,7 @@ class AppointmentController:
     def cancel_appointment(id):
 
         try:
+
             company_id = get_jwt().get("company_id")
 
             schedule = Schedule.query.filter_by(
@@ -263,6 +307,7 @@ class AppointmentController:
             }), 200
 
         except Exception as e:
+
             db.session.rollback()
 
             return jsonify({
@@ -277,6 +322,7 @@ class AppointmentController:
     def finish_appointment(id):
 
         try:
+
             company_id = get_jwt().get("company_id")
 
             schedule = Schedule.query.filter_by(
@@ -291,7 +337,10 @@ class AppointmentController:
 
             if schedule.status == "cancelled":
                 return jsonify({
-                    "error": "Não é possível finalizar um agendamento cancelado"
+                    "error": (
+                        "Não é possível finalizar um "
+                        "agendamento cancelado"
+                    )
                 }), 400
 
             if schedule.status == "finished":
@@ -312,9 +361,11 @@ class AppointmentController:
             }), 200
 
         except Exception as e:
+
             db.session.rollback()
 
             return jsonify({
                 "error": "Erro ao finalizar agendamento",
                 "details": str(e)
             }), 500
+

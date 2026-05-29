@@ -121,7 +121,6 @@ const CompanyBookingPage = () => {
           selectedDate
         );
 
-        // NOVA LÓGICA
         setAvailableSlots(response?.slots || []);
 
         setSelectedSlot(null);
@@ -212,13 +211,12 @@ const CompanyBookingPage = () => {
     }
 
     try {
-      // NOVA LÓGICA
       await createAppointment({
         service_id: selectedService.id,
 
         worker_id: selectedWorker.id,
 
-        start_datetime: selectedSlot.start,
+        start_datetime: selectedSlot.datetime || selectedSlot.start,
 
         name: form.name,
 
@@ -230,7 +228,11 @@ const CompanyBookingPage = () => {
       setSuccess("Agendamento realizado com sucesso!");
 
       setAvailableSlots((prev) =>
-        prev.filter((slot) => slot.start !== selectedSlot.start)
+        prev.filter(
+          (slot) =>
+            (slot.datetime || slot.start) !==
+            (selectedSlot.datetime || selectedSlot.start)
+        )
       );
 
       setTimeout(() => {
@@ -571,21 +573,25 @@ const CompanyBookingPage = () => {
                     <>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                         {filteredSlots.map((slot) => {
-                          const date = new Date(slot.start);
+                          const date = new Date(slot.datetime || slot.start);
 
                           return (
                             <button
                               type="button"
-                              key={slot.start}
+                              key={slot.datetime || slot.start}
                               onClick={() => setSelectedSlot(slot)}
                               className={`h-14 rounded-2xl border transition-all text-sm font-semibold px-2 ${
-                                selectedSlot?.start === slot.start
+                                (selectedSlot?.datetime ||
+                                  selectedSlot?.start) ===
+                                (slot.datetime || slot.start)
                                   ? "border-transparent scale-[1.03]"
                                   : "border-white/10 bg-white/5 hover:border-white/20"
                               }`}
                               style={{
                                 backgroundColor:
-                                  selectedSlot?.start === slot.start
+                                  (selectedSlot?.datetime ||
+                                    selectedSlot?.start) ===
+                                  (slot.datetime || slot.start)
                                     ? "var(--primary)"
                                     : undefined,
                               }}
