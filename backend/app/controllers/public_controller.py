@@ -67,8 +67,8 @@ class PublicController:
                 Schedule.company_id == company_id,
                 Schedule.worker_id == worker.id,
                 Schedule.status != "cancelled",
-                Schedule.start_datetime <= end_of_day,
-                Schedule.end_datetime >= start_of_day
+                Schedule.start_time <= end_of_day,
+                Schedule.end_time >= start_of_day
             ).all()
 
             duration = timedelta(minutes=service.duration)
@@ -105,8 +105,8 @@ class PublicController:
 
                     # conflito com agendamentos
                     has_conflict = any(
-                        current_datetime < a.end_datetime and
-                        slot_end > a.start_datetime
+                        current_datetime < a.end_time and
+                        slot_end > a.start_time
                         for a in appointments
                     )
 
