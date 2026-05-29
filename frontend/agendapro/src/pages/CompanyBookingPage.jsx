@@ -1,15 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
+import { useParams } from "react-router-dom";
+
 import {
   CalendarDays,
   Clock3,
   User,
   MessageSquare,
   ArrowLeft,
-  Check,
   X,
 } from "lucide-react";
-
-import { useNavigate, useParams } from "react-router-dom";
 
 import {
   createAppointment,
@@ -22,40 +21,35 @@ import {
   getServiceWorkers,
 } from "../services/companyService";
 
+import Button from "../components/Button";
 import Nav from "../components/Nav";
 
-export default function CompanyBookingPage() {
+const CompanyBookingPage = () => {
   const { slug } = useParams();
-
-  const navigate = useNavigate();
 
   const [company, setCompany] = useState(null);
 
   const [services, setServices] = useState([]);
-
   const [workers, setWorkers] = useState([]);
 
   const [loading, setLoading] = useState(true);
 
   const [selectedService, setSelectedService] = useState(null);
-
   const [selectedWorker, setSelectedWorker] = useState(null);
-
-  const [selectedDate, setSelectedDate] = useState("");
-
-  const [availableSlots, setAvailableSlots] = useState([]);
 
   const [selectedSlot, setSelectedSlot] = useState(null);
 
-  const [showWorkerModal, setShowWorkerModal] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(
+    new Date().toISOString().split("T")[0]
+  );
+
+  const [showWorkersModal, setShowWorkersModal] = useState(false);
 
   const [showBookingModal, setShowBookingModal] = useState(false);
 
-  const [submitting, setSubmitting] = useState(false);
+  const [availableSlots, setAvailableSlots] = useState([]);
 
-  const [toast, setToast] = useState("");
-
-  const [error, setError] = useState("");
+  const [loadingSlots, setLoadingSlots] = useState(false);
 
   const [form, setForm] = useState({
     name: "",
@@ -63,12 +57,15 @@ export default function CompanyBookingPage() {
     notes: "",
   });
 
+  const [success, setSuccess] = useState("");
+  const [error, setError] = useState("");
+
   // =========================================================
-  // LOAD DATA
+  // LOAD COMPANY
   // =========================================================
 
   useEffect(() => {
-    const loadData = async () => {
+    const loadCompany = async () => {
       try {
         const [companyData, servicesData] = await Promise.all([
           getCompanyBySlug(slug),
@@ -76,7 +73,6 @@ export default function CompanyBookingPage() {
         ]);
 
         setCompany(companyData);
-
         setServices(servicesData);
 
         if (companyData?.colors) {
@@ -97,36 +93,10 @@ export default function CompanyBookingPage() {
       }
     };
 
-    loadData();
-  }, [slug]);
-
-  // =========================================================
-  // SELECT SERVICE
-  // =========================================================
-
-  const handleSelectService = async (service) => {
-    try {
-      setSelectedService(service);
-
-      setSelectedWorker(null);
-
-      setSelectedDate("");
-
-      setSelectedSlot(null);
-
-      setAvailableSlots([]);
-
-      const workersData = await getServiceWorkers(slug, service.id);
-
-      setWorkers(workersData || []);
-
-      setShowWorkerModal(true);
-    } catch (err) {
-      console.error(err);
-
-      setError("Erro ao carregar profissionais");
+    if (slug) {
+      loadCompany();
     }
-  };
+  }, [slug]);
 
   // =========================================================
   // LOAD SLOTS
@@ -134,11 +104,13 @@ export default function CompanyBookingPage() {
 
   useEffect(() => {
     const loadSlots = async () => {
-      if (!selectedDate || !selectedService || !selectedWorker) {
+      if (!selectedDate || !selectedWorker || !selectedService) {
         return;
       }
 
       try {
+        setLoadingSlots(true);
+
         setError("");
 
         const response = await getCompanyAvailableSlotsByServiceAndWorker(
@@ -148,18 +120,33 @@ export default function CompanyBookingPage() {
           selectedDate
         );
 
-        setAvailableSlots(Array.isArray(response?.slots) ? response.slots : []);
+        setAvailableSlots(response?.slots || []);
+
+        setSelectedSlot(null);
       } catch (err) {
         console.error(err);
 
         setAvailableSlots([]);
 
-        setError(err?.message || "Erro ao carregar horários");
+        setError("Erro ao carregar horários disponíveis");
+      } finally {
+        setLoadingSlots(false);
       }
     };
 
     loadSlots();
-  }, [slug, selectedDate, selectedService, selectedWorker]);
+  }, [slug, selectedDate, selectedWorker, selectedService]);
+
+  // =========================================================
+  // FORM
+  // =========================================================
+
+  const handleChange = (e) => {
+    setForm({
+      ...form,
+      [e.target.name]: e.target.value,
+    });
+  };
 
   // =========================================================
   // FILTERED SLOTS
@@ -170,14 +157,25 @@ export default function CompanyBookingPage() {
   }, [availableSlots]);
 
   // =========================================================
-  // FORM
+  // RESET
   // =========================================================
 
-  const handleChange = (e) => {
-    setForm((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
+  const resetBookingState = () => {
+    setSelectedWorker(null);
+
+    setSelectedSlot(null);
+
+    setAvailableSlots([]);
+
+    setError("");
+
+    setSuccess("");
+
+    setForm({
+      name: "",
+      phone: "",
+      notes: "",
+    });
   };
 
   // =========================================================
@@ -188,6 +186,7 @@ export default function CompanyBookingPage() {
     e.preventDefault();
 
     setError("");
+    setSuccess("");
 
     if (!selectedService) {
       setError("Selecione um serviço");
@@ -210,36 +209,31 @@ export default function CompanyBookingPage() {
     }
 
     try {
-      setSubmitting(true);
-
       await createAppointment({
         service_id: selectedService.id,
+
         worker_id: selectedWorker.id,
-        start_datetime: selectedSlot,
+
+        start_datetime: selectedSlot.start,
+
         name: form.name,
+
         phone: form.phone,
+
         notes: form.notes,
       });
 
-      setToast("Agendamento realizado com sucesso!");
-
-      setShowBookingModal(false);
+      setSuccess("Agendamento realizado com sucesso!");
 
       setAvailableSlots((prev) =>
-        prev.filter((slot) => slot.start !== selectedSlot)
+        prev.filter((slot) => slot.start !== selectedSlot.start)
       );
 
-      setSelectedSlot(null);
-
-      setForm({
-        name: "",
-        phone: "",
-        notes: "",
-      });
-
       setTimeout(() => {
-        setToast("");
-      }, 2500);
+        setShowBookingModal(false);
+
+        resetBookingState();
+      }, 1800);
     } catch (err) {
       console.error(err);
 
@@ -248,8 +242,6 @@ export default function CompanyBookingPage() {
           err?.response?.data?.error ||
           "Erro ao realizar agendamento"
       );
-    } finally {
-      setSubmitting(false);
     }
   };
 
@@ -259,15 +251,15 @@ export default function CompanyBookingPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#07090d] flex items-center justify-center">
-        <div className="w-10 h-10 border-4 border-white/10 border-t-[var(--primary)] rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-[#07090d]">
+        <div className="w-12 h-12 rounded-full border-4 border-white/10 border-t-[var(--primary)] animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#07090d] text-white">
-      {/* BACKGROUND */}
+    <div className="min-h-screen bg-[#07090d] text-white relative overflow-hidden">
+      {/* BG */}
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] rounded-full bg-[var(--primary)] opacity-20 blur-[120px]" />
 
@@ -277,338 +269,400 @@ export default function CompanyBookingPage() {
       {/* NAV */}
       <Nav logo={company?.logo} />
 
-      {/* HEADER */}
-      <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-12">
+      {/* BACK */}
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-6">
         <button
-          onClick={() => navigate(-1)}
-          className="mb-8 flex items-center gap-2 text-white/60 hover:text-white transition"
+          onClick={() => window.history.back()}
+          className="group flex items-center gap-3 text-white/70 hover:text-white transition-all"
         >
-          <ArrowLeft className="w-4 h-4" />
-          Voltar
-        </button>
+          <div className="w-11 h-11 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl flex items-center justify-center transition-all group-hover:scale-105 group-hover:border-white/20">
+            <ArrowLeft size={18} />
+          </div>
 
-        <div className="max-w-2xl">
-          <h1 className="text-4xl sm:text-5xl font-black leading-tight">
-            Agende seu horário
+          <span className="font-medium">Voltar</span>
+        </button>
+      </div>
+
+      {/* CONTENT */}
+      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-14">
+        <div className="max-w-5xl">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-6 border border-white/10 bg-white/5 backdrop-blur-xl">
+            <CalendarDays size={18} />
+
+            <span className="text-sm text-white/70">Agendamento Online</span>
+          </div>
+
+          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black leading-none tracking-tight mb-6">
+            Agende seu
+            <span
+              className="block"
+              style={{
+                color: "var(--primary)",
+              }}
+            >
+              horário
+            </span>
           </h1>
 
-          <p className="text-white/50 mt-4 text-lg">
-            Escolha um serviço, profissional e horário.
+          <p className="text-base sm:text-lg text-white/60 leading-relaxed max-w-2xl">
+            Escolha um serviço e realize seu agendamento com a {company?.name}.
           </p>
-        </div>
-      </section>
 
-      {/* SERVICES */}
-      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-10">
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-          {services.map((service) => (
-            <button
-              key={service.id}
-              onClick={() => handleSelectService(service)}
-              className={`group text-left overflow-hidden rounded-[30px] border backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 ${
-                selectedService?.id === service.id
-                  ? "border-[var(--primary)] bg-[var(--primary)]/10"
-                  : "border-white/10 bg-white/5 hover:border-white/20"
-              }`}
-            >
-              <div className="aspect-[1.4] overflow-hidden">
-                <img
-                  src={service.image_url}
-                  alt={service.name}
-                  className="w-full h-full object-cover transition duration-500 group-hover:scale-110"
-                />
-              </div>
+          {/* SERVICES */}
+          <div className="mt-14">
+            <h2 className="text-2xl font-bold mb-6">Escolha um serviço</h2>
 
-              <div className="p-6">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h2 className="text-xl font-black">{service.name}</h2>
-
-                    <p className="text-white/50 text-sm mt-2 line-clamp-2">
-                      {service.description}
-                    </p>
-                  </div>
-
-                  {selectedService?.id === service.id && (
-                    <div className="w-10 h-10 rounded-2xl bg-[var(--primary)] flex items-center justify-center">
-                      <Check className="w-5 h-5" />
+            <div className="grid gap-6">
+              {services.map((service) => (
+                <div
+                  key={service.id}
+                  className="group rounded-[30px] overflow-hidden border border-white/10 bg-white/5 hover:border-white/20 transition-all duration-300 backdrop-blur-xl"
+                >
+                  {service.image_url && (
+                    <div className="overflow-hidden">
+                      <img
+                        src={service.image_url}
+                        alt={service.name}
+                        className="w-full h-56 sm:h-72 object-cover transition duration-700 group-hover:scale-105"
+                      />
                     </div>
                   )}
-                </div>
 
-                <div className="mt-6 flex items-center justify-between">
-                  <div>
-                    <p className="text-white/40 text-xs">Preço</p>
+                  <div className="p-6">
+                    <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
+                      <div className="flex-1">
+                        <h3 className="text-2xl font-black">{service.name}</h3>
 
-                    <p className="text-2xl font-black">
-                      R$ {Number(service.price).toFixed(2)}
-                    </p>
-                  </div>
+                        <p className="text-white/60 mt-3 leading-relaxed">
+                          {service.description}
+                        </p>
+                      </div>
 
-                  <div className="text-right">
-                    <p className="text-white/40 text-xs">Duração</p>
-
-                    <p className="font-bold">{service.duration} min</p>
-                  </div>
-                </div>
-              </div>
-            </button>
-          ))}
-        </div>
-
-        {/* BOOKING */}
-        {selectedWorker && (
-          <div className="mt-12 grid grid-cols-1 xl:grid-cols-[360px_1fr] gap-8">
-            {/* SIDEBAR */}
-            <div className="bg-white/5 border border-white/10 rounded-[30px] p-6 h-fit backdrop-blur-xl">
-              <div className="flex items-center gap-4">
-                <img
-                  src={selectedWorker.avatar_url}
-                  alt={selectedWorker.name}
-                  className="w-20 h-20 rounded-3xl object-cover"
-                />
-
-                <div>
-                  <h3 className="text-2xl font-black">{selectedWorker.name}</h3>
-
-                  <p className="text-white/40">{selectedService?.name}</p>
-                </div>
-              </div>
-
-              <div className="mt-8">
-                <label className="text-sm text-white/50">Data</label>
-
-                <div className="relative mt-2">
-                  <CalendarDays className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-white/40" />
-
-                  <input
-                    type="date"
-                    value={selectedDate}
-                    onChange={(e) => setSelectedDate(e.target.value)}
-                    className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 pl-12 pr-4 outline-none focus:border-[var(--primary)]"
-                  />
-                </div>
-              </div>
-
-              <button
-                onClick={() => setShowWorkerModal(true)}
-                className="mt-5 w-full h-14 rounded-2xl border border-white/10 hover:border-white/20 bg-white/5 transition"
-              >
-                Trocar profissional
-              </button>
-            </div>
-
-            {/* SLOTS */}
-            <div className="bg-white/5 border border-white/10 rounded-[30px] p-6 sm:p-8 backdrop-blur-xl">
-              <div className="flex items-center gap-3 mb-8">
-                <div className="w-12 h-12 rounded-2xl bg-[var(--primary)]/20 flex items-center justify-center">
-                  <Clock3 className="w-6 h-6 text-[var(--primary)]" />
-                </div>
-
-                <div>
-                  <h3 className="text-2xl font-black">Horários disponíveis</h3>
-
-                  <p className="text-white/40 text-sm">Escolha um horário</p>
-                </div>
-              </div>
-
-              {!selectedDate ? (
-                <div className="h-[250px] flex items-center justify-center text-white/30">
-                  Selecione uma data
-                </div>
-              ) : filteredSlots.length === 0 ? (
-                <div className="h-[250px] flex items-center justify-center text-white/30">
-                  Nenhum horário disponível
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {filteredSlots.map((slot) => {
-                    const date = new Date(slot.start);
-
-                    const isSelected = selectedSlot === slot.start;
-
-                    return (
-                      <button
-                        key={slot.start}
-                        onClick={() => {
-                          setSelectedSlot(slot.start);
-
-                          setShowBookingModal(true);
+                      <div
+                        className="px-5 py-3 rounded-2xl text-sm font-bold w-fit"
+                        style={{
+                          backgroundColor: "var(--primary)",
                         }}
-                        className={`h-16 rounded-2xl border transition-all font-bold ${
-                          isSelected
-                            ? "bg-[var(--primary)] border-[var(--primary)] scale-[1.03]"
-                            : "bg-white/5 border-white/10 hover:border-white/20"
-                        }`}
                       >
-                        {date.toLocaleTimeString("pt-BR", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </button>
-                    );
-                  })}
+                        R$ {Number(service.price).toFixed(2)}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5 mt-8">
+                      <div className="flex items-center gap-2 text-white/60">
+                        <Clock3 size={16} />
+
+                        <span>{service.duration} min</span>
+                      </div>
+
+                      <Button
+                        onClick={async () => {
+                          try {
+                            resetBookingState();
+
+                            const workersData = await getServiceWorkers(
+                              slug,
+                              service.id
+                            );
+
+                            setSelectedService(service);
+
+                            setWorkers(workersData);
+
+                            setShowWorkersModal(true);
+                          } catch (err) {
+                            console.error(err);
+                          }
+                        }}
+                        className="w-full sm:w-auto"
+                        style={{
+                          backgroundColor: "var(--primary)",
+                        }}
+                      >
+                        Agendar
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-              )}
+              ))}
             </div>
           </div>
-        )}
+        </div>
       </main>
 
       {/* WORKERS MODAL */}
-      {showWorkerModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-            onClick={() => setShowWorkerModal(false)}
-          />
-
-          <div className="relative w-full max-w-2xl rounded-[32px] bg-[#0d0f14] border border-white/10 p-6">
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <h2 className="text-3xl font-black">Escolha o profissional</h2>
-
-                <p className="text-white/40 mt-1">{selectedService?.name}</p>
-              </div>
-
+      {showWorkersModal && (
+        <div className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-md p-4 overflow-y-auto">
+          <div className="min-h-full flex items-center justify-center py-10">
+            <div className="w-full max-w-2xl bg-[#11151c] border border-white/10 rounded-[32px] p-6 sm:p-8 relative">
               <button
-                onClick={() => setShowWorkerModal(false)}
-                className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center"
+                onClick={() => setShowWorkersModal(false)}
+                className="absolute top-5 right-5 w-10 h-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition"
               >
-                <X />
+                <X size={18} />
               </button>
-            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              {workers.map((worker) => (
-                <button
-                  key={worker.id}
-                  onClick={() => {
-                    setSelectedWorker(worker);
+              <h2 className="text-3xl font-black mb-2 pr-12">
+                Escolha um profissional
+              </h2>
 
-                    setShowWorkerModal(false);
-                  }}
-                  className="p-5 rounded-[26px] bg-white/5 border border-white/10 hover:border-white/20 transition text-left"
-                >
-                  <div className="flex items-center gap-4">
-                    <img
-                      src={worker.avatar_url}
-                      alt={worker.name}
-                      className="w-20 h-20 rounded-3xl object-cover"
-                    />
+              <p className="text-white/60 mb-8">
+                Serviço selecionado:{" "}
+                <span style={{ color: "var(--primary)" }}>
+                  {selectedService?.name}
+                </span>
+              </p>
 
-                    <div>
-                      <h3 className="text-xl font-black">{worker.name}</h3>
+              <div className="grid gap-4">
+                {workers.map((worker) => (
+                  <div
+                    key={worker.id}
+                    className="bg-white/5 border border-white/10 rounded-3xl p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5"
+                  >
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div className="w-16 h-16 rounded-2xl overflow-hidden bg-white/10 flex items-center justify-center shrink-0">
+                        {worker.avatar_url ? (
+                          <img
+                            src={worker.avatar_url}
+                            alt={worker.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <User size={24} />
+                        )}
+                      </div>
 
-                      <p className="text-white/40 text-sm mt-1">
-                        Profissional disponível
-                      </p>
+                      <div className="min-w-0">
+                        <h3 className="font-bold text-lg truncate">
+                          {worker.name}
+                        </h3>
+
+                        <p className="text-white/50 text-sm">
+                          Profissional disponível
+                        </p>
+                      </div>
                     </div>
+
+                    <Button
+                      onClick={() => {
+                        setSelectedWorker(worker);
+
+                        setShowWorkersModal(false);
+
+                        setShowBookingModal(true);
+                      }}
+                      className="w-full sm:w-auto"
+                      style={{
+                        backgroundColor: "var(--primary)",
+                      }}
+                    >
+                      Escolher
+                    </Button>
                   </div>
-                </button>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
         </div>
       )}
 
       {/* BOOKING MODAL */}
-      {showBookingModal && selectedSlot && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-            onClick={() => setShowBookingModal(false)}
-          />
-
-          <div className="relative w-full max-w-xl rounded-[32px] bg-[#0d0f14] border border-white/10 p-6 sm:p-8">
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <h2 className="text-3xl font-black">Confirmar agendamento</h2>
-
-                <p className="text-white/40 mt-1">Finalize seu agendamento</p>
-              </div>
-
+      {showBookingModal && (
+        <div className="fixed inset-0 z-[210] bg-black/70 backdrop-blur-md p-4 overflow-y-auto">
+          <div className="min-h-full flex items-center justify-center py-10">
+            <div className="w-full max-w-2xl bg-[#11151c] border border-white/10 rounded-[32px] p-6 sm:p-8 relative">
               <button
-                onClick={() => setShowBookingModal(false)}
-                className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center"
+                onClick={() => {
+                  setShowBookingModal(false);
+
+                  setError("");
+
+                  setSuccess("");
+                }}
+                className="absolute top-5 right-5 w-10 h-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition"
               >
-                <X />
+                <X size={18} />
               </button>
-            </div>
 
-            {error && (
-              <div className="mb-5 p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm">
-                {error}
-              </div>
-            )}
+              <h2 className="text-3xl font-black mb-2 pr-12">
+                Finalizar agendamento
+              </h2>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div>
-                <label className="text-sm text-white/50">Nome</label>
+              <p className="text-white/60 mb-8 leading-relaxed">
+                <span style={{ color: "var(--primary)" }}>
+                  {selectedService?.name}
+                </span>{" "}
+                com{" "}
+                <span style={{ color: "var(--primary)" }}>
+                  {selectedWorker?.name}
+                </span>
+              </p>
 
-                <div className="relative mt-2">
-                  <User className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-white/40" />
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* NAME */}
+                <div>
+                  <label className="text-sm text-white/60 mb-2 block">
+                    Seu nome
+                  </label>
+
+                  <div className="relative">
+                    <User
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40"
+                      size={18}
+                    />
+
+                    <input
+                      type="text"
+                      name="name"
+                      value={form.name}
+                      onChange={handleChange}
+                      placeholder="Digite seu nome"
+                      className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 pl-12 pr-4 outline-none focus:border-[var(--primary)] transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* PHONE */}
+                <div>
+                  <label className="text-sm text-white/60 mb-2 block">
+                    Telefone
+                  </label>
 
                   <input
                     type="text"
-                    name="name"
-                    value={form.name}
+                    name="phone"
+                    value={form.phone}
                     onChange={handleChange}
-                    placeholder="Seu nome"
-                    className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 pl-12 pr-4 outline-none focus:border-[var(--primary)]"
+                    placeholder="(81) 99999-9999"
+                    className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 px-4 outline-none focus:border-[var(--primary)] transition-all"
                   />
                 </div>
-              </div>
 
-              <div>
-                <label className="text-sm text-white/50">Telefone</label>
+                {/* DATE */}
+                <div>
+                  <label className="text-sm text-white/60 mb-2 block">
+                    Escolha a data
+                  </label>
 
-                <input
-                  type="text"
-                  name="phone"
-                  value={form.phone}
-                  onChange={handleChange}
-                  placeholder="(00) 00000-0000"
-                  className="mt-2 w-full h-14 rounded-2xl bg-white/5 border border-white/10 px-4 outline-none focus:border-[var(--primary)]"
-                />
-              </div>
+                  <input
+                    type="date"
+                    value={selectedDate}
+                    min={new Date().toISOString().split("T")[0]}
+                    onChange={(e) => {
+                      setSelectedDate(e.target.value);
 
-              <div>
-                <label className="text-sm text-white/50">Observações</label>
-
-                <div className="relative mt-2">
-                  <MessageSquare className="w-5 h-5 absolute left-4 top-5 text-white/40" />
-
-                  <textarea
-                    rows={4}
-                    name="notes"
-                    value={form.notes}
-                    onChange={handleChange}
-                    placeholder="Observações..."
-                    className="w-full rounded-2xl bg-white/5 border border-white/10 pl-12 pr-4 py-4 outline-none focus:border-[var(--primary)] resize-none"
+                      setSelectedSlot(null);
+                    }}
+                    className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 px-4 outline-none focus:border-[var(--primary)] transition-all"
                   />
                 </div>
-              </div>
 
-              <button
-                disabled={submitting}
-                className="w-full h-14 rounded-2xl bg-[var(--primary)] font-black text-lg hover:brightness-110 transition disabled:opacity-50"
-              >
-                {submitting ? "Agendando..." : "Confirmar agendamento"}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
+                {/* SLOTS */}
+                <div>
+                  <label className="text-sm text-white/60 mb-4 block">
+                    Horários disponíveis
+                  </label>
 
-      {/* TOAST */}
-      {toast && (
-        <div className="fixed top-24 right-4 z-[999]">
-          <div className="px-5 py-4 rounded-2xl bg-white/10 border border-white/10 backdrop-blur-xl">
-            {toast}
+                  {loadingSlots ? (
+                    <div className="flex justify-center py-8">
+                      <div className="w-10 h-10 rounded-full border-4 border-white/10 border-t-[var(--primary)] animate-spin" />
+                    </div>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        {filteredSlots.map((slot) => {
+                          const date = new Date(slot.start);
+
+                          const isSelected = selectedSlot?.start === slot.start;
+
+                          return (
+                            <button
+                              type="button"
+                              key={slot.start}
+                              onClick={() => setSelectedSlot(slot)}
+                              className={`h-14 rounded-2xl border transition-all text-sm font-semibold px-2 ${
+                                isSelected
+                                  ? "border-transparent scale-[1.03]"
+                                  : "border-white/10 bg-white/5 hover:border-white/20"
+                              }`}
+                              style={{
+                                backgroundColor: isSelected
+                                  ? "var(--primary)"
+                                  : undefined,
+                              }}
+                            >
+                              {date.toLocaleTimeString("pt-BR", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {filteredSlots.length === 0 && (
+                        <div className="mt-4 p-4 rounded-2xl bg-white/5 border border-white/10 text-white/50 text-sm">
+                          Nenhum horário disponível para esta data.
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                {/* NOTES */}
+                <div>
+                  <label className="text-sm text-white/60 mb-2 block">
+                    Observações
+                  </label>
+
+                  <div className="relative">
+                    <MessageSquare
+                      className="absolute left-4 top-5 text-white/40"
+                      size={18}
+                    />
+
+                    <textarea
+                      name="notes"
+                      value={form.notes}
+                      onChange={handleChange}
+                      placeholder="Digite alguma observação..."
+                      rows={4}
+                      className="w-full rounded-2xl bg-white/5 border border-white/10 pl-12 pr-4 py-4 outline-none focus:border-[var(--primary)] transition-all resize-none"
+                    />
+                  </div>
+                </div>
+
+                {/* ERRORS */}
+                {error && (
+                  <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm">
+                    {error}
+                  </div>
+                )}
+
+                {/* SUCCESS */}
+                {success && (
+                  <div className="p-4 rounded-2xl bg-green-500/10 border border-green-500/20 text-green-300 text-sm">
+                    {success}
+                  </div>
+                )}
+
+                {/* SUBMIT */}
+                <Button
+                  type="submit"
+                  className="w-full h-14 text-base font-bold rounded-2xl transition-transform hover:scale-[1.01]"
+                  style={{
+                    backgroundColor: "var(--primary)",
+                  }}
+                >
+                  Confirmar Agendamento
+                </Button>
+              </form>
+            </div>
           </div>
         </div>
       )}
     </div>
   );
-}
+};
+
+export default CompanyBookingPage;
