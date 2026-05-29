@@ -31,10 +31,8 @@ class PublicController:
             # 1. VALIDAR worker_service
             # =================================================
             worker_service = WorkerService.query.filter_by(
-                company_id=company_id,
-                worker_id=worker.id,
-                service_id=service.id,
-                is_active=True
+            worker_id=worker.id,
+            service_id=service.id
             ).first()
 
             if not worker_service:
