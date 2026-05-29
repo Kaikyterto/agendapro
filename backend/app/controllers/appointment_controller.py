@@ -217,6 +217,10 @@ class AppointmentController:
 
             schedules = (
                 Schedule.query
+                .options(
+                    joinedload(Schedule.service),
+                    joinedload(Schedule.worker)
+                )
                 .filter_by(company_id=company_id)
                 .order_by(Schedule.start_time.asc())
                 .all()
@@ -225,12 +229,10 @@ class AppointmentController:
             result = []
 
             for s in schedules:
-                print(s.worker_id)
 
                 worker = Worker.query.get(s.worker_id)
                 service = s.service
 
-                print(worker)
 
                 result.append({
                     "id": s.id,
