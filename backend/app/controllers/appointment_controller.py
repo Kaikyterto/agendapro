@@ -224,38 +224,37 @@ class AppointmentController:
                 .all()
             )
 
-            return jsonify([
-                {
+            result = []
+
+            for s in schedules:
+
+                worker = Worker.query.get(s.worker_id)
+                service = Service.query.get(s.service_id)
+
+                result.append({
                     "id": s.id,
 
                     "customer_name": s.name,
                     "phone": s.phone,
 
                     "service": {
-                        "id": s.service.id,
-                        "name": s.service.name
-                    } if s.service else None,
+                        "id": service.id,
+                        "name": service.name
+                    } if service else None,
 
                     "worker": {
-                        "id": s.worker.id,
-                        "name": s.worker.name
-                    } if s.worker else None,
+                        "id": worker.id,
+                        "name": worker.name
+                    } if worker else None,
 
-                    "start": (
-                        s.start_time.isoformat()
-                        if s.start_time else None
-                    ),
-
-                    "end": (
-                        s.end_time.isoformat()
-                        if s.end_time else None
-                    ),
+                    "start": s.start_time.isoformat() if s.start_time else None,
+                    "end": s.end_time.isoformat() if s.end_time else None,
 
                     "status": s.status,
                     "notes": s.notes
-                }
-                for s in schedules
-            ]), 200
+                })
+
+            return jsonify(result), 200
 
         except Exception as e:
 
@@ -263,7 +262,6 @@ class AppointmentController:
                 "error": "Erro ao buscar agendamentos",
                 "details": str(e)
             }), 500
-
     # =========================================================
     # CANCEL APPOINTMENT
     # =========================================================

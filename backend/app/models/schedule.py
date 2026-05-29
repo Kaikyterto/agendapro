@@ -27,11 +27,11 @@ class Schedule(db.Model):
         index=True
     )
 
-    # 👇 HORÁRIO REAL DO AGENDAMENTO
+  
     start_time = db.Column(db.DateTime, nullable=False, index=True)
     end_time = db.Column(db.DateTime, nullable=False, index=True)
 
-    # 👇 DADOS DO CLIENTE (MANTIDOS COMO VOCÊ QUER)
+   
     name = db.Column(db.String(120), nullable=False)
     phone = db.Column(db.String(30), nullable=False)
 
