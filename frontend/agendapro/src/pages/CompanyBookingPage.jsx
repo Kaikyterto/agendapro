@@ -121,6 +121,7 @@ const CompanyBookingPage = () => {
           selectedDate
         );
 
+        // NOVA LÓGICA
         setAvailableSlots(response?.slots || []);
 
         setSelectedSlot(null);
@@ -211,6 +212,7 @@ const CompanyBookingPage = () => {
     }
 
     try {
+      // NOVA LÓGICA
       await createAppointment({
         service_id: selectedService.id,
 
@@ -261,18 +263,19 @@ const CompanyBookingPage = () => {
 
   return (
     <div className="min-h-screen bg-[#07090d] text-white relative overflow-hidden">
-      {/* BG */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] rounded-full bg-[var(--primary)] opacity-20 blur-[120px]" />
+      <div
+        className="absolute inset-0 opacity-30 pointer-events-none"
+        style={{
+          background: `
+            radial-gradient(circle at 20% 30%, var(--primary) 0%, transparent 40%),
+            radial-gradient(circle at 80% 70%, var(--accent) 0%, transparent 40%)
+          `,
+        }}
+      />
 
-        <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] rounded-full bg-[var(--accent)] opacity-10 blur-[120px]" />
-      </div>
-
-      {/* NAV */}
       <Nav logo={company?.logo} />
 
-      {/* BACK */}
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-6">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8">
         <button
           onClick={() => window.history.back()}
           className="group flex items-center gap-3 text-white/70 hover:text-white transition-all"
@@ -285,16 +288,20 @@ const CompanyBookingPage = () => {
         </button>
       </div>
 
-      {/* CONTENT */}
-      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-14">
+      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-14 sm:py-20">
         <div className="max-w-5xl">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-6 border border-white/10 bg-white/5 backdrop-blur-xl">
+          <div
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-6 border border-white/10 backdrop-blur-md"
+            style={{
+              backgroundColor: "rgba(255,255,255,0.03)",
+            }}
+          >
             <CalendarDays size={18} />
 
             <span className="text-sm text-white/70">Agendamento Online</span>
           </div>
 
-          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black leading-none tracking-tight mb-6">
+          <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black leading-none tracking-tight mb-6">
             Agende seu
             <span
               className="block"
@@ -310,47 +317,44 @@ const CompanyBookingPage = () => {
             Escolha um serviço e realize seu agendamento com a {company?.name}.
           </p>
 
-          {/* SERVICES */}
-          <div className="mt-14">
+          <div className="mt-12">
             <h2 className="text-2xl font-bold mb-6">Escolha um serviço</h2>
 
-            <div className="grid gap-6">
+            <div className="grid gap-5">
               {services.map((service) => (
                 <div
                   key={service.id}
-                  className="group rounded-[30px] overflow-hidden border border-white/10 bg-white/5 hover:border-white/20 transition-all duration-300 backdrop-blur-xl"
+                  className="rounded-[28px] overflow-hidden border border-white/10 bg-white/5 hover:border-white/20 transition-all duration-300 backdrop-blur-xl"
                 >
                   {service.image_url && (
-                    <div className="overflow-hidden">
-                      <img
-                        src={service.image_url}
-                        alt={service.name}
-                        className="w-full h-56 sm:h-72 object-cover transition duration-700 group-hover:scale-105"
-                      />
-                    </div>
+                    <img
+                      src={service.image_url}
+                      alt={service.name}
+                      className="w-full h-52 sm:h-64 object-cover"
+                    />
                   )}
 
-                  <div className="p-6">
-                    <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
+                  <div className="p-5 sm:p-6">
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-5">
                       <div className="flex-1">
-                        <h3 className="text-2xl font-black">{service.name}</h3>
+                        <h3 className="text-2xl font-bold">{service.name}</h3>
 
-                        <p className="text-white/60 mt-3 leading-relaxed">
+                        <p className="text-white/60 mt-2 leading-relaxed">
                           {service.description}
                         </p>
                       </div>
 
                       <div
-                        className="px-5 py-3 rounded-2xl text-sm font-bold w-fit"
+                        className="px-4 py-2 rounded-2xl text-sm font-semibold w-fit"
                         style={{
                           backgroundColor: "var(--primary)",
                         }}
                       >
-                        R$ {Number(service.price).toFixed(2)}
+                        R$ {service.price}
                       </div>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5 mt-8">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5 mt-6">
                       <div className="flex items-center gap-2 text-white/60">
                         <Clock3 size={16} />
 
@@ -392,30 +396,36 @@ const CompanyBookingPage = () => {
         </div>
       </main>
 
-      {/* WORKERS MODAL */}
       {showWorkersModal && (
-        <div className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-md p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-md p-4 sm:p-6 overflow-y-auto">
           <div className="min-h-full flex items-center justify-center py-10">
-            <div className="w-full max-w-2xl bg-[#11151c] border border-white/10 rounded-[32px] p-6 sm:p-8 relative">
+            <div className="w-full max-w-2xl bg-[#11151c] border border-white/10 rounded-[28px] sm:rounded-[32px] p-5 sm:p-8 relative">
               <button
                 onClick={() => setShowWorkersModal(false)}
-                className="absolute top-5 right-5 w-10 h-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition"
+                className="absolute top-4 right-4 sm:top-5 sm:right-5 w-10 h-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition"
               >
                 <X size={18} />
               </button>
 
-              <h2 className="text-3xl font-black mb-2 pr-12">
+              <h2 className="text-2xl sm:text-3xl font-black mb-2 pr-12">
                 Escolha um profissional
               </h2>
 
-              <div className="grid gap-4 mt-8">
+              <p className="text-white/60 mb-8">
+                Serviço selecionado:{" "}
+                <span style={{ color: "var(--primary)" }}>
+                  {selectedService?.name}
+                </span>
+              </p>
+
+              <div className="grid gap-4">
                 {workers.map((worker) => (
                   <div
                     key={worker.id}
-                    className="bg-white/5 border border-white/10 rounded-3xl p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5"
+                    className="bg-white/5 border border-white/10 rounded-3xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5"
                   >
-                    <div className="flex items-center gap-4">
-                      <div className="w-16 h-16 rounded-2xl overflow-hidden bg-white/10 flex items-center justify-center">
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div className="w-16 h-16 rounded-2xl overflow-hidden bg-white/10 flex items-center justify-center shrink-0">
                         {worker.avatar_url ? (
                           <img
                             src={worker.avatar_url}
@@ -427,8 +437,10 @@ const CompanyBookingPage = () => {
                         )}
                       </div>
 
-                      <div>
-                        <h3 className="font-bold text-lg">{worker.name}</h3>
+                      <div className="min-w-0">
+                        <h3 className="font-bold text-lg truncate">
+                          {worker.name}
+                        </h3>
 
                         <p className="text-white/50 text-sm">
                           Profissional disponível
@@ -444,6 +456,7 @@ const CompanyBookingPage = () => {
 
                         setShowBookingModal(true);
                       }}
+                      className="w-full sm:w-auto"
                       style={{
                         backgroundColor: "var(--primary)",
                       }}
@@ -458,23 +471,187 @@ const CompanyBookingPage = () => {
         </div>
       )}
 
-      {/* BOOKING MODAL */}
       {showBookingModal && (
-        <div className="fixed inset-0 z-[210] bg-black/70 backdrop-blur-md p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-[210] bg-black/70 backdrop-blur-md p-4 sm:p-6 overflow-y-auto">
           <div className="min-h-full flex items-center justify-center py-10">
-            <div className="w-full max-w-2xl bg-[#11151c] border border-white/10 rounded-[32px] p-6 sm:p-8 relative">
+            <div className="w-full max-w-2xl bg-[#11151c] border border-white/10 rounded-[28px] sm:rounded-[32px] p-5 sm:p-8 relative">
               <button
-                onClick={() => setShowBookingModal(false)}
-                className="absolute top-5 right-5 w-10 h-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition"
+                onClick={() => {
+                  setShowBookingModal(false);
+
+                  setError("");
+
+                  setSuccess("");
+                }}
+                className="absolute top-4 right-4 sm:top-5 sm:right-5 w-10 h-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition"
               >
                 <X size={18} />
               </button>
 
-              <h2 className="text-3xl font-black mb-8">
+              <h2 className="text-2xl sm:text-3xl font-black mb-2 pr-12">
                 Finalizar agendamento
               </h2>
 
-              {/* restante do modal continua igual */}
+              <p className="text-white/60 mb-8 leading-relaxed">
+                <span style={{ color: "var(--primary)" }}>
+                  {selectedService?.name}
+                </span>{" "}
+                com{" "}
+                <span style={{ color: "var(--primary)" }}>
+                  {selectedWorker?.name}
+                </span>
+              </p>
+
+              <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
+                <div>
+                  <label className="text-sm text-white/60 mb-2 block">
+                    Seu nome
+                  </label>
+
+                  <div className="relative">
+                    <User
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40"
+                      size={18}
+                    />
+
+                    <input
+                      type="text"
+                      name="name"
+                      value={form.name}
+                      onChange={handleChange}
+                      placeholder="Digite seu nome"
+                      className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 pl-12 pr-4 outline-none focus:border-[var(--primary)] transition-all"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm text-white/60 mb-2 block">
+                    Telefone
+                  </label>
+
+                  <input
+                    type="text"
+                    name="phone"
+                    value={form.phone}
+                    onChange={handleChange}
+                    placeholder="(81) 99999-9999"
+                    className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 px-4 outline-none focus:border-[var(--primary)] transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm text-white/60 mb-2 block">
+                    Escolha a data
+                  </label>
+
+                  <input
+                    type="date"
+                    value={selectedDate}
+                    min={new Date().toISOString().split("T")[0]}
+                    onChange={(e) => {
+                      setSelectedDate(e.target.value);
+
+                      setSelectedSlot(null);
+                    }}
+                    className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 px-4 outline-none focus:border-[var(--primary)] transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm text-white/60 mb-4 block">
+                    Horários disponíveis
+                  </label>
+
+                  {loadingSlots ? (
+                    <div className="flex justify-center py-8">
+                      <div className="w-10 h-10 rounded-full border-4 border-white/10 border-t-[var(--primary)] animate-spin" />
+                    </div>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        {filteredSlots.map((slot) => {
+                          const date = new Date(slot.start);
+
+                          return (
+                            <button
+                              type="button"
+                              key={slot.start}
+                              onClick={() => setSelectedSlot(slot)}
+                              className={`h-14 rounded-2xl border transition-all text-sm font-semibold px-2 ${
+                                selectedSlot?.start === slot.start
+                                  ? "border-transparent scale-[1.03]"
+                                  : "border-white/10 bg-white/5 hover:border-white/20"
+                              }`}
+                              style={{
+                                backgroundColor:
+                                  selectedSlot?.start === slot.start
+                                    ? "var(--primary)"
+                                    : undefined,
+                              }}
+                            >
+                              {date.toLocaleTimeString("pt-BR", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {filteredSlots.length === 0 && (
+                        <div className="mt-4 p-4 rounded-2xl bg-white/5 border border-white/10 text-white/50 text-sm">
+                          Nenhum horário disponível para esta data.
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-sm text-white/60 mb-2 block">
+                    Observações
+                  </label>
+
+                  <div className="relative">
+                    <MessageSquare
+                      className="absolute left-4 top-5 text-white/40"
+                      size={18}
+                    />
+
+                    <textarea
+                      name="notes"
+                      value={form.notes}
+                      onChange={handleChange}
+                      placeholder="Digite alguma observação..."
+                      rows={4}
+                      className="w-full rounded-2xl bg-white/5 border border-white/10 pl-12 pr-4 py-4 outline-none focus:border-[var(--primary)] transition-all resize-none"
+                    />
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm">
+                    {error}
+                  </div>
+                )}
+
+                {success && (
+                  <div className="p-4 rounded-2xl bg-green-500/10 border border-green-500/20 text-green-300 text-sm">
+                    {success}
+                  </div>
+                )}
+
+                <Button
+                  type="submit"
+                  className="w-full h-14 sm:h-16 text-base sm:text-lg font-bold rounded-2xl transition-transform hover:scale-[1.01]"
+                  style={{
+                    backgroundColor: "var(--primary)",
+                  }}
+                >
+                  Confirmar Agendamento
+                </Button>
+              </form>
             </div>
           </div>
         </div>
