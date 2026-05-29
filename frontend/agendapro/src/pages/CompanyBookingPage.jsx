@@ -106,6 +106,7 @@ const CompanyBookingPage = () => {
   useEffect(() => {
     const loadSlots = async () => {
       if (!selectedDate || !selectedWorker || !selectedService) {
+        setAvailableSlots([]);
         return;
       }
 
@@ -121,10 +122,12 @@ const CompanyBookingPage = () => {
           selectedDate
         );
 
-        setAvailableSlots(response?.slots || []);
+        const slots = response?.slots || [];
 
         console.log("SLOTS RESPONSE:", response);
-        console.log("AVAILABLE SLOTS:", availableSlots);
+        console.log("NEW SLOTS:", slots);
+
+        setAvailableSlots(slots);
 
         setSelectedSlot(null);
       } catch (err) {
@@ -141,6 +144,13 @@ const CompanyBookingPage = () => {
     loadSlots();
   }, [slug, selectedDate, selectedWorker, selectedService]);
 
+  // =========================================================
+  // DEBUG AVAILABLE SLOTS
+  // =========================================================
+
+  useEffect(() => {
+    console.log("UPDATED availableSlots:", availableSlots);
+  }, [availableSlots]);
   // =========================================================
   // FORM
   // =========================================================
