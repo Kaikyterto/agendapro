@@ -123,6 +123,9 @@ const CompanyBookingPage = () => {
 
         setAvailableSlots(response?.slots || []);
 
+        console.log("SLOTS RESPONSE:", response);
+        console.log("AVAILABLE SLOTS:", availableSlots);
+
         setSelectedSlot(null);
       } catch (err) {
         console.error(err);
