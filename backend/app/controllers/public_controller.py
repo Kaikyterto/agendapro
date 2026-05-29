@@ -190,6 +190,26 @@ class PublicController:
         except Exception as e:
             print("ERRO get_company_available_slots:", str(e))
             return jsonify({"error": str(e)}), 500
+         
+    # =====================================================
+    # EMPRESA
+    # =====================================================
+    @staticmethod
+    @public_company_active
+    def get_public_company_data(slug, company):
+
+        return jsonify({
+            "id": company.id,
+            "name": company.name,
+            "logo": company.logo_url,
+            "about": company.about,
+            "colors": {
+                "primary": company.primary_color,
+                "secondary": company.secondary_color
+            }
+        }), 200
+
+
 
     # =====================================================
     # PRODUTOS
