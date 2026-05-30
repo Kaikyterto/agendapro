@@ -8,7 +8,6 @@ import {
 } from "../services/companyService";
 
 import { createSale } from "../services/saleService";
-
 import Nav from "../components/Nav";
 
 export default function CompanyProductsPage() {
@@ -20,8 +19,8 @@ export default function CompanyProductsPage() {
 
   const [cart, setCart] = useState([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [toast, setToast] = useState("");
 
+  const [toast, setToast] = useState("");
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -37,7 +36,7 @@ export default function CompanyProductsPage() {
         ]);
 
         setCompany(companyData);
-        setProducts(productsData);
+        setProducts(productsData || []);
 
         if (companyData?.colors) {
           document.documentElement.style.setProperty(
@@ -51,7 +50,8 @@ export default function CompanyProductsPage() {
           );
         }
       } catch (error) {
-        console.error("Erro ao carregar dados:", error);
+        console.error(error);
+        setError("Erro ao carregar dados");
       } finally {
         setLoading(false);
       }
@@ -61,53 +61,59 @@ export default function CompanyProductsPage() {
   }, [slug]);
 
   // =========================================================
-  // CART ACTIONS
+  // CART (SEM DUPLICAR ITEM)
   // =========================================================
   const addToCart = (product) => {
-    setCart((prev) => [...prev, product]);
+    setCart((prev) => {
+      const exists = prev.find((p) => p.id === product.id);
+      if (exists) return prev;
+      return [...prev, product];
+    });
+
     setToast(`${product.name} adicionado ao carrinho`);
     setTimeout(() => setToast(""), 2000);
   };
 
-  const removeFromCart = (index) => {
-    setCart((prev) => prev.filter((_, i) => i !== index));
+  const removeFromCart = (id) => {
+    setCart((prev) => prev.filter((p) => p.id !== id));
   };
 
   const total = useMemo(() => {
-    return cart.reduce((acc, item) => acc + Number(item.value), 0);
+    return cart.reduce((acc, item) => acc + Number(item.value || 0), 0);
   }, [cart]);
 
   // =========================================================
-  // CHECKOUT (MERCADO PAGO)
+  // CHECKOUT
   // =========================================================
   const handleCheckout = async () => {
+    if (!company?.id) {
+      setError("Empresa inválida");
+      return;
+    }
+
+    if (cart.length === 0) return;
+
     try {
       setCheckoutLoading(true);
       setError("");
 
-      if (cart.length === 0) return;
-
       const payload = {
+        company_id: company.id, // 🔥 importante (corrige backend)
         items: cart.map((item) => ({
           product_id: item.id,
           quantity: 1,
-          unit_price: Number(item.value),
         })),
-
-        company_slug: slug,
-
         payment_method: "mercadopago",
       };
 
       const res = await createSale(payload);
 
-      // backend deve retornar checkout_url
       if (res?.checkout_url) {
         window.location.href = res.checkout_url;
         return;
       }
 
-      throw new Error("Checkout URL não retornada");
+      throw new Error("Checkout inválido");
     } catch (err) {
       console.error(err);
       setError("Erro ao iniciar pagamento");
@@ -122,7 +128,7 @@ export default function CompanyProductsPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#07090d] flex items-center justify-center">
-        <div className="w-10 h-10 border-4 border-white/10 border-t-[var(--primary)] rounded-full animate-spin" />
+        <Loader2 className="animate-spin text-white/60" size={40} />
       </div>
     );
   }
@@ -141,7 +147,7 @@ export default function CompanyProductsPage() {
       {/* NAV */}
       <Nav
         logo={company?.logo}
-        showCart={true}
+        showCart
         cartCount={cart.length}
         onCartClick={() => setIsCartOpen(true)}
       />
@@ -152,26 +158,25 @@ export default function CompanyProductsPage() {
           {products.map((product) => (
             <div
               key={product.id}
-              className="group bg-white/5 border border-white/10 rounded-[28px] overflow-hidden hover:border-white/20 transition-all hover:-translate-y-1"
+              className="bg-white/5 border border-white/10 rounded-[28px] overflow-hidden hover:border-white/20 transition hover:-translate-y-1"
             >
-              <div className="aspect-square overflow-hidden">
+              <div className="aspect-square">
                 <img
                   src={product.image_url}
-                  alt={product.name}
-                  className="w-full h-full object-cover group-hover:scale-110 transition"
+                  className="w-full h-full object-cover"
                 />
               </div>
 
               <div className="p-5">
-                <h3 className="text-lg font-bold truncate">{product.name}</h3>
+                <h3 className="font-bold truncate">{product.name}</h3>
 
                 <p className="text-white/50 text-sm mt-1 line-clamp-2">
                   {product.description}
                 </p>
 
-                <div className="mt-5 flex justify-between items-center">
-                  <span className="text-xl font-black">
-                    R$ {Number(product.value).toFixed(2)}
+                <div className="flex justify-between items-center mt-5">
+                  <span className="font-black text-lg">
+                    R$ {Number(product.value || 0).toFixed(2)}
                   </span>
 
                   <button
@@ -208,7 +213,7 @@ export default function CompanyProductsPage() {
             {/* HEADER */}
             <div className="p-5 border-b border-white/10 flex justify-between">
               <div>
-                <h2 className="text-xl font-bold">Carrinho</h2>
+                <h2 className="font-bold text-xl">Carrinho</h2>
                 <p className="text-white/40 text-sm">{cart.length} itens</p>
               </div>
 
@@ -224,9 +229,9 @@ export default function CompanyProductsPage() {
                   Carrinho vazio
                 </div>
               ) : (
-                cart.map((item, index) => (
+                cart.map((item) => (
                   <div
-                    key={index}
+                    key={item.id}
                     className="flex gap-4 p-3 rounded-2xl bg-white/5 border border-white/10"
                   >
                     <img
@@ -235,13 +240,13 @@ export default function CompanyProductsPage() {
                     />
 
                     <div className="flex-1">
-                      <p className="font-semibold text-sm">{item.name}</p>
+                      <p className="font-semibold">{item.name}</p>
                       <p className="text-[var(--primary)] font-bold">
                         R$ {Number(item.value).toFixed(2)}
                       </p>
                     </div>
 
-                    <button onClick={() => removeFromCart(index)}>
+                    <button onClick={() => removeFromCart(item.id)}>
                       <X className="w-4 h-4 text-white/40" />
                     </button>
                   </div>
@@ -255,7 +260,7 @@ export default function CompanyProductsPage() {
 
               <div className="flex justify-between mb-4">
                 <span>Total</span>
-                <span className="text-xl font-black">
+                <span className="font-black text-xl">
                   R$ {total.toFixed(2)}
                 </span>
               </div>

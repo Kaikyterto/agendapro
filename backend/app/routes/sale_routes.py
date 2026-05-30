@@ -3,24 +3,14 @@ from flask_jwt_extended import jwt_required
 
 from app.controllers.sale_controller import SaleController
 
-
 sales_bp = Blueprint(
     "sales",
     __name__
 )
 
 # =========================================================
-# VENDAS
+# VENDAS (ADMIN / INTERNO)
 # =========================================================
-
-@sales_bp.route(
-    "/sales",
-    methods=["POST"]
-)
-@jwt_required()
-def create_sale():
-    return SaleController.create_sale()
-
 
 @sales_bp.route(
     "/sales",
@@ -59,20 +49,19 @@ def delete_sale(sale_id):
 
 
 # =========================================================
-# CHECKOUT / PAGAMENTO
+# CHECKOUT (PUBLICO - CLIENTE FINAL)
 # =========================================================
 
 @sales_bp.route(
     "/sales/checkout",
     methods=["POST"]
 )
-@jwt_required()
 def checkout_sale():
     return SaleController.create_sale()
 
 
 # =========================================================
-# WEBHOOK 
+# WEBHOOK MERCADO PAGO
 # =========================================================
 
 @sales_bp.route(

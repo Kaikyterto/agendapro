@@ -1,11 +1,11 @@
 import { apiFetch } from "./api";
 
 // =========================================================
-// CREATE CHECKOUT / SALE
+// PUBLIC CHECKOUT (CLIENTE FINAL)
 // =========================================================
 
-export function createSale(data) {
-  return apiFetch("/sales/checkout", {
+export function createSale(slug, data) {
+  return apiFetch(`/public/sales/checkout?slug=${slug}`, {
     method: "POST",
 
     headers: {
@@ -17,7 +17,7 @@ export function createSale(data) {
 }
 
 // =========================================================
-// LIST SALES
+// ADMIN - LIST SALES
 // =========================================================
 
 export function getSales() {
@@ -25,7 +25,7 @@ export function getSales() {
 }
 
 // =========================================================
-// GET SALE BY ID
+// ADMIN - GET SALE BY ID
 // =========================================================
 
 export function getSaleById(saleId) {
@@ -33,7 +33,7 @@ export function getSaleById(saleId) {
 }
 
 // =========================================================
-// UPDATE SALE
+// ADMIN - UPDATE SALE
 // =========================================================
 
 export function updateSale(saleId, data) {
@@ -49,27 +49,11 @@ export function updateSale(saleId, data) {
 }
 
 // =========================================================
-// DELETE SALE
+// ADMIN - DELETE SALE
 // =========================================================
 
 export function deleteSale(saleId) {
   return apiFetch(`/sales/${saleId}`, {
     method: "DELETE",
-  });
-}
-
-// =========================================================
-// MERCADO PAGO WEBHOOK TEST (OPCIONAL FRONT DEBUG)
-// =========================================================
-
-export function sendMercadoPagoWebhook(data) {
-  return apiFetch("/sales/webhook/mercadopago", {
-    method: "POST",
-
-    headers: {
-      "Content-Type": "application/json",
-    },
-
-    body: JSON.stringify(data),
   });
 }
