@@ -24,9 +24,9 @@ export default function CompanyProductsPage() {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // =========================================================
+  // =========================
   // LOAD DATA
-  // =========================================================
+  // =========================
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -60,14 +60,20 @@ export default function CompanyProductsPage() {
     loadData();
   }, [slug]);
 
-  // =========================================================
-  // CART (SEM DUPLICAR ITEM)
-  // =========================================================
+  // =========================
+  // CART (CORRIGIDO)
+  // =========================
   const addToCart = (product) => {
     setCart((prev) => {
       const exists = prev.find((p) => p.id === product.id);
-      if (exists) return prev;
-      return [...prev, product];
+
+      if (exists) {
+        return prev.map((p) =>
+          p.id === product.id ? { ...p, quantity: (p.quantity || 1) + 1 } : p
+        );
+      }
+
+      return [...prev, { ...product, quantity: 1 }];
     });
 
     setToast(`${product.name} adicionado ao carrinho`);
@@ -75,56 +81,92 @@ export default function CompanyProductsPage() {
   };
 
   const removeFromCart = (id) => {
-    setCart((prev) => prev.filter((p) => p.id !== id));
+    setCart((prev) => {
+      const item = prev.find((p) => p.id === id);
+      if (!item) return prev;
+
+      if (item.quantity > 1) {
+        return prev.map((p) =>
+          p.id === id ? { ...p, quantity: p.quantity - 1 } : p
+        );
+      }
+
+      return prev.filter((p) => p.id !== id);
+    });
   };
 
   const total = useMemo(() => {
-    return cart.reduce((acc, item) => acc + Number(item.value || 0), 0);
+    return cart.reduce(
+      (acc, item) => acc + Number(item.value || 0) * (item.quantity || 1),
+      0
+    );
   }, [cart]);
 
-  // =========================================================
+  // =========================
   // CHECKOUT
-  // =========================================================
+  // =========================
   const handleCheckout = async () => {
-    if (!company?.id) {
-      setError("Empresa inválida");
-      return;
-    }
-
-    if (cart.length === 0) return;
-
     try {
-      setCheckoutLoading(true);
-      setError("");
+      console.log("🟡 INICIANDO CHECKOUT");
+
+      if (!company?.id) {
+        console.error("❌ company.id está vazio:", company);
+        setError("Empresa inválida");
+        return;
+      }
+
+      if (!cart.length) {
+        console.error("❌ Carrinho vazio");
+        setError("Carrinho vazio");
+        return;
+      }
 
       const payload = {
-        company_id: company.id, // 🔥 importante (corrige backend)
+        company_id: company.id,
         items: cart.map((item) => ({
           product_id: item.id,
-          quantity: 1,
+          quantity: item.quantity || 1,
         })),
         payment_method: "mercadopago",
       };
 
+      console.log("📦 PAYLOAD ENVIADO:");
+      console.log(JSON.stringify(payload, null, 2));
+
+      setCheckoutLoading(true);
+      setError("");
+
       const res = await createSale(payload);
 
+      console.log("🟢 RESPOSTA BACKEND:");
+      console.log(res);
+
       if (res?.checkout_url) {
+        console.log("🚀 REDIRECIONANDO PARA:");
+        console.log(res.checkout_url);
+
         window.location.href = res.checkout_url;
         return;
       }
 
+      console.error("❌ RESPOSTA SEM checkout_url:", res);
       throw new Error("Checkout inválido");
     } catch (err) {
-      console.error(err);
-      setError("Erro ao iniciar pagamento");
+      console.error("🔥 ERRO NO CHECKOUT:");
+
+      console.error("📌 err completo:", err);
+      console.error("📌 err.response:", err?.response);
+      console.error("📌 err.response.data:", err?.response?.data);
+
+      setError(err?.response?.data?.error || "Erro ao iniciar pagamento");
     } finally {
       setCheckoutLoading(false);
     }
   };
 
-  // =========================================================
+  // =========================
   // LOADING
-  // =========================================================
+  // =========================
   if (loading) {
     return (
       <div className="min-h-screen bg-[#07090d] flex items-center justify-center">
@@ -133,9 +175,9 @@ export default function CompanyProductsPage() {
     );
   }
 
-  // =========================================================
+  // =========================
   // UI
-  // =========================================================
+  // =========================
   return (
     <div className="min-h-screen bg-[#07090d] text-white">
       {/* BACKGROUND */}
@@ -214,7 +256,9 @@ export default function CompanyProductsPage() {
             <div className="p-5 border-b border-white/10 flex justify-between">
               <div>
                 <h2 className="font-bold text-xl">Carrinho</h2>
-                <p className="text-white/40 text-sm">{cart.length} itens</p>
+                <p className="text-white/40 text-sm">
+                  {cart.length} tipos de itens
+                </p>
               </div>
 
               <button onClick={() => setIsCartOpen(false)}>
@@ -240,9 +284,12 @@ export default function CompanyProductsPage() {
                     />
 
                     <div className="flex-1">
-                      <p className="font-semibold">{item.name}</p>
+                      <p className="font-semibold">
+                        {item.name} × {item.quantity}
+                      </p>
+
                       <p className="text-[var(--primary)] font-bold">
-                        R$ {Number(item.value).toFixed(2)}
+                        R$ {(Number(item.value) * item.quantity).toFixed(2)}
                       </p>
                     </div>
 
