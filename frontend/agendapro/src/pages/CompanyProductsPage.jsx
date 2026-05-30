@@ -24,7 +24,6 @@ export default function CompanyProductsPage() {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // CUSTOMER
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [showCustomerModal, setShowCustomerModal] = useState(false);
@@ -53,8 +52,8 @@ export default function CompanyProductsPage() {
             companyData.colors.secondary
           );
         }
-      } catch (error) {
-        console.error(error);
+      } catch (err) {
+        console.error("LOAD ERROR:", err);
         setError("Erro ao carregar dados");
       } finally {
         setLoading(false);
@@ -89,7 +88,7 @@ export default function CompanyProductsPage() {
       const item = prev.find((p) => p.id === id);
       if (!item) return prev;
 
-      if ((item.quantity || 1) > 1) {
+      if (item.quantity > 1) {
         return prev.map((p) =>
           p.id === id ? { ...p, quantity: p.quantity - 1 } : p
         );
@@ -100,9 +99,10 @@ export default function CompanyProductsPage() {
   };
 
   const total = useMemo(() => {
-    return cart.reduce((acc, item) => {
-      return acc + Number(item.value || 0) * Number(item.quantity || 1);
-    }, 0);
+    return cart.reduce(
+      (acc, item) => acc + Number(item.value || 0) * (item.quantity || 1),
+      0
+    );
   }, [cart]);
 
   // =========================
@@ -110,16 +110,15 @@ export default function CompanyProductsPage() {
   // =========================
   const handleCheckout = async () => {
     try {
-      setError("");
+      console.log("🟡 CHECKOUT START");
 
       if (!company?.id) return setError("Empresa inválida");
       if (!cart.length) return setError("Carrinho vazio");
-
-      if (!customerName || !customerPhone) {
+      if (!customerName || !customerPhone)
         return setError("Preencha nome e telefone");
-      }
 
       setCheckoutLoading(true);
+      setError("");
 
       const payload = {
         company_id: company.id,
@@ -132,18 +131,20 @@ export default function CompanyProductsPage() {
         payment_method: "mercadopago",
       };
 
+      console.log("📦 PAYLOAD:", payload);
+
       const res = await createSale(payload);
 
-      console.log("RES:", res);
+      console.log("🟢 RESPONSE:", res);
 
-      if (res?.checkout_url) {
-        window.location.href = res.checkout_url;
-      } else {
-        throw new Error("Resposta inválida");
+      if (!res?.checkout_url) {
+        throw new Error("Checkout inválido");
       }
+
+      window.location.href = res.checkout_url;
     } catch (err) {
-      console.error(err);
-      setError(err?.response?.data?.error || "Erro ao processar compra");
+      console.error("🔥 CHECKOUT ERROR:", err);
+      setError(err?.response?.data?.error || "Erro ao iniciar pagamento");
     } finally {
       setCheckoutLoading(false);
     }
@@ -165,6 +166,13 @@ export default function CompanyProductsPage() {
   // =========================
   return (
     <div className="min-h-screen bg-[#07090d] text-white">
+      {/* BACKGROUND */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] rounded-full bg-[var(--primary)] opacity-20 blur-[120px]" />
+        <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] rounded-full bg-[var(--accent)] opacity-10 blur-[120px]" />
+      </div>
+
+      {/* NAV */}
       <Nav
         logo={company?.logo}
         showCart
@@ -173,33 +181,35 @@ export default function CompanyProductsPage() {
       />
 
       {/* PRODUCTS */}
-      <main className="max-w-7xl mx-auto px-4 py-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {products.map((product) => (
-          <div
-            key={product.id}
-            className="bg-white/5 rounded-2xl overflow-hidden border border-white/10"
-          >
-            <img
-              src={product.image_url}
-              className="w-full aspect-square object-cover"
-            />
+      <main className="relative z-10 max-w-7xl mx-auto px-4 py-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {products.map((product) => (
+            <div
+              key={product.id}
+              className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden"
+            >
+              <img
+                src={product.image_url}
+                className="w-full aspect-square object-cover"
+              />
 
-            <div className="p-4">
-              <h3 className="font-bold">{product.name}</h3>
+              <div className="p-4">
+                <h3 className="font-bold">{product.name}</h3>
 
-              <div className="flex justify-between mt-3">
-                <span>R$ {Number(product.value || 0).toFixed(2)}</span>
+                <div className="flex justify-between mt-3">
+                  <span>R$ {Number(product.value).toFixed(2)}</span>
 
-                <button
-                  onClick={() => addToCart(product)}
-                  className="bg-[var(--primary)] p-2 rounded-lg"
-                >
-                  <Plus size={18} />
-                </button>
+                  <button
+                    onClick={() => addToCart(product)}
+                    className="p-2 bg-[var(--primary)] rounded-xl"
+                  >
+                    <Plus size={18} />
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </main>
 
       {/* CART */}
@@ -210,7 +220,7 @@ export default function CompanyProductsPage() {
             onClick={() => setIsCartOpen(false)}
           />
 
-          <aside className="w-full max-w-md bg-[#0d0f14] h-full flex flex-col p-5">
+          <aside className="w-full max-w-md bg-[#0d0f14] h-full p-5 flex flex-col">
             <div className="flex justify-between mb-4">
               <h2 className="text-xl font-bold">Carrinho</h2>
               <button onClick={() => setIsCartOpen(false)}>
@@ -218,14 +228,14 @@ export default function CompanyProductsPage() {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto space-y-3">
+            <div className="flex-1 overflow-auto space-y-4">
               {cart.length === 0 ? (
                 <p className="text-white/40">Carrinho vazio</p>
               ) : (
                 cart.map((item) => (
                   <div
                     key={item.id}
-                    className="bg-white/5 p-3 rounded-xl flex gap-3"
+                    className="flex gap-3 bg-white/5 p-3 rounded-xl"
                   >
                     <img
                       src={item.image_url}
@@ -233,27 +243,19 @@ export default function CompanyProductsPage() {
                     />
 
                     <div className="flex-1">
-                      <p className="font-medium">{item.name}</p>
-
+                      <p>{item.name}</p>
                       <p className="text-[var(--primary)]">
-                        R${" "}
-                        {(Number(item.value || 0) * item.quantity).toFixed(2)}
+                        R$ {(item.value * item.quantity).toFixed(2)}
                       </p>
 
                       <div className="flex gap-2 mt-2 items-center">
-                        <button
-                          onClick={() => removeFromCart(item.id)}
-                          className="px-2"
-                        >
+                        <button onClick={() => removeFromCart(item.id)}>
                           -
                         </button>
+
                         <span>{item.quantity}</span>
-                        <button
-                          onClick={() => addToCart(item)}
-                          className="px-2"
-                        >
-                          +
-                        </button>
+
+                        <button onClick={() => addToCart(item)}>+</button>
                       </div>
                     </div>
 
@@ -265,6 +267,7 @@ export default function CompanyProductsPage() {
               )}
             </div>
 
+            {/* TOTAL */}
             <div className="border-t border-white/10 pt-4">
               {error && <p className="text-red-400 text-sm mb-2">{error}</p>}
 
@@ -284,7 +287,7 @@ export default function CompanyProductsPage() {
         </div>
       )}
 
-      {/* MODAL */}
+      {/* MODAL CLIENTE */}
       {showCustomerModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[999]">
           <div className="bg-[#0d0f14] p-6 rounded-2xl w-full max-w-md">
@@ -305,12 +308,9 @@ export default function CompanyProductsPage() {
             />
 
             <button
-              onClick={() => {
-                setShowCustomerModal(false);
-                handleCheckout();
-              }}
-              className="w-full bg-[var(--primary)] h-11 rounded-xl font-bold"
               disabled={checkoutLoading}
+              onClick={handleCheckout}
+              className="w-full bg-[var(--primary)] h-11 rounded-xl font-bold"
             >
               {checkoutLoading ? "Processando..." : "Continuar"}
             </button>
