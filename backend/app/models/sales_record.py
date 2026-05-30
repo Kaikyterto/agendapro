@@ -1,3 +1,4 @@
+from datetime import datetime
 from app.database.db import db
 
 
@@ -18,29 +19,59 @@ class SalesRecord(db.Model):
         nullable=False
     )
 
+    # =====================================
+    # TOTAL DA VENDA
+    # =====================================
     value = db.Column(
         db.Numeric(10, 2),
-        nullable=False
+        nullable=False,
+        default=0
     )
 
+    # =====================================
+    # STATUS DO PEDIDO
+    # =====================================
+    status = db.Column(
+        db.String(20),
+        nullable=False,
+        default="pending"
+        # pending | paid | canceled
+    )
+
+    # =====================================
+    # PAGAMENTO
+    # =====================================
+    payment_method = db.Column(
+        db.String(30),
+        nullable=True  
+    )
+
+    payment_id = db.Column(
+        db.String(120),
+        nullable=True  
+    )
+
+    external_reference = db.Column(
+        db.String(120),
+        nullable=True  
+    )
+
+    # =====================================
+    # TIMESTAMPS
+    # =====================================
     sold_at = db.Column(
         db.DateTime,
-        nullable=False
+        nullable=True 
     )
 
     created_at = db.Column(
         db.DateTime,
         nullable=False,
-        server_default=db.func.now()
+        default=datetime.utcnow
     )
 
-    status = db.Column(
-    db.String(20),
-    nullable=False,
-    default="paid"
-    )
-    
-    payment_method = db.Column(
-    db.String(30),
-    nullable=True
+    updated_at = db.Column(
+        db.DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow
     )

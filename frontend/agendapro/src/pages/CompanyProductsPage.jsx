@@ -1,17 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
-import { ShoppingCart, Plus, X } from "lucide-react";
-import { useParams, useNavigate } from "react-router-dom";
+import { ShoppingCart, Plus, X, Loader2 } from "lucide-react";
+import { useParams } from "react-router-dom";
 
 import {
   getCompanyBySlug,
   getCompanyProducts,
 } from "../services/companyService";
 
+import { createSale } from "../services/saleService";
+
 import Nav from "../components/Nav";
 
 export default function CompanyProductsPage() {
   const { slug } = useParams();
-  const navigate = useNavigate();
 
   const [company, setCompany] = useState(null);
   const [products, setProducts] = useState([]);
@@ -21,6 +22,12 @@ export default function CompanyProductsPage() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [toast, setToast] = useState("");
 
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  // =========================================================
+  // LOAD DATA
+  // =========================================================
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -53,12 +60,13 @@ export default function CompanyProductsPage() {
     loadData();
   }, [slug]);
 
+  // =========================================================
+  // CART ACTIONS
+  // =========================================================
   const addToCart = (product) => {
     setCart((prev) => [...prev, product]);
-
     setToast(`${product.name} adicionado ao carrinho`);
-
-    setTimeout(() => setToast(""), 2500);
+    setTimeout(() => setToast(""), 2000);
   };
 
   const removeFromCart = (index) => {
@@ -69,6 +77,48 @@ export default function CompanyProductsPage() {
     return cart.reduce((acc, item) => acc + Number(item.value), 0);
   }, [cart]);
 
+  // =========================================================
+  // CHECKOUT (MERCADO PAGO)
+  // =========================================================
+  const handleCheckout = async () => {
+    try {
+      setCheckoutLoading(true);
+      setError("");
+
+      if (cart.length === 0) return;
+
+      const payload = {
+        items: cart.map((item) => ({
+          product_id: item.id,
+          quantity: 1,
+          unit_price: Number(item.value),
+        })),
+
+        company_slug: slug,
+
+        payment_method: "mercadopago",
+      };
+
+      const res = await createSale(payload);
+
+      // backend deve retornar checkout_url
+      if (res?.checkout_url) {
+        window.location.href = res.checkout_url;
+        return;
+      }
+
+      throw new Error("Checkout URL não retornada");
+    } catch (err) {
+      console.error(err);
+      setError("Erro ao iniciar pagamento");
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
+
+  // =========================================================
+  // LOADING
+  // =========================================================
   if (loading) {
     return (
       <div className="min-h-screen bg-[#07090d] flex items-center justify-center">
@@ -77,6 +127,9 @@ export default function CompanyProductsPage() {
     );
   }
 
+  // =========================================================
+  // UI
+  // =========================================================
   return (
     <div className="min-h-screen bg-[#07090d] text-white">
       {/* BACKGROUND */}
@@ -85,7 +138,7 @@ export default function CompanyProductsPage() {
         <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] rounded-full bg-[var(--accent)] opacity-10 blur-[120px]" />
       </div>
 
-      {/* NAV (CORRIGIDO) */}
+      {/* NAV */}
       <Nav
         logo={company?.logo}
         showCart={true}
@@ -93,40 +146,39 @@ export default function CompanyProductsPage() {
         onCartClick={() => setIsCartOpen(true)}
       />
 
-      {/* PRODUTOS */}
+      {/* PRODUCTS */}
       <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-10">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {products.map((product) => (
             <div
               key={product.id}
-              className="group bg-white/5 border border-white/10 rounded-[28px] overflow-hidden hover:border-white/20 transition-all duration-300 hover:-translate-y-1 backdrop-blur-xl"
+              className="group bg-white/5 border border-white/10 rounded-[28px] overflow-hidden hover:border-white/20 transition-all hover:-translate-y-1"
             >
-              <div className="aspect-square overflow-hidden relative">
+              <div className="aspect-square overflow-hidden">
                 <img
                   src={product.image_url}
                   alt={product.name}
-                  className="w-full h-full object-cover transition duration-500 group-hover:scale-110"
+                  className="w-full h-full object-cover group-hover:scale-110 transition"
                 />
               </div>
 
-              <div className="p-5 sm:p-6">
+              <div className="p-5">
                 <h3 className="text-lg font-bold truncate">{product.name}</h3>
 
-                <p className="text-white/50 text-sm mt-1 line-clamp-2 min-h-[40px]">
+                <p className="text-white/50 text-sm mt-1 line-clamp-2">
                   {product.description}
                 </p>
 
-                <div className="mt-5 flex items-center justify-between">
+                <div className="mt-5 flex justify-between items-center">
                   <span className="text-xl font-black">
-                    <span className="text-sm text-white/40 mr-1">R$</span>
-                    {Number(product.value).toFixed(2)}
+                    R$ {Number(product.value).toFixed(2)}
                   </span>
 
                   <button
                     onClick={() => addToCart(product)}
-                    className="p-3 rounded-2xl bg-[var(--primary)] hover:brightness-110 transition active:scale-95"
+                    className="p-3 rounded-2xl bg-[var(--primary)] hover:brightness-110"
                   >
-                    <Plus className="w-5 h-5" />
+                    <Plus size={18} />
                   </button>
                 </div>
               </div>
@@ -144,7 +196,7 @@ export default function CompanyProductsPage() {
         </div>
       )}
 
-      {/* CART MODAL */}
+      {/* CART */}
       {isCartOpen && (
         <div className="fixed inset-0 z-50 flex justify-end">
           <div
@@ -153,6 +205,7 @@ export default function CompanyProductsPage() {
           />
 
           <aside className="relative w-full max-w-md h-full bg-[#0d0f14] border-l border-white/10 flex flex-col">
+            {/* HEADER */}
             <div className="p-5 border-b border-white/10 flex justify-between">
               <div>
                 <h2 className="text-xl font-bold">Carrinho</h2>
@@ -164,6 +217,7 @@ export default function CompanyProductsPage() {
               </button>
             </div>
 
+            {/* ITEMS */}
             <div className="flex-1 overflow-y-auto p-5 space-y-4">
               {cart.length === 0 ? (
                 <div className="h-full flex items-center justify-center text-white/30">
@@ -195,7 +249,10 @@ export default function CompanyProductsPage() {
               )}
             </div>
 
+            {/* FOOTER */}
             <div className="p-5 border-t border-white/10">
+              {error && <p className="text-red-400 text-sm mb-3">{error}</p>}
+
               <div className="flex justify-between mb-4">
                 <span>Total</span>
                 <span className="text-xl font-black">
@@ -204,10 +261,18 @@ export default function CompanyProductsPage() {
               </div>
 
               <button
-                disabled={cart.length === 0}
-                className="w-full h-14 rounded-2xl bg-[var(--primary)] font-bold disabled:opacity-40"
+                onClick={handleCheckout}
+                disabled={cart.length === 0 || checkoutLoading}
+                className="w-full h-14 rounded-2xl bg-[var(--primary)] font-bold disabled:opacity-40 flex items-center justify-center gap-2"
               >
-                Finalizar compra
+                {checkoutLoading ? (
+                  <>
+                    <Loader2 className="animate-spin" size={18} />
+                    Processando...
+                  </>
+                ) : (
+                  "Finalizar compra"
+                )}
               </button>
             </div>
           </aside>
