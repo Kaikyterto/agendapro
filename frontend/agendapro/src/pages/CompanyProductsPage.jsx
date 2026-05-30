@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ShoppingCart, Plus, X, Loader2 } from "lucide-react";
+import { Plus, X, Loader2 } from "lucide-react";
 import { useParams } from "react-router-dom";
 
 import {
@@ -24,6 +24,11 @@ export default function CompanyProductsPage() {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // CUSTOMER DATA
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
+
   // =========================
   // LOAD DATA
   // =========================
@@ -43,7 +48,6 @@ export default function CompanyProductsPage() {
             "--primary",
             companyData.colors.primary
           );
-
           document.documentElement.style.setProperty(
             "--accent",
             companyData.colors.secondary
@@ -61,7 +65,7 @@ export default function CompanyProductsPage() {
   }, [slug]);
 
   // =========================
-  // CART (CORRIGIDO)
+  // CART LOGIC
   // =========================
   const addToCart = (product) => {
     setCart((prev) => {
@@ -107,57 +111,44 @@ export default function CompanyProductsPage() {
   // =========================
   const handleCheckout = async () => {
     try {
-      console.log("🟡 INICIANDO CHECKOUT");
+      if (!company?.id) return setError("Empresa inválida");
+      if (!cart.length) return setError("Carrinho vazio");
 
-      if (!company?.id) {
-        console.error("❌ company.id está vazio:", company);
-        setError("Empresa inválida");
-        return;
-      }
-
-      if (!cart.length) {
-        console.error("❌ Carrinho vazio");
-        setError("Carrinho vazio");
-        return;
+      if (!customerName || !customerPhone) {
+        return setError("Preencha nome e telefone");
       }
 
       const payload = {
         company_id: company.id,
+
         items: cart.map((item) => ({
           product_id: item.id,
           quantity: item.quantity || 1,
         })),
+
+        customer_name: customerName,
+        phone: customerPhone,
+
         payment_method: "mercadopago",
       };
 
-      console.log("📦 PAYLOAD ENVIADO:");
-      console.log(JSON.stringify(payload, null, 2));
+      console.log("📦 PAYLOAD:", payload);
 
       setCheckoutLoading(true);
       setError("");
 
       const res = await createSale(payload);
 
-      console.log("🟢 RESPOSTA BACKEND:");
-      console.log(res);
+      console.log("🟢 RESPONSE:", res);
 
       if (res?.checkout_url) {
-        console.log("🚀 REDIRECIONANDO PARA:");
-        console.log(res.checkout_url);
-
         window.location.href = res.checkout_url;
         return;
       }
 
-      console.error("❌ RESPOSTA SEM checkout_url:", res);
       throw new Error("Checkout inválido");
     } catch (err) {
-      console.error("🔥 ERRO NO CHECKOUT:");
-
-      console.error("📌 err completo:", err);
-      console.error("📌 err.response:", err?.response);
-      console.error("📌 err.response.data:", err?.response?.data);
-
+      console.error("🔥 CHECKOUT ERROR:", err);
       setError(err?.response?.data?.error || "Erro ao iniciar pagamento");
     } finally {
       setCheckoutLoading(false);
@@ -200,30 +191,22 @@ export default function CompanyProductsPage() {
           {products.map((product) => (
             <div
               key={product.id}
-              className="bg-white/5 border border-white/10 rounded-[28px] overflow-hidden hover:border-white/20 transition hover:-translate-y-1"
+              className="bg-white/5 border border-white/10 rounded-[28px] overflow-hidden"
             >
-              <div className="aspect-square">
-                <img
-                  src={product.image_url}
-                  className="w-full h-full object-cover"
-                />
-              </div>
+              <img
+                src={product.image_url}
+                className="w-full aspect-square object-cover"
+              />
 
               <div className="p-5">
-                <h3 className="font-bold truncate">{product.name}</h3>
+                <h3 className="font-bold">{product.name}</h3>
 
-                <p className="text-white/50 text-sm mt-1 line-clamp-2">
-                  {product.description}
-                </p>
-
-                <div className="flex justify-between items-center mt-5">
-                  <span className="font-black text-lg">
-                    R$ {Number(product.value || 0).toFixed(2)}
-                  </span>
+                <div className="flex justify-between mt-4">
+                  <span>R$ {Number(product.value).toFixed(2)}</span>
 
                   <button
                     onClick={() => addToCart(product)}
-                    className="p-3 rounded-2xl bg-[var(--primary)] hover:brightness-110"
+                    className="p-2 bg-[var(--primary)] rounded-xl"
                   >
                     <Plus size={18} />
                   </button>
@@ -234,15 +217,6 @@ export default function CompanyProductsPage() {
         </div>
       </main>
 
-      {/* TOAST */}
-      {toast && (
-        <div className="fixed top-24 right-4 z-[999]">
-          <div className="px-4 py-3 rounded-2xl bg-white/10 border border-white/10 backdrop-blur-xl">
-            {toast}
-          </div>
-        </div>
-      )}
-
       {/* CART */}
       {isCartOpen && (
         <div className="fixed inset-0 z-50 flex justify-end">
@@ -251,106 +225,104 @@ export default function CompanyProductsPage() {
             onClick={() => setIsCartOpen(false)}
           />
 
-          <aside className="relative w-full max-w-md h-full bg-[#0d0f14] border-l border-white/10 flex flex-col">
-            {/* HEADER */}
-            <div className="p-5 border-b border-white/10 flex justify-between">
-              <div>
-                <h2 className="font-bold text-xl">Carrinho</h2>
-                <p className="text-white/40 text-sm">
-                  {cart.length} tipos de itens
-                </p>
-              </div>
-
+          <aside className="w-full max-w-md bg-[#0d0f14] h-full p-5 flex flex-col">
+            <div className="flex justify-between mb-4">
+              <h2 className="text-xl font-bold">Carrinho</h2>
               <button onClick={() => setIsCartOpen(false)}>
                 <X />
               </button>
             </div>
 
             {/* ITEMS */}
-            <div className="flex-1 overflow-y-auto p-5 space-y-4">
+            <div className="flex-1 overflow-auto space-y-4">
               {cart.length === 0 ? (
-                <div className="h-full flex items-center justify-center text-white/30">
-                  Carrinho vazio
-                </div>
+                <p className="text-white/40">Carrinho vazio</p>
               ) : (
                 cart.map((item) => (
                   <div
                     key={item.id}
-                    className="flex gap-4 p-3 rounded-2xl bg-white/5 border border-white/10"
+                    className="flex gap-3 bg-white/5 p-3 rounded-xl"
                   >
                     <img
                       src={item.image_url}
-                      className="w-16 h-16 rounded-xl object-cover"
+                      className="w-14 h-14 rounded-lg object-cover"
                     />
 
                     <div className="flex-1">
-                      <p className="font-semibold">{item.name}</p>
-
-                      <p className="text-[var(--primary)] font-bold">
-                        R$ {(Number(item.value) * item.quantity).toFixed(2)}
+                      <p>{item.name}</p>
+                      <p className="text-[var(--primary)]">
+                        R$ {(item.value * item.quantity).toFixed(2)}
                       </p>
 
-                      {/* CONTROLES DE QUANTIDADE */}
-                      <div className="flex items-center gap-3 mt-2">
-                        {/* DIMINUIR */}
-                        <button
-                          onClick={() => removeFromCart(item.id)}
-                          className="w-7 h-7 rounded-md bg-white/10 hover:bg-white/20 flex items-center justify-center"
-                        >
-                          −
+                      <div className="flex items-center gap-2 mt-2">
+                        <button onClick={() => removeFromCart(item.id)}>
+                          -
                         </button>
 
-                        {/* QUANTIDADE */}
-                        <span className="text-sm font-bold">
-                          {item.quantity}
-                        </span>
+                        <span>{item.quantity}</span>
 
-                        {/* AUMENTAR */}
-                        <button
-                          onClick={() => addToCart(item)}
-                          className="w-7 h-7 rounded-md bg-white/10 hover:bg-white/20 flex items-center justify-center"
-                        >
-                          +
-                        </button>
+                        <button onClick={() => addToCart(item)}>+</button>
                       </div>
                     </div>
 
-                    {/* REMOVE TOTAL */}
                     <button onClick={() => removeFromCart(item.id)}>
-                      <X className="w-4 h-4 text-white/40" />
+                      <X size={16} />
                     </button>
                   </div>
                 ))
               )}
             </div>
 
-            {/* FOOTER */}
-            <div className="p-5 border-t border-white/10">
-              {error && <p className="text-red-400 text-sm mb-3">{error}</p>}
+            {/* TOTAL */}
+            <div className="border-t border-white/10 pt-4">
+              {error && <p className="text-red-400 text-sm mb-2">{error}</p>}
 
-              <div className="flex justify-between mb-4">
+              <div className="flex justify-between mb-3">
                 <span>Total</span>
-                <span className="font-black text-xl">
-                  R$ {total.toFixed(2)}
-                </span>
+                <span>R$ {total.toFixed(2)}</span>
               </div>
 
               <button
-                onClick={handleCheckout}
-                disabled={cart.length === 0 || checkoutLoading}
-                className="w-full h-14 rounded-2xl bg-[var(--primary)] font-bold disabled:opacity-40 flex items-center justify-center gap-2"
+                onClick={() => setShowCustomerModal(true)}
+                className="w-full bg-[var(--primary)] h-12 rounded-xl font-bold"
               >
-                {checkoutLoading ? (
-                  <>
-                    <Loader2 className="animate-spin" size={18} />
-                    Processando...
-                  </>
-                ) : (
-                  "Finalizar compra"
-                )}
+                Finalizar compra
               </button>
             </div>
           </aside>
+        </div>
+      )}
+
+      {/* CUSTOMER MODAL */}
+      {showCustomerModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[999]">
+          <div className="bg-[#0d0f14] p-6 rounded-2xl w-full max-w-md">
+            <h2 className="text-xl font-bold mb-4">Seus dados</h2>
+
+            <input
+              placeholder="Nome"
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+              className="w-full mb-3 p-2 rounded bg-white/5"
+            />
+
+            <input
+              placeholder="Telefone"
+              value={customerPhone}
+              onChange={(e) => setCustomerPhone(e.target.value)}
+              className="w-full mb-4 p-2 rounded bg-white/5"
+            />
+
+            <button
+              onClick={() => {
+                setShowCustomerModal(false);
+                handleCheckout();
+              }}
+              className="w-full bg-[var(--primary)] h-11 rounded-xl font-bold"
+            >
+              Continuar
+            </button>
+          </div>
         </div>
       )}
     </div>
