@@ -4,8 +4,8 @@ import { apiFetch } from "./api";
 // PUBLIC CHECKOUT (CLIENTE FINAL)
 // =========================================================
 
-export function createSale(slug, data) {
-  return apiFetch(`/public/sales/checkout?slug=${slug}`, {
+export function createSale(data) {
+  return apiFetch("/public/sales/checkout", {
     method: "POST",
 
     headers: {

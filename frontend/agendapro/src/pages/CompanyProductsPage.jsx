@@ -284,15 +284,38 @@ export default function CompanyProductsPage() {
                     />
 
                     <div className="flex-1">
-                      <p className="font-semibold">
-                        {item.name} × {item.quantity}
-                      </p>
+                      <p className="font-semibold">{item.name}</p>
 
                       <p className="text-[var(--primary)] font-bold">
                         R$ {(Number(item.value) * item.quantity).toFixed(2)}
                       </p>
+
+                      {/* CONTROLES DE QUANTIDADE */}
+                      <div className="flex items-center gap-3 mt-2">
+                        {/* DIMINUIR */}
+                        <button
+                          onClick={() => removeFromCart(item.id)}
+                          className="w-7 h-7 rounded-md bg-white/10 hover:bg-white/20 flex items-center justify-center"
+                        >
+                          −
+                        </button>
+
+                        {/* QUANTIDADE */}
+                        <span className="text-sm font-bold">
+                          {item.quantity}
+                        </span>
+
+                        {/* AUMENTAR */}
+                        <button
+                          onClick={() => addToCart(item)}
+                          className="w-7 h-7 rounded-md bg-white/10 hover:bg-white/20 flex items-center justify-center"
+                        >
+                          +
+                        </button>
+                      </div>
                     </div>
 
+                    {/* REMOVE TOTAL */}
                     <button onClick={() => removeFromCart(item.id)}>
                       <X className="w-4 h-4 text-white/40" />
                     </button>
