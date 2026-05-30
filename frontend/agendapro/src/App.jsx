@@ -13,6 +13,7 @@ import AdminHomePage from "./pages/AdminHomePage";
 import AdminBookingPage from "./pages/AdminBookingPage";
 import AdminProductsPage from "./pages/AdminProductsPage";
 import AdminWorkersPage from "./pages/AdminWorkersPage";
+import AdminDashboardPage from "./pages/AdminDashboardPage";
 
 export default function App() {
   return (
@@ -37,6 +38,8 @@ export default function App() {
       <Route path="/admin/:slug/produtos" element={<AdminProductsPage />} />
 
       <Route path="/admin/:slug/funcionarios" element={<AdminWorkersPage />} />
+
+      <Route path="/admin/:slug/vendas" element={<AdminDashboardPage />} />
 
       {/* ============================================= */}
       {/* PUBLIC COMPANY */}

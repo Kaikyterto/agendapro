@@ -1,4 +1,3 @@
-
 import { useEffect, useMemo, useState } from "react";
 import {
   TrendingUp,
@@ -33,7 +32,7 @@ import {
   getInsights,
 } from "../services/dashboardService";
 
-const AdminDashboard = () => {
+const AdminDashboardPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -51,9 +50,7 @@ const AdminDashboard = () => {
       try {
         setLoading(true);
 
-        const [
-          o, r, s, w, p, occ, f, i
-        ] = await Promise.all([
+        const [o, r, s, w, p, occ, f, i] = await Promise.all([
           getDashboardOverview(),
           getRevenueChart(),
           getTopServices(),
@@ -99,7 +96,6 @@ const AdminDashboard = () => {
   return (
     <div className="min-h-screen bg-[#07090d] text-white p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
-
         <div className="mb-8">
           <h1 className="text-4xl font-black">Business Intelligence</h1>
           <p className="text-white/50 mt-2">
@@ -114,10 +110,26 @@ const AdminDashboard = () => {
         )}
 
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
-          <StatCard title="Receita" value={`R$ ${overview.monthly_revenue || 0}`} icon={DollarSign} />
-          <StatCard title="Crescimento" value={`${overview.revenue_growth || 0}%`} icon={TrendingUp} />
-          <StatCard title="Agendamentos" value={overview.appointments || 0} icon={CalendarDays} />
-          <StatCard title="Business Score" value={overview.business_score || 0} icon={Target} />
+          <StatCard
+            title="Receita"
+            value={`R$ ${overview.monthly_revenue || 0}`}
+            icon={DollarSign}
+          />
+          <StatCard
+            title="Crescimento"
+            value={`${overview.revenue_growth || 0}%`}
+            icon={TrendingUp}
+          />
+          <StatCard
+            title="Agendamentos"
+            value={overview.appointments || 0}
+            icon={CalendarDays}
+          />
+          <StatCard
+            title="Business Score"
+            value={overview.business_score || 0}
+            icon={Target}
+          />
         </div>
 
         <div className="grid lg:grid-cols-3 gap-6 mb-8">
@@ -138,9 +150,7 @@ const AdminDashboard = () => {
 
           <div className="bg-[#111827] rounded-3xl p-5 border border-white/10">
             <h3 className="font-bold mb-4">Ocupação</h3>
-            <div className="text-5xl font-black">
-              {occupancyPercent}%
-            </div>
+            <div className="text-5xl font-black">{occupancyPercent}%</div>
             <p className="text-white/50 mt-3">
               {occupancy.booked_minutes || 0} min reservados
             </p>
@@ -148,9 +158,21 @@ const AdminDashboard = () => {
         </div>
 
         <div className="grid lg:grid-cols-3 gap-6 mb-8">
-          <RankingCard title="Top Serviços" data={topServices} field="appointments" />
-          <RankingCard title="Top Produtos" data={topProducts} field="quantity" />
-          <RankingCard title="Top Profissionais" data={topWorkers} field="appointments" />
+          <RankingCard
+            title="Top Serviços"
+            data={topServices}
+            field="appointments"
+          />
+          <RankingCard
+            title="Top Produtos"
+            data={topProducts}
+            field="quantity"
+          />
+          <RankingCard
+            title="Top Profissionais"
+            data={topWorkers}
+            field="appointments"
+          />
         </div>
 
         <div className="grid lg:grid-cols-2 gap-6">
@@ -182,7 +204,6 @@ const AdminDashboard = () => {
             </p>
           </div>
         </div>
-
       </div>
     </div>
   );
@@ -205,7 +226,10 @@ const RankingCard = ({ title, data, field }) => (
     <h3 className="font-bold mb-4">{title}</h3>
 
     {data.map((item) => (
-      <div key={item.id} className="flex justify-between py-2 border-b border-white/5">
+      <div
+        key={item.id}
+        className="flex justify-between py-2 border-b border-white/5"
+      >
         <span>{item.name}</span>
         <span>{item[field]}</span>
       </div>
@@ -221,4 +245,4 @@ const RankingCard = ({ title, data, field }) => (
   </div>
 );
 
-export default AdminDashboard;
+export default AdminDashboardPage;

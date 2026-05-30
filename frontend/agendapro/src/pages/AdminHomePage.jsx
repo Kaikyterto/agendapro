@@ -9,7 +9,7 @@ import {
   BarChart3,
 } from "lucide-react";
 
-const AdminDashboardPage = () => {
+const AdminHomePage = () => {
   const navigate = useNavigate();
   const { slug } = useParams();
 
@@ -87,4 +87,4 @@ const AdminDashboardPage = () => {
   );
 };
 
-export default AdminDashboardPage;
+export default AdminHomePage;
