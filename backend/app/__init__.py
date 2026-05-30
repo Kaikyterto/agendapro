@@ -148,6 +148,7 @@ def create_app():
     from app.routes.products_routes import products_bp
     from app.routes.workers_routes import workers_bp
     from app.routes.webhook_routes import webhook_bp
+    from app.routes.dashboard_routes import dashboard_bp
 
     # =====================================================
     # AUTH
@@ -167,6 +168,7 @@ def create_app():
         payment_bp,
         products_bp,
         workers_bp,
+        dashboard_bp,
     ]
 
     for blueprint in api_blueprints:
