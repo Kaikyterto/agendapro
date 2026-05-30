@@ -24,7 +24,7 @@ export default function CompanyProductsPage() {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // CUSTOMER DATA
+  // CUSTOMER
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [showCustomerModal, setShowCustomerModal] = useState(false);
@@ -65,7 +65,7 @@ export default function CompanyProductsPage() {
   }, [slug]);
 
   // =========================
-  // CART LOGIC
+  // CART
   // =========================
   const addToCart = (product) => {
     setCart((prev) => {
@@ -80,7 +80,7 @@ export default function CompanyProductsPage() {
       return [...prev, { ...product, quantity: 1 }];
     });
 
-    setToast(`${product.name} adicionado ao carrinho`);
+    setToast(`${product.name} adicionado`);
     setTimeout(() => setToast(""), 2000);
   };
 
@@ -89,7 +89,7 @@ export default function CompanyProductsPage() {
       const item = prev.find((p) => p.id === id);
       if (!item) return prev;
 
-      if (item.quantity > 1) {
+      if ((item.quantity || 1) > 1) {
         return prev.map((p) =>
           p.id === id ? { ...p, quantity: p.quantity - 1 } : p
         );
@@ -100,10 +100,9 @@ export default function CompanyProductsPage() {
   };
 
   const total = useMemo(() => {
-    return cart.reduce(
-      (acc, item) => acc + Number(item.value || 0) * (item.quantity || 1),
-      0
-    );
+    return cart.reduce((acc, item) => {
+      return acc + Number(item.value || 0) * Number(item.quantity || 1);
+    }, 0);
   }, [cart]);
 
   // =========================
@@ -111,6 +110,8 @@ export default function CompanyProductsPage() {
   // =========================
   const handleCheckout = async () => {
     try {
+      setError("");
+
       if (!company?.id) return setError("Empresa inválida");
       if (!cart.length) return setError("Carrinho vazio");
 
@@ -118,38 +119,31 @@ export default function CompanyProductsPage() {
         return setError("Preencha nome e telefone");
       }
 
+      setCheckoutLoading(true);
+
       const payload = {
         company_id: company.id,
-
         items: cart.map((item) => ({
           product_id: item.id,
           quantity: item.quantity || 1,
         })),
-
         customer_name: customerName,
         phone: customerPhone,
-
         payment_method: "mercadopago",
       };
 
-      console.log("📦 PAYLOAD:", payload);
-
-      setCheckoutLoading(true);
-      setError("");
-
       const res = await createSale(payload);
 
-      console.log("🟢 RESPONSE:", res);
+      console.log("RES:", res);
 
       if (res?.checkout_url) {
         window.location.href = res.checkout_url;
-        return;
+      } else {
+        throw new Error("Resposta inválida");
       }
-
-      throw new Error("Checkout inválido");
     } catch (err) {
-      console.error("🔥 CHECKOUT ERROR:", err);
-      setError(err?.response?.data?.error || "Erro ao iniciar pagamento");
+      console.error(err);
+      setError(err?.response?.data?.error || "Erro ao processar compra");
     } finally {
       setCheckoutLoading(false);
     }
@@ -171,13 +165,6 @@ export default function CompanyProductsPage() {
   // =========================
   return (
     <div className="min-h-screen bg-[#07090d] text-white">
-      {/* BACKGROUND */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] rounded-full bg-[var(--primary)] opacity-20 blur-[120px]" />
-        <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] rounded-full bg-[var(--accent)] opacity-10 blur-[120px]" />
-      </div>
-
-      {/* NAV */}
       <Nav
         logo={company?.logo}
         showCart
@@ -186,35 +173,33 @@ export default function CompanyProductsPage() {
       />
 
       {/* PRODUCTS */}
-      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-10">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {products.map((product) => (
-            <div
-              key={product.id}
-              className="bg-white/5 border border-white/10 rounded-[28px] overflow-hidden"
-            >
-              <img
-                src={product.image_url}
-                className="w-full aspect-square object-cover"
-              />
+      <main className="max-w-7xl mx-auto px-4 py-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {products.map((product) => (
+          <div
+            key={product.id}
+            className="bg-white/5 rounded-2xl overflow-hidden border border-white/10"
+          >
+            <img
+              src={product.image_url}
+              className="w-full aspect-square object-cover"
+            />
 
-              <div className="p-5">
-                <h3 className="font-bold">{product.name}</h3>
+            <div className="p-4">
+              <h3 className="font-bold">{product.name}</h3>
 
-                <div className="flex justify-between mt-4">
-                  <span>R$ {Number(product.value).toFixed(2)}</span>
+              <div className="flex justify-between mt-3">
+                <span>R$ {Number(product.value || 0).toFixed(2)}</span>
 
-                  <button
-                    onClick={() => addToCart(product)}
-                    className="p-2 bg-[var(--primary)] rounded-xl"
-                  >
-                    <Plus size={18} />
-                  </button>
-                </div>
+                <button
+                  onClick={() => addToCart(product)}
+                  className="bg-[var(--primary)] p-2 rounded-lg"
+                >
+                  <Plus size={18} />
+                </button>
               </div>
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </main>
 
       {/* CART */}
@@ -225,7 +210,7 @@ export default function CompanyProductsPage() {
             onClick={() => setIsCartOpen(false)}
           />
 
-          <aside className="w-full max-w-md bg-[#0d0f14] h-full p-5 flex flex-col">
+          <aside className="w-full max-w-md bg-[#0d0f14] h-full flex flex-col p-5">
             <div className="flex justify-between mb-4">
               <h2 className="text-xl font-bold">Carrinho</h2>
               <button onClick={() => setIsCartOpen(false)}>
@@ -233,15 +218,14 @@ export default function CompanyProductsPage() {
               </button>
             </div>
 
-            {/* ITEMS */}
-            <div className="flex-1 overflow-auto space-y-4">
+            <div className="flex-1 overflow-y-auto space-y-3">
               {cart.length === 0 ? (
                 <p className="text-white/40">Carrinho vazio</p>
               ) : (
                 cart.map((item) => (
                   <div
                     key={item.id}
-                    className="flex gap-3 bg-white/5 p-3 rounded-xl"
+                    className="bg-white/5 p-3 rounded-xl flex gap-3"
                   >
                     <img
                       src={item.image_url}
@@ -249,19 +233,27 @@ export default function CompanyProductsPage() {
                     />
 
                     <div className="flex-1">
-                      <p>{item.name}</p>
+                      <p className="font-medium">{item.name}</p>
+
                       <p className="text-[var(--primary)]">
-                        R$ {(item.value * item.quantity).toFixed(2)}
+                        R${" "}
+                        {(Number(item.value || 0) * item.quantity).toFixed(2)}
                       </p>
 
-                      <div className="flex items-center gap-2 mt-2">
-                        <button onClick={() => removeFromCart(item.id)}>
+                      <div className="flex gap-2 mt-2 items-center">
+                        <button
+                          onClick={() => removeFromCart(item.id)}
+                          className="px-2"
+                        >
                           -
                         </button>
-
                         <span>{item.quantity}</span>
-
-                        <button onClick={() => addToCart(item)}>+</button>
+                        <button
+                          onClick={() => addToCart(item)}
+                          className="px-2"
+                        >
+                          +
+                        </button>
                       </div>
                     </div>
 
@@ -273,7 +265,6 @@ export default function CompanyProductsPage() {
               )}
             </div>
 
-            {/* TOTAL */}
             <div className="border-t border-white/10 pt-4">
               {error && <p className="text-red-400 text-sm mb-2">{error}</p>}
 
@@ -293,24 +284,24 @@ export default function CompanyProductsPage() {
         </div>
       )}
 
-      {/* CUSTOMER MODAL */}
+      {/* MODAL */}
       {showCustomerModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[999]">
           <div className="bg-[#0d0f14] p-6 rounded-2xl w-full max-w-md">
             <h2 className="text-xl font-bold mb-4">Seus dados</h2>
 
             <input
+              className="w-full mb-3 p-2 bg-white/5 rounded"
               placeholder="Nome"
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
-              className="w-full mb-3 p-2 rounded bg-white/5"
             />
 
             <input
+              className="w-full mb-4 p-2 bg-white/5 rounded"
               placeholder="Telefone"
               value={customerPhone}
               onChange={(e) => setCustomerPhone(e.target.value)}
-              className="w-full mb-4 p-2 rounded bg-white/5"
             />
 
             <button
@@ -319,8 +310,9 @@ export default function CompanyProductsPage() {
                 handleCheckout();
               }}
               className="w-full bg-[var(--primary)] h-11 rounded-xl font-bold"
+              disabled={checkoutLoading}
             >
-              Continuar
+              {checkoutLoading ? "Processando..." : "Continuar"}
             </button>
           </div>
         </div>
