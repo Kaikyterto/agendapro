@@ -30,24 +30,20 @@ class MercadoPagoController:
     def connect():
 
         claims = get_jwt()
+        company_id = claims.get("company_id")
 
-        company_id = claims.get(
-            "company_id"
-        )
+        slug = request.args.get("slug")  # 👈 RECEBE DO FRONT
 
-        state = f"{company_id}:{secrets.token_hex(16)}"
+        if not slug:
+            return jsonify({"error": "Slug não enviado"}), 400
 
-        client_id = os.getenv(
-            "MERCADO_PAGO_CLIENT_ID"
-        )
+        state = f"{company_id}:{slug}:{secrets.token_hex(16)}"
 
-        redirect_uri = os.getenv(
-            "MERCADO_PAGO_REDIRECT_URI"
-        )
+        client_id = os.getenv("MERCADO_PAGO_CLIENT_ID")
+        redirect_uri = os.getenv("MERCADO_PAGO_REDIRECT_URI")
 
         oauth_url = (
-            "https://auth.mercadopago.com.br/"
-            "authorization?"
+            "https://auth.mercadopago.com.br/authorization?"
             f"client_id={client_id}"
             "&response_type=code"
             f"&redirect_uri={redirect_uri}"
@@ -172,7 +168,7 @@ class MercadoPagoController:
         db.session.commit()
 
         return redirect(
-            "https://seudominio.com/admin/configuracoes?mercadopago=connected"
+             f"https://seudominio.com/{slug}/admin"
         )
 
     # =========================================================
