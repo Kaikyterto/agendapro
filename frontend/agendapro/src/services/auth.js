@@ -1,4 +1,4 @@
-const API_URL = "https://agendapro-z63z.onrender.com";
+const API_URL = "https://agendapro-z63z.onrender.com/api";
 
 // =========================================================
 // LOGIN
