@@ -53,7 +53,7 @@ export default function CompanyProductsPage() {
           );
         }
       } catch (err) {
-        console.error("LOAD ERROR:", err);
+        console.error(err);
         setError("Erro ao carregar dados");
       } finally {
         setLoading(false);
@@ -64,7 +64,7 @@ export default function CompanyProductsPage() {
   }, [slug]);
 
   // =========================
-  // CART
+  // CART LOGIC
   // =========================
   const addToCart = (product) => {
     setCart((prev) => {
@@ -98,6 +98,10 @@ export default function CompanyProductsPage() {
     });
   };
 
+  const cartCount = useMemo(() => {
+    return cart.reduce((acc, item) => acc + (item.quantity || 1), 0);
+  }, [cart]);
+
   const total = useMemo(() => {
     return cart.reduce(
       (acc, item) => acc + Number(item.value || 0) * (item.quantity || 1),
@@ -106,16 +110,30 @@ export default function CompanyProductsPage() {
   }, [cart]);
 
   // =========================
+  // OPEN CHECKOUT MODAL
+  // =========================
+  const openCheckout = () => {
+    if (!cart.length) {
+      setError("Carrinho vazio");
+      return;
+    }
+
+    setError("");
+    setIsCartOpen(false);
+    setShowCustomerModal(true);
+  };
+
+  // =========================
   // CHECKOUT
   // =========================
   const handleCheckout = async () => {
     try {
-      console.log("🟡 CHECKOUT START");
-
       if (!company?.id) return setError("Empresa inválida");
       if (!cart.length) return setError("Carrinho vazio");
-      if (!customerName || !customerPhone)
+
+      if (!customerName || !customerPhone) {
         return setError("Preencha nome e telefone");
+      }
 
       setCheckoutLoading(true);
       setError("");
@@ -131,11 +149,7 @@ export default function CompanyProductsPage() {
         payment_method: "mercadopago",
       };
 
-      console.log("📦 PAYLOAD:", payload);
-
       const res = await createSale(payload);
-
-      console.log("🟢 RESPONSE:", res);
 
       if (!res?.checkout_url) {
         throw new Error("Checkout inválido");
@@ -143,7 +157,7 @@ export default function CompanyProductsPage() {
 
       window.location.href = res.checkout_url;
     } catch (err) {
-      console.error("🔥 CHECKOUT ERROR:", err);
+      console.error(err);
       setError(err?.response?.data?.error || "Erro ao iniciar pagamento");
     } finally {
       setCheckoutLoading(false);
@@ -176,7 +190,7 @@ export default function CompanyProductsPage() {
       <Nav
         logo={company?.logo}
         showCart
-        cartCount={cart.length}
+        cartCount={cartCount}
         onCartClick={() => setIsCartOpen(true)}
       />
 
@@ -258,10 +272,6 @@ export default function CompanyProductsPage() {
                         <button onClick={() => addToCart(item)}>+</button>
                       </div>
                     </div>
-
-                    <button onClick={() => removeFromCart(item.id)}>
-                      <X size={16} />
-                    </button>
                   </div>
                 ))
               )}
@@ -277,7 +287,7 @@ export default function CompanyProductsPage() {
               </div>
 
               <button
-                onClick={() => setShowCustomerModal(true)}
+                onClick={openCheckout}
                 className="w-full bg-[var(--primary)] h-12 rounded-xl font-bold"
               >
                 Finalizar compra
@@ -287,7 +297,7 @@ export default function CompanyProductsPage() {
         </div>
       )}
 
-      {/* MODAL CLIENTE */}
+      {/* MODAL CHECKOUT */}
       {showCustomerModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[999]">
           <div className="bg-[#0d0f14] p-6 rounded-2xl w-full max-w-md">
@@ -312,7 +322,7 @@ export default function CompanyProductsPage() {
               onClick={handleCheckout}
               className="w-full bg-[var(--primary)] h-11 rounded-xl font-bold"
             >
-              {checkoutLoading ? "Processando..." : "Continuar"}
+              {checkoutLoading ? "Processando..." : "Comprar"}
             </button>
           </div>
         </div>
