@@ -14,6 +14,7 @@ import AdminBookingPage from "./pages/AdminBookingPage";
 import AdminProductsPage from "./pages/AdminProductsPage";
 import AdminWorkersPage from "./pages/AdminWorkersPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
+import AdminSettingsPage from "./pages/AdminSettingsPage";
 
 export default function App() {
   return (
