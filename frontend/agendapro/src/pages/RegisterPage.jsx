@@ -3,8 +3,6 @@ import { useNavigate } from "react-router-dom";
 
 import { ArrowRight, LogIn, Mail, Lock, User, Building2 } from "lucide-react";
 
-import { apiFetch } from "../services/api";
-
 const RegisterPage = () => {
   const navigate = useNavigate();
 
@@ -65,7 +63,7 @@ const RegisterPage = () => {
       // ====================================================
       // REGISTER API
       // ====================================================
-      const data = await apiFetch("/auth/register", {
+      const data = await fetch("/auth/register", {
         method: "POST",
 
         body: JSON.stringify({
