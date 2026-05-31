@@ -5,32 +5,39 @@ from app.database.db import db
 class SalesRecord(db.Model):
     __tablename__ = "sales_records"
 
-    id = db.Column(
-        db.Integer,
-        primary_key=True
-    )
+    id = db.Column(db.Integer, primary_key=True)
 
     company_id = db.Column(
         db.Integer,
-        db.ForeignKey(
-            "companies.id",
-            ondelete="CASCADE"
-        ),
+        db.ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False
     )
 
-    # =====================================
-    # TOTAL DA VENDA
-    # =====================================
+    # =========================
+    # CLIENTE (NOVO)
+    # =========================
+    customer_name = db.Column(
+        db.String(255),
+        nullable=True
+    )
+
+    phone = db.Column(
+        db.String(50),
+        nullable=True
+    )
+
+    # =========================
+    # VALOR TOTAL
+    # =========================
     value = db.Column(
         db.Numeric(10, 2),
         nullable=False,
         default=0
     )
 
-    # =====================================
-    # STATUS DO PEDIDO
-    # =====================================
+    # =========================
+    # STATUS
+    # =========================
     status = db.Column(
         db.String(20),
         nullable=False,
@@ -38,30 +45,30 @@ class SalesRecord(db.Model):
         # pending | paid | canceled
     )
 
-    # =====================================
+    # =========================
     # PAGAMENTO
-    # =====================================
+    # =========================
     payment_method = db.Column(
         db.String(30),
-        nullable=True  
+        nullable=True
     )
 
     payment_id = db.Column(
         db.String(120),
-        nullable=True  
+        nullable=True
     )
 
     external_reference = db.Column(
         db.String(120),
-        nullable=True  
+        nullable=True
     )
 
-    # =====================================
+    # =========================
     # TIMESTAMPS
-    # =====================================
+    # =========================
     sold_at = db.Column(
         db.DateTime,
-        nullable=True 
+        nullable=True
     )
 
     created_at = db.Column(
