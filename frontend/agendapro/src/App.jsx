@@ -41,6 +41,11 @@ export default function App() {
 
       <Route path="/admin/:slug/vendas" element={<AdminDashboardPage />} />
 
+      <Route
+        path="/admin/:slug/configuracoes"
+        element={<AdminSettingsPage />}
+      />
+
       {/* ============================================= */}
       {/* PUBLIC COMPANY */}
       {/* ============================================= */}

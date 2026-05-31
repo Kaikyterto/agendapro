@@ -17,24 +17,26 @@ class Company(db.Model):
     slug = db.Column(
         db.String(60),
         unique=True,
-        nullable=False
+        nullable=False,
+        index=True
     )
 
-    # Controle da assinatura/plano da empresa
+    # Status da assinatura do SaaS
     status = db.Column(
         db.String(30),
         nullable=False,
         default="pending_payment"
     )
 
-    # Plano atual da empresa
+    # Plano contratado
     plan = db.Column(
         db.String(30),
         nullable=False,
         default="basic"
     )
 
-    # ID do pagamento/assinatura no Mercado Pago
+    # ID da cobrança/assinatura da empresa
+    # (não confundir com pagamentos dos clientes)
     mercado_pago_payment_id = db.Column(
         db.String(120),
         nullable=True
@@ -71,5 +73,6 @@ class Company(db.Model):
     services = db.relationship(
         "Service",
         backref="company",
-        lazy=True
+        lazy=True,
+        cascade="all, delete-orphan"
     )

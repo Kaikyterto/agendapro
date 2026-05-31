@@ -4,57 +4,47 @@ const API_URL_AUTH = "https://agendapro-z63z.onrender.com/auth";
 // LOGIN
 // =========================================================
 export const loginService = async (credentials) => {
-  try {
-    const response = await fetch(`${API_URL_AUTH}/login`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email: credentials.email,
-        password: credentials.password,
-      }),
-    });
+  const response = await fetch(`${API_URL_AUTH}/login`, {
+    method: "POST",
 
-    // =====================================================
-    // LEITURA ÚNICA DA RESPONSE (CORRETO)
-    // =====================================================
-    const contentType = response.headers.get("content-type");
+    headers: {
+      "Content-Type": "application/json",
+    },
 
-    let data;
+    body: JSON.stringify({
+      email: credentials.email.trim(),
+      password: credentials.password,
+    }),
+  });
 
-    if (contentType?.includes("application/json")) {
-      data = await response.json();
-    } else {
-      data = await response.text();
-    }
+  const contentType = response.headers.get("content-type");
 
-    // =====================================================
-    // ERROR HANDLING
-    // =====================================================
-    if (!response.ok) {
-      const message =
-        data?.message ||
+  let data;
+
+  if (contentType?.includes("application/json")) {
+    data = await response.json();
+  } else {
+    data = await response.text();
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      data?.message ||
         data?.error ||
         data?.msg ||
         data ||
-        "Erro ao realizar login";
-
-      throw new Error(message);
-    }
-
-    return data;
-  } catch (error) {
-    console.error("Auth Service Error:", error);
-    throw error;
+        "Erro ao realizar login"
+    );
   }
+
+  return data;
 };
 
 // =========================================================
 // AUTH CHECK
 // =========================================================
 export const isAuthenticated = () => {
-  return !!localStorage.getItem("@AgendaPro:token");
+  return Boolean(localStorage.getItem("@AgendaPro:token"));
 };
 
 // =========================================================
@@ -62,5 +52,8 @@ export const isAuthenticated = () => {
 // =========================================================
 export const logout = () => {
   localStorage.removeItem("@AgendaPro:token");
+
   localStorage.removeItem("@AgendaPro:user");
+
+  localStorage.removeItem("@AgendaPro:company");
 };

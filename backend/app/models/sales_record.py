@@ -14,7 +14,7 @@ class SalesRecord(db.Model):
     )
 
     # =========================
-    # CLIENTE (NOVO)
+    # CLIENTE 
     # =========================
     customer_name = db.Column(
         db.String(255),
@@ -81,4 +81,14 @@ class SalesRecord(db.Model):
         db.DateTime,
         default=datetime.utcnow,
         onupdate=datetime.utcnow
+    )
+
+    mercado_pago_status = db.Column(
+        db.String(50),
+        nullable=True
+    )
+
+    payment_date = db.Column(
+        db.DateTime,
+        nullable=True
     )

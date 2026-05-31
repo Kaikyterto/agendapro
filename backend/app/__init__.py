@@ -91,13 +91,12 @@ def create_app():
         # =================================================
         # ROTAS LIVRES
         # =================================================
-        public_paths = [
-            "/auth",
-            "/webhook",
-            "/api/public"
-        ]
-
-        if any(path.startswith(p) for p in public_paths):
+        if (
+            path.startswith("/auth")
+            or path.startswith("/webhook")
+            or path.startswith("/api/public")
+            or path.startswith("/api/mercadopago/callback")
+            ):
             return
 
         # =================================================
@@ -116,7 +115,10 @@ def create_app():
                     "error": "Empresa não identificada"
                 }), 401
 
-            company = Company.query.get(company_id)
+            company = db.session.get(
+                Company,
+                company_id
+            )
 
             if not company:
                 return jsonify({
@@ -149,6 +151,7 @@ def create_app():
     from app.routes.workers_routes import workers_bp
     from app.routes.webhook_routes import webhook_bp
     from app.routes.dashboard_routes import dashboard_bp
+    from app.routes.mercado_pago_routes import mercado_pago_bp
 
     # =====================================================
     # AUTH
@@ -169,6 +172,7 @@ def create_app():
         products_bp,
         workers_bp,
         dashboard_bp,
+        mercado_pago_bp,
     ]
 
     for blueprint in api_blueprints:

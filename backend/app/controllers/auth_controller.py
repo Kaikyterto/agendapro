@@ -16,7 +16,7 @@ class AuthController:
     @staticmethod
     def login():
 
-        data = request.get_json()
+        data = request.get_json() or {}
 
         email = data.get("email")
         password = data.get("password")
@@ -32,7 +32,9 @@ class AuthController:
         # =====================================================
         # BUSCA USUÁRIO
         # =====================================================
-        user = User.query.filter_by(email=email).first()
+        user = User.query.filter_by(
+            email=email
+        ).first()
 
         if not user:
             return jsonify({
@@ -56,12 +58,21 @@ class AuthController:
 
             payment = None
 
-            try:
-                payment = PaymentService.get_payment_data(
-                    company.mercado_pago_payment_id
-                )
-            except Exception as e:
-                print("Erro ao recuperar pagamento:", str(e))
+            if company.mercado_pago_payment_id:
+
+                try:
+                    payment = (
+                        PaymentService
+                        .get_platform_payment(
+                            company.mercado_pago_payment_id
+                        )
+                    )
+
+                except Exception as e:
+                    print(
+                        "Erro ao recuperar pagamento:",
+                        str(e)
+                    )
 
             return jsonify({
                 "msg": "Pagamento pendente",
@@ -88,7 +99,7 @@ class AuthController:
         )
 
         # =====================================================
-        # RESPOSTA FINAL 
+        # RESPOSTA
         # =====================================================
         return jsonify({
             "access_token": access_token,
@@ -99,7 +110,6 @@ class AuthController:
                 "company_id": user.company_id
             },
 
- 
             "company": {
                 "id": company.id,
                 "name": company.name,
@@ -109,12 +119,12 @@ class AuthController:
         }), 200
 
     # =========================================================
-    # REGISTER 
+    # REGISTER
     # =========================================================
     @staticmethod
     def register():
 
-        data = request.get_json()
+        data = request.get_json() or {}
 
         company_name = data.get("company_name")
         email = data.get("email")
@@ -122,26 +132,45 @@ class AuthController:
 
         if not company_name or not email or not password:
             return jsonify({
-                "msg": "Nome da empresa, email e senha são obrigatórios"
+                "msg": (
+                    "Nome da empresa, email e senha "
+                    "são obrigatórios"
+                )
             }), 400
 
-        user_exists = User.query.filter_by(email=email).first()
+        user_exists = User.query.filter_by(
+            email=email
+        ).first()
 
         if user_exists:
             return jsonify({
                 "msg": "Usuário já existe"
             }), 400
 
-        slug = company_name.strip().lower().replace(" ", "-")
+        slug = (
+            company_name
+            .strip()
+            .lower()
+            .replace(" ", "-")
+        )
 
-        company_exists = Company.query.filter_by(slug=slug).first()
+        company_exists = Company.query.filter_by(
+            slug=slug
+        ).first()
 
         if company_exists:
             return jsonify({
-                "msg": "Já existe uma empresa com esse nome no sistema"
+                "msg": (
+                    "Já existe uma empresa com "
+                    "esse nome no sistema"
+                )
             }), 400
 
         try:
+
+            # =================================================
+            # EMPRESA
+            # =================================================
             new_company = Company(
                 name=company_name,
                 slug=slug,
@@ -151,6 +180,9 @@ class AuthController:
             db.session.add(new_company)
             db.session.flush()
 
+            # =================================================
+            # USUÁRIO
+            # =================================================
             new_user = User(
                 email=email,
                 company_id=new_company.id
@@ -160,20 +192,31 @@ class AuthController:
 
             db.session.add(new_user)
 
-            payment = PaymentService.create_pix_payment({
-                "company_id": new_company.id,
-                "amount": 29.90,
-                "customer_name": company_name,
-                "email": email,
-                "description": "Assinatura AgendaPro"
-            })
+            # =================================================
+            # PIX DA ASSINATURA
+            # =================================================
+            payment = (
+                PaymentService
+                .create_platform_pix_payment({
+                    "company_id": new_company.id,
+                    "amount": 29.90,
+                    "customer_name": company_name,
+                    "email": email,
+                    "description":
+                        "Assinatura AgendaPro"
+                })
+            )
 
-            new_company.mercado_pago_payment_id = str(payment["payment_id"])
+            new_company.mercado_pago_payment_id = str(
+                payment["payment_id"]
+            )
 
             db.session.commit()
 
             return jsonify({
-                "msg": "Cadastro iniciado com sucesso",
+                "msg":
+                    "Cadastro iniciado com sucesso",
+
                 "payment": payment,
 
                 "company": {
@@ -186,11 +229,13 @@ class AuthController:
                 "user": {
                     "id": new_user.id,
                     "email": new_user.email,
-                    "company_id": new_user.company_id
+                    "company_id":
+                        new_user.company_id
                 }
             }), 201
 
         except Exception as e:
+
             db.session.rollback()
 
             return jsonify({
