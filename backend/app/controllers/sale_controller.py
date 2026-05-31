@@ -39,7 +39,7 @@ class SaleController:
                 status="pending",
                 payment_method="pix",
                 customer_name=customer_name,
-                customer_phone=phone
+                phone=phone
             )
 
             db.session.add(order)
