@@ -128,8 +128,13 @@ export default function CompanyProductsPage() {
   // =========================
   const handleCheckout = async () => {
     try {
-      if (!company?.id) return setError("Empresa inválida");
-      if (!cart.length) return setError("Carrinho vazio");
+      if (!company?.id) {
+        return setError("Empresa inválida");
+      }
+
+      if (!cart.length) {
+        return setError("Carrinho vazio");
+      }
 
       if (!customerName || !customerPhone) {
         return setError("Preencha nome e telefone");
@@ -146,19 +151,34 @@ export default function CompanyProductsPage() {
         })),
         customer_name: customerName,
         phone: customerPhone,
-        payment_method: "mercadopago",
+        payment_method: "pix",
       };
 
       const res = await createSale(payload);
 
-      if (!res?.checkout_url) {
-        throw new Error("Checkout inválido");
+      console.log("PIX RESPONSE:", res);
+
+      if (!res?.pix_code) {
+        throw new Error("PIX não gerado");
       }
 
-      window.location.href = res.checkout_url;
+      setPixData({
+        pixCode: res.pix_code,
+        qrCodeBase64: res.qr_code_base64,
+        paymentId: res.payment_id,
+        orderId: res.order_id,
+      });
+
+      setShowCustomerModal(false);
+      setShowPixModal(true);
     } catch (err) {
       console.error(err);
-      setError(err?.response?.data?.error || "Erro ao iniciar pagamento");
+
+      setError(
+        err?.response?.data?.error ||
+          err?.message ||
+          "Erro ao iniciar pagamento"
+      );
     } finally {
       setCheckoutLoading(false);
     }
