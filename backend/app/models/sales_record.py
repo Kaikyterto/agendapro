@@ -21,7 +21,7 @@ class SalesRecord(db.Model):
         nullable=True
     )
 
-    customer_phone = db.Column(
+    phone = db.Column(
         db.String(50),
         nullable=True
     )

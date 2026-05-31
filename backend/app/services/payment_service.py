@@ -18,7 +18,6 @@ class PaymentService:
             "company_id",
             "amount",
             "customer_name",
-            "email"
         ]
 
         for field in required_fields:
