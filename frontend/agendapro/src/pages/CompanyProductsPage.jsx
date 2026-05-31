@@ -229,12 +229,18 @@ export default function CompanyProductsPage() {
       {/* CART */}
       {isCartOpen && (
         <div className="fixed inset-0 z-50 flex justify-end">
+          {/* OVERLAY */}
           <div
-            className="absolute inset-0 bg-black/50"
+            className="absolute inset-0 bg-black/60"
             onClick={() => setIsCartOpen(false)}
           />
 
-          <aside className="w-full max-w-md bg-[#0d0f14] h-full p-5 flex flex-col">
+          {/* SIDEBAR */}
+          <aside
+            className="relative z-10 w-full max-w-md bg-[#0d0f14] h-full p-5 flex flex-col shadow-2xl"
+            onClick={(e) => e.stopPropagation()} // 👈 impede fechar ao clicar dentro
+          >
+            {/* HEADER */}
             <div className="flex justify-between mb-4">
               <h2 className="text-xl font-bold">Carrinho</h2>
               <button onClick={() => setIsCartOpen(false)}>
@@ -242,6 +248,7 @@ export default function CompanyProductsPage() {
               </button>
             </div>
 
+            {/* ITEMS */}
             <div className="flex-1 overflow-auto space-y-4">
               {cart.length === 0 ? (
                 <p className="text-white/40">Carrinho vazio</p>
@@ -277,7 +284,7 @@ export default function CompanyProductsPage() {
               )}
             </div>
 
-            {/* TOTAL */}
+            {/* TOTAL + CHECKOUT */}
             <div className="border-t border-white/10 pt-4">
               {error && <p className="text-red-400 text-sm mb-2">{error}</p>}
 
