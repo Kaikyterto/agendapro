@@ -1,11 +1,6 @@
 from flask import Flask, request, jsonify
 
-from flask_jwt_extended import (
-    JWTManager,
-    get_jwt,
-    verify_jwt_in_request
-)
-
+from flask_jwt_extended import JWTManager
 from flask_migrate import Migrate
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -27,15 +22,9 @@ def create_app():
     # =====================================================
     # CONFIG
     # =====================================================
-    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
-        "DATABASE_URL"
-    )
-
+    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-
-    app.config["JWT_SECRET_KEY"] = os.getenv(
-        "JWT_SECRET_KEY"
-    )
+    app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
 
     # =====================================================
     # CORS
@@ -51,93 +40,51 @@ def create_app():
             }
         },
         supports_credentials=True,
-        allow_headers=[
-            "Content-Type",
-            "Authorization"
-        ],
-        methods=[
-            "GET",
-            "POST",
-            "PUT",
-            "PATCH",
-            "DELETE",
-            "OPTIONS"
-        ]
+        allow_headers=["Content-Type", "Authorization"],
+        methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
     )
 
     # =====================================================
     # INIT EXTENSIONS
     # =====================================================
     db.init_app(app)
-
     migrate.init_app(app, db)
-
     JWTManager(app)
 
     # =====================================================
-    # SAAS MIDDLEWARE GLOBAL
+    # MIDDLEWARE (APENAS SAAS STATUS CHECK)
     # =====================================================
     @app.before_request
     def enforce_company_status():
 
         path = request.path
 
-        # =================================================
-        # IGNORAR PREFLIGHT
-        # =================================================
+        # =============================================
+        # IGNORA PRE-FLIGHT (CORS)
+        # =============================================
         if request.method == "OPTIONS":
             return jsonify({}), 200
 
-        # =================================================
-        # ROTAS LIVRES
-        # =================================================
-        if (
-            path.startswith("/auth")
-            or path.startswith("/webhook")
-            or path.startswith("/api/public")
-            or path.startswith("/api/mercadopago/callback")
-            ):
+        # =============================================
+        # ROTAS PÚBLICAS (NÃO BLOQUEAR)
+        # =============================================
+        public_paths = [
+            "/auth",
+            "/webhook",
+            "/api/public",
+            "/api/mercadopago/callback",
+        ]
+
+        if any(path.startswith(p) for p in public_paths):
             return
 
-        # =================================================
-        # VALIDAR JWT
-        # =================================================
-        try:
+        # =============================================
+        # IMPORTANTE:
+        # NÃO VALIDAR JWT AQUI
+        # Isso deve ser feito nas rotas com @jwt_required
+        # =============================================
 
-            verify_jwt_in_request()
-
-            claims = get_jwt()
-
-            company_id = claims.get("company_id")
-
-            if not company_id:
-                return jsonify({
-                    "error": "Empresa não identificada"
-                }), 401
-
-            company = db.session.get(
-                Company,
-                company_id
-            )
-
-            if not company:
-                return jsonify({
-                    "error": "Empresa não encontrada"
-                }), 404
-
-            if company.status != "active":
-                return jsonify({
-                    "error": (
-                        "Conta inativa. "
-                        "Ative sua assinatura para continuar."
-                    )
-                }), 403
-
-        except Exception as e:
-            return jsonify({
-                "error": "Token inválido ou ausente",
-                "details": str(e)
-            }), 401
+        return
 
     # =====================================================
     # IMPORT ROUTES
@@ -154,15 +101,12 @@ def create_app():
     from app.routes.mercado_pago_routes import mercado_pago_bp
 
     # =====================================================
-    # AUTH
+    # AUTH (PÚBLICO)
     # =====================================================
-    app.register_blueprint(
-        auth_bp,
-        url_prefix="/auth"
-    )
+    app.register_blueprint(auth_bp, url_prefix="/auth")
 
     # =====================================================
-    # API
+    # API (PROTEGIDA NAS ROTAS)
     # =====================================================
     api_blueprints = [
         appointment_bp,
@@ -176,17 +120,11 @@ def create_app():
     ]
 
     for blueprint in api_blueprints:
-        app.register_blueprint(
-            blueprint,
-            url_prefix="/api"
-        )
+        app.register_blueprint(blueprint, url_prefix="/api")
 
     # =====================================================
-    # WEBHOOK
+    # WEBHOOK (PÚBLICO)
     # =====================================================
-    app.register_blueprint(
-        webhook_bp,
-        url_prefix="/webhook"
-    )
+    app.register_blueprint(webhook_bp, url_prefix="/webhook")
 
     return app
