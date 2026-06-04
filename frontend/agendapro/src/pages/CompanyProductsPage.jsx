@@ -186,54 +186,6 @@ export default function CompanyProductsPage() {
     }
   };
 
-  {
-    /* MODAL PIX */
-  }
-  {
-    showPixModal && pixData && (
-      <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[1000] p-4">
-        <div className="bg-[#0d0f14] w-full max-w-md rounded-2xl p-6 border border-white/10">
-          <h2 className="text-xl font-bold mb-4 text-center">
-            Pagamento via PIX
-          </h2>
-
-          <div className="flex justify-center mb-4">
-            <img
-              src={`data:image/png;base64,${pixData.qrCodeBase64}`}
-              alt="QR Code PIX"
-              className="w-64 h-64 rounded-xl bg-white p-2"
-            />
-          </div>
-
-          <textarea
-            readOnly
-            value={pixData.pixCode}
-            rows={5}
-            className="w-full p-3 rounded-xl bg-white/5 text-xs resize-none"
-          />
-
-          <button
-            onClick={() => {
-              navigator.clipboard.writeText(pixData.pixCode);
-              setToast("Código PIX copiado!");
-              setTimeout(() => setToast(""), 2000);
-            }}
-            className="w-full mt-3 h-11 rounded-xl font-bold bg-[var(--primary)]"
-          >
-            Copiar código PIX
-          </button>
-
-          <button
-            onClick={() => setShowPixModal(false)}
-            className="w-full mt-2 h-11 rounded-xl border border-white/10"
-          >
-            Fechar
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   // =========================
   // LOADING
   // =========================
@@ -255,6 +207,49 @@ export default function CompanyProductsPage() {
         <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] rounded-full bg-[var(--primary)] opacity-20 blur-[120px]" />
         <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] rounded-full bg-[var(--accent)] opacity-10 blur-[120px]" />
       </div>
+
+      {showPixModal && pixData && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[1000] p-4">
+          <div className="bg-[#0d0f14] w-full max-w-md rounded-2xl p-6 border border-white/10">
+            <h2 className="text-xl font-bold mb-4 text-center">
+              Pagamento via PIX
+            </h2>
+
+            <div className="flex justify-center mb-4">
+              <img
+                src={`data:image/png;base64,${pixData.qrCodeBase64}`}
+                alt="QR Code PIX"
+                className="w-64 h-64 rounded-xl bg-white p-2"
+              />
+            </div>
+
+            <textarea
+              readOnly
+              value={pixData.pixCode}
+              rows={5}
+              className="w-full p-3 rounded-xl bg-white/5 text-xs resize-none"
+            />
+
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(pixData.pixCode);
+                setToast("Código PIX copiado!");
+                setTimeout(() => setToast(""), 2000);
+              }}
+              className="w-full mt-3 h-11 rounded-xl font-bold bg-[var(--primary)]"
+            >
+              Copiar código PIX
+            </button>
+
+            <button
+              onClick={() => setShowPixModal(false)}
+              className="w-full mt-2 h-11 rounded-xl border border-white/10"
+            >
+              Fechar
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* NAV */}
       <Nav
