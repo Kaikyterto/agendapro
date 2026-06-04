@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { registerService } from "../services/registerService";
 
 import { ArrowRight, LogIn, Mail, Lock, User, Building2 } from "lucide-react";
 
@@ -36,9 +37,6 @@ const RegisterPage = () => {
 
     setError("");
 
-    // ======================================================
-    // VALIDATION
-    // ======================================================
     if (
       !formData.name ||
       !formData.companyName ||
@@ -60,24 +58,13 @@ const RegisterPage = () => {
     try {
       setIsLoading(true);
 
-      // ====================================================
-      // REGISTER API
-      // ====================================================
-      const data = await fetch("/auth/register", {
-        method: "POST",
-
-        body: JSON.stringify({
-          company_name: formData.companyName,
-
-          email: formData.email,
-
-          password: formData.password,
-        }),
+      const data = await registerService({
+        name: formData.name,
+        companyName: formData.companyName,
+        email: formData.email,
+        password: formData.password,
       });
 
-      // ====================================================
-      // REDIRECT PAYMENT
-      // ====================================================
       navigate("/payment", {
         state: {
           payment: data.payment,
