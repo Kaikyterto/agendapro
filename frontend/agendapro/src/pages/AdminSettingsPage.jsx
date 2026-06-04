@@ -54,7 +54,7 @@ export default function AdminSettingsPage() {
       const data = await apiFetch("/mercadopago/connect", {
         auth: true,
         params: {
-          slug, // 👈 envia o slug
+          slug,
         },
       });
 

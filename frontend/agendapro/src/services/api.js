@@ -3,7 +3,17 @@ const API_URL = "https://agendapro-z63z.onrender.com/api";
 export async function apiFetch(endpoint, options = {}) {
   const token = localStorage.getItem("@AgendaPro:token");
 
-  const response = await fetch(`${API_URL}${endpoint}`, {
+  const url = new URL(`${API_URL}${endpoint}`);
+
+  if (options.params) {
+    Object.entries(options.params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        url.searchParams.append(key, value);
+      }
+    });
+  }
+
+  const response = await fetch(url.toString(), {
     method: options.method || "GET",
 
     headers: {
@@ -23,9 +33,7 @@ export async function apiFetch(endpoint, options = {}) {
 
   try {
     data = await response.json();
-  } catch {
-    // resposta sem json
-  }
+  } catch {}
 
   if (!response.ok) {
     throw (
