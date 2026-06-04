@@ -19,9 +19,6 @@ const RegisterPage = () => {
 
   const [error, setError] = useState("");
 
-  // ========================================================
-  // HANDLE INPUT
-  // ========================================================
   const handleChange = (e) => {
     setFormData((prev) => ({
       ...prev,
