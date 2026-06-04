@@ -53,10 +53,14 @@ class PaymentService:
                 "Empresa não possui Mercado Pago conectado"
             )
 
+        if not mp_account.access_token:
+            raise Exception(
+                "Access Token da empresa não encontrado"
+            )
+
         return mercadopago.SDK(
             mp_account.access_token
         )
-
     # =========================================================
     # ASSINATURA DA PLATAFORMA
     # =========================================================
@@ -214,13 +218,33 @@ class PaymentService:
             .create(payment_data)
         )
 
+        print("===================================")
+        print("MERCADO PAGO RESPONSE")
+        print(response)
+        print("===================================")
+
+        status_code = response.get("status")
+
+        if status_code not in [200, 201]:
+            raise Exception(
+                f"Mercado Pago retornou erro: {response}"
+            )
+
         payment = response.get(
-            "response"
+            "response",
+            {}
         )
 
         if not payment:
             raise Exception(
-                "Erro ao gerar PIX"
+                f"Resposta inválida Mercado Pago: {response}"
+            )
+
+        payment_id = payment.get("id")
+
+        if not payment_id:
+            raise Exception(
+                f"PIX não foi criado. Resposta: {response}"
             )
 
         transaction_data = (
@@ -235,12 +259,29 @@ class PaymentService:
             )
         )
 
+        pix_code = (
+            transaction_data.get(
+                "qr_code"
+            )
+        )
+
+        qr_code_base64 = (
+            transaction_data.get(
+                "qr_code_base64"
+            )
+        )
+
+        if not pix_code:
+            raise Exception(
+                f"QR Code PIX não retornado pelo Mercado Pago. Resposta: {response}"
+            )
+
         return {
             "message":
                 "PIX gerado com sucesso",
 
             "payment_id":
-                payment.get("id"),
+                payment_id,
 
             "status":
                 payment.get("status"),
@@ -251,14 +292,10 @@ class PaymentService:
                 ),
 
             "pix_code":
-                transaction_data.get(
-                    "qr_code"
-                ),
+                pix_code,
 
             "qr_code_base64":
-                transaction_data.get(
-                    "qr_code_base64"
-                )
+                qr_code_base64
         }
 
     # =========================================================
