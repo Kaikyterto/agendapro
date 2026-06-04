@@ -79,10 +79,10 @@ class MercadoPagoController:
             }), 400
 
         try:
+            parts = state.split(":")
 
-            company_id = int(
-                state.split(":")[0]
-            )
+            company_id = int(parts[0])
+            slug = parts[1]
 
         except Exception:
 
