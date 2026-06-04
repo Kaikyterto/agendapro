@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { registerService } from "../services/registerService";
+import { registerService } from "../services/auth";
 
 import { ArrowRight, LogIn, Mail, Lock, User, Building2 } from "lucide-react";
 
