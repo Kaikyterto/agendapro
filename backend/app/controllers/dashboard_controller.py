@@ -176,117 +176,90 @@ class DashboardController:
             }), 500
 
     # =========================================================
-    # REVENUE CHART
+    # REVENUE CHART 
     # =========================================================
 
     @staticmethod
     def revenue_chart():
 
         try:
-
             company_id = get_jwt().get("company_id")
 
             if not company_id:
-                return jsonify({
-                    "error": "Empresa não identificada"
-                }), 401
+                return jsonify({"error": "Empresa não identificada"}), 401
 
             today = datetime.utcnow().date()
             start_date = today - timedelta(days=29)
+
+            revenue_map = {}
 
             # ==========================================
             # VENDAS DE PRODUTOS
             # ==========================================
             sales_rows = (
                 db.session.query(
-                    func.date(SalesRecord.sold_at),
-                    func.sum(SalesRecord.value)
+                    func.date(cast(SalesRecord.sold_at, Date)).label("day"),
+                    func.sum(SalesRecord.value).label("total")
                 )
                 .filter(
                     SalesRecord.company_id == company_id,
                     SalesRecord.status == "paid",
                     SalesRecord.sold_at >= start_date
                 )
-                .group_by(
-                    func.date(SalesRecord.sold_at)
-                )
+                .group_by(func.date(cast(SalesRecord.sold_at, Date)))
                 .all()
             )
 
-            revenue_map = {}
-
             for day, value in sales_rows:
-
-                if day is None:
-                    continue
-
-                revenue_map[str(day)] = float(value or 0)
+                if day:
+                    day_key = str(day)
+                    revenue_map[day_key] = revenue_map.get(day_key, 0) + float(value or 0)
 
             # ==========================================
             # RECEITA DOS SERVIÇOS
             # ==========================================
             service_rows = (
                 db.session.query(
-                    func.date(Schedule.end_time),
-                    func.sum(Service.price)
+                    func.date(cast(Schedule.end_time, Date)).label("day"),
+                    func.sum(Service.price).label("total")
                 )
-                .join(
-                    Service,
-                    Service.id == Schedule.service_id
-                )
+                .join(Service, Service.id == Schedule.service_id)
                 .filter(
                     Schedule.company_id == company_id,
                     Schedule.status == "finished",
                     Schedule.end_time >= start_date
                 )
-                .group_by(
-                    func.date(Schedule.end_time)
-                )
+                .group_by(func.date(cast(Schedule.end_time, Date)))
                 .all()
             )
 
             for day, value in service_rows:
-
-                if day is None:
-                    continue
-
-                day_key = str(day)
-
-                revenue_map[day_key] = (
-                    revenue_map.get(day_key, 0)
-                    + float(value or 0)
-                )
+                if day:
+                    day_key = str(day)
+                    revenue_map[day_key] = revenue_map.get(day_key, 0) + float(value or 0)
 
             # ==========================================
-            # MONTA RETORNO
+            # MONTA SÉRIE DE 30 DIAS (SEM BURACOS)
             # ==========================================
             result = []
 
             for i in range(30):
-
-                current_day = (
-                    start_date + timedelta(days=i)
-                )
+                current_day = start_date + timedelta(days=i)
+                key = current_day.strftime("%Y-%m-%d")
 
                 result.append({
                     "date": current_day.strftime("%d/%m"),
-                    "value": round(
-                        revenue_map.get(
-                            current_day.strftime("%Y-%m-%d"),
-                            0
-                        ),
-                        2
-                    )
+                    "value": round(revenue_map.get(key, 0), 2)
                 })
 
             return jsonify(result), 200
 
         except Exception as e:
-
             return jsonify({
                 "error": "Erro ao gerar gráfico",
                 "details": str(e)
             }), 500
+    
     # =========================================================
     # TOP SERVICES
     # =========================================================
