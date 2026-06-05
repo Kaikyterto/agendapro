@@ -2,7 +2,6 @@ from datetime import datetime, timedelta, time
 from flask import jsonify, request
 
 from app.middlewares.public_company_active import public_company_active
-
 from app.models.service import Service
 from app.models.schedule import Schedule
 from app.models.worker import Worker
@@ -11,6 +10,7 @@ from app.models.worker_service import WorkerService
 
 
 class PublicController:
+
     SLOT_INTERVAL_MINUTES = 30
 
     # =====================================================
@@ -18,51 +18,51 @@ class PublicController:
     # =====================================================
     @staticmethod
     def generate_available_slots(company_id, worker, service, selected_date):
+
         try:
             now = datetime.now()
 
-            # Não permite datas passadas
+            # =================================================
+            # NÃO PERMITE DATAS PASSADAS
+            # =================================================
             if selected_date < now.date():
                 return []
 
+            # =================================================
+            # WEEKDAY (1 = segunda ... 7 = domingo)
+            # =================================================
             weekday = selected_date.weekday() + 1
 
             # =================================================
-            # 1. VALIDAR worker_service
+            # VALIDAR VÍNCULO WORKER-SERVICE
             # =================================================
             worker_service = WorkerService.query.filter_by(
-            worker_id=worker.id,
-            service_id=service.id
+                worker_id=worker.id,
+                service_id=service.id
             ).first()
 
             if not worker_service:
-                print("WORKER NÃO VINCULADO AO SERVIÇO")
                 return []
 
             # =================================================
-            # 2. BUSCAR SCHEDULE DO WORKER
+            # BUSCAR SCHEDULES DO WORKER
             # =================================================
             schedules = WorkerSchedule.query.filter_by(
                 company_id=company_id,
                 worker_id=worker.id,
                 weekday=weekday,
                 is_active=True
-            ).order_by(
-                WorkerSchedule.start_time.asc()
-            ).all()
-
-            print("WEEKDAY:", weekday)
-            print("SCHEDULES:", len(schedules))
+            ).order_by(WorkerSchedule.start_time.asc()).all()
 
             if not schedules:
                 return []
 
+            # =================================================
+            # APPOINTMENTS DO DIA
+            # =================================================
             start_of_day = datetime.combine(selected_date, time.min)
             end_of_day = datetime.combine(selected_date, time.max)
 
-            # =================================================
-            # 3. APPOINTMENTS DO DIA
-            # =================================================
             appointments = Schedule.query.filter(
                 Schedule.company_id == company_id,
                 Schedule.worker_id == worker.id,
@@ -77,50 +77,48 @@ class PublicController:
             available_slots = []
 
             # =================================================
-            # 4. GERAR SLOTS
+            # GERAR SLOTS
             # =================================================
-            for schedule in schedules:
+            for ws in schedules:
 
-                if not schedule.start_time or not schedule.end_time:
+                if not ws.start_time or not ws.end_time:
                     continue
 
-                current_datetime = datetime.combine(
-                    selected_date,
-                    schedule.start_time
-                )
+                base_start = datetime.combine(selected_date, ws.start_time)
+                base_end = datetime.combine(selected_date, ws.end_time)
 
-                end_datetime = datetime.combine(
-                    selected_date,
-                    schedule.end_time
-                )
+                current = base_start
 
-                while current_datetime + duration <= end_datetime:
+                while current + duration <= base_end:
 
-                    slot_end = current_datetime + duration
+                    slot_start = current
+                    slot_end = current + duration
 
-                    # ignorar passado (hoje)
-                    if selected_date == now.date() and current_datetime <= now:
-                        current_datetime += slot_interval
+                    # =================================================
+                    # IGNORAR PASSADO (SÓ HOJE)
+                    # =================================================
+                    if selected_date == now.date() and slot_start <= now:
+                        current += slot_interval
                         continue
 
-                    # conflito com agendamentos
+                    # =================================================
+                    # CONFLITO COM AGENDAMENTOS
+                    # =================================================
                     has_conflict = any(
-                        current_datetime < a.end_time and
-                        slot_end > a.start_time
+                        slot_start < a.end_time and slot_end > a.start_time
                         for a in appointments
                     )
 
                     if not has_conflict:
                         available_slots.append({
-                            "datetime": current_datetime.isoformat(),
-                            "start": current_datetime.isoformat(),
+                            "datetime": slot_start.isoformat(),
+                            "start": slot_start.isoformat(),
                             "end": slot_end.isoformat(),
-                            "time": current_datetime.strftime("%H:%M")
+                            "time": slot_start.strftime("%H:%M")
                         })
 
-                    current_datetime += slot_interval
+                    current += slot_interval
 
-            print("AVAILABLE SLOTS:", len(available_slots))
             return available_slots
 
         except Exception as e:
