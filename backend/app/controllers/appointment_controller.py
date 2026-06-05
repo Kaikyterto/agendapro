@@ -124,22 +124,28 @@ class AppointmentController:
             weekday = start_datetime_obj.weekday()
 
             appointment_start_time = start_datetime_obj.time()
-
             appointment_end_time = end_datetime_obj.time()
 
-            worker_schedule = WorkerSchedule.query.filter(
+            worker_schedules = WorkerSchedule.query.filter(
                 WorkerSchedule.worker_id == worker.id,
                 WorkerSchedule.weekday == weekday,
-                WorkerSchedule.is_active == True,
-                WorkerSchedule.start_time <= appointment_start_time,
-                WorkerSchedule.end_time >= appointment_end_time
-            ).first()
+                WorkerSchedule.is_active == True
+            ).all()
 
-            if not worker_schedule:
+            valid = False
+
+            for ws in worker_schedules:
+                if (
+                    ws.start_time <= appointment_start_time and
+                    ws.end_time >= appointment_end_time
+                ):
+                    valid = True
+                    break
+
+            if not valid:
                 return jsonify({
                     "error": "Funcionário não atende neste horário"
                 }), 400
-
             # =====================================================
             # CONFLICT VALIDATION
             # =====================================================
