@@ -80,7 +80,7 @@ class AppointmentController:
             # =====================================================
             # WORKER SCHEDULE VALIDATION
             # =====================================================
-            weekday = start_datetime_obj.weekday()  # 0 = segunda ... 6 = domingo
+            weekday = start_datetime_obj.weekday()  + 1
 
             worker_schedules = WorkerSchedule.query.filter(
                 WorkerSchedule.worker_id == worker.id,
