@@ -176,80 +176,80 @@ class DashboardController:
             }), 500
 
     # =========================================================
-# REVENUE CHART
-# =========================================================
+    # REVENUE CHART
+    # =========================================================
 
-@staticmethod
-def revenue_chart():
+    @staticmethod
+    def revenue_chart():
 
-    try:
+        try:
 
-        company_id = get_jwt().get("company_id")
+            company_id = get_jwt().get("company_id")
 
-        if not company_id:
-            return jsonify({
-                "error": "Empresa não identificada"
-            }), 401
+            if not company_id:
+                return jsonify({
+                    "error": "Empresa não identificada"
+                }), 401
 
-        today = datetime.utcnow().date()
-        start_date = today - timedelta(days=29)
+            today = datetime.utcnow().date()
+            start_date = today - timedelta(days=29)
 
-        rows = (
-            db.session.query(
-                func.date(SalesRecord.sold_at).label("day"),
-                func.sum(SalesRecord.value).label("revenue")
-            )
-            .filter(
-                SalesRecord.company_id == company_id,
-                SalesRecord.status == "paid",
-                SalesRecord.sold_at >= start_date
-            )
-            .group_by(
-                func.date(SalesRecord.sold_at)
-            )
-            .all()
-        )
-
-        # =========================================
-        # NORMALIZA AS CHAVES PARA STRING YYYY-MM-DD
-        # =========================================
-
-        revenue_map = {}
-
-        for row in rows:
-
-            day = row[0]
-
-            if day is None:
-                continue
-
-            revenue_map[str(day)] = float(row[1] or 0)
-
-        result = []
-
-        for i in range(30):
-
-            current_day = start_date + timedelta(days=i)
-
-            result.append({
-                "date": current_day.strftime("%d/%m"),
-                "value": round(
-                    revenue_map.get(
-                        current_day.strftime("%Y-%m-%d"),
-                        0
-                    ),
-                    2
+            rows = (
+                db.session.query(
+                    func.date(SalesRecord.sold_at).label("day"),
+                    func.sum(SalesRecord.value).label("revenue")
                 )
-            })
+                .filter(
+                    SalesRecord.company_id == company_id,
+                    SalesRecord.status == "paid",
+                    SalesRecord.sold_at >= start_date
+                )
+                .group_by(
+                    func.date(SalesRecord.sold_at)
+                )
+                .all()
+            )
 
-        return jsonify(result), 200
+            # =========================================
+            # NORMALIZA AS CHAVES PARA STRING YYYY-MM-DD
+            # =========================================
 
-    except Exception as e:
+            revenue_map = {}
 
-        return jsonify({
-            "error": "Erro ao gerar gráfico",
-            "details": str(e)
-        }), 500
+            for row in rows:
+
+                day = row[0]
+
+                if day is None:
+                    continue
+
+                revenue_map[str(day)] = float(row[1] or 0)
+
+            result = []
+
+            for i in range(30):
+
+                current_day = start_date + timedelta(days=i)
+
+                result.append({
+                    "date": current_day.strftime("%d/%m"),
+                    "value": round(
+                        revenue_map.get(
+                            current_day.strftime("%Y-%m-%d"),
+                            0
+                        ),
+                        2
+                    )
+                })
+
+            return jsonify(result), 200
+
+        except Exception as e:
+
+            return jsonify({
+                "error": "Erro ao gerar gráfico",
+                "details": str(e)
+            }), 500
 
     # =========================================================
     # TOP SERVICES
