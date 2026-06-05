@@ -39,9 +39,24 @@ class WebhookController:
             # =====================================================
             # SDK PLATAFORMA
             # =====================================================
+            from app.models.mercado_pago_account import MercadoPagoAccount
+            print("WEBHOOK USER_ID:", data.get("user_id"))
+            mp_user_id = int(data.get("user_id"))
+
+            mp_account = MercadoPagoAccount.query.filter_by(
+                mp_user_id=mp_user_id,
+                connected=True
+            ).first()
+
+            if not mp_account:
+                return jsonify({
+                    "error": "Conta Mercado Pago não encontrada"
+                }), 404
+
             sdk = mercadopago.SDK(
-                os.getenv("MERCADO_PAGO_ACCESS_TOKEN")
+                mp_account.access_token
             )
+            
 
             payment_response = sdk.payment().get(payment_id)
 
