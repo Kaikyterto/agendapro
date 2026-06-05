@@ -12,6 +12,7 @@ from app.models.service import Service
 from app.models.worker import Worker
 from app.models.sales_record import SalesRecord
 from app.database.db import db
+from sqlalchemy import func, cast, Date
 
 
 class DashboardController:
@@ -175,10 +176,6 @@ class DashboardController:
                 "details": str(e)
             }), 500
 
-    # =========================================================
-    # REVENUE CHART 
-    # =========================================================
-
     @staticmethod
     def revenue_chart():
 
@@ -189,17 +186,17 @@ class DashboardController:
                 return jsonify({"error": "Empresa não identificada"}), 401
 
             today = datetime.utcnow().date()
-            start_date = today - timedelta(days=29)
+            start_date = datetime.combine(today - timedelta(days=29), datetime.min.time())
 
             revenue_map = {}
 
-            # ==========================================
-            # VENDAS DE PRODUTOS
-            # ==========================================
+            # ================================
+            # PRODUTOS
+            # ================================
             sales_rows = (
                 db.session.query(
                     func.date(cast(SalesRecord.sold_at, Date)).label("day"),
-                    func.sum(SalesRecord.value).label("total")
+                    func.coalesce(func.sum(SalesRecord.value), 0)
                 )
                 .filter(
                     SalesRecord.company_id == company_id,
@@ -212,16 +209,16 @@ class DashboardController:
 
             for day, value in sales_rows:
                 if day:
-                    day_key = str(day)
-                    revenue_map[day_key] = revenue_map.get(day_key, 0) + float(value or 0)
+                    key = str(day)
+                    revenue_map[key] = revenue_map.get(key, 0) + float(value or 0)
 
-            # ==========================================
-            # RECEITA DOS SERVIÇOS
-            # ==========================================
+            # ================================
+            # SERVIÇOS
+            # ================================
             service_rows = (
                 db.session.query(
                     func.date(cast(Schedule.end_time, Date)).label("day"),
-                    func.sum(Service.price).label("total")
+                    func.coalesce(func.sum(Service.price), 0)
                 )
                 .join(Service, Service.id == Schedule.service_id)
                 .filter(
@@ -235,20 +232,20 @@ class DashboardController:
 
             for day, value in service_rows:
                 if day:
-                    day_key = str(day)
-                    revenue_map[day_key] = revenue_map.get(day_key, 0) + float(value or 0)
+                    key = str(day)
+                    revenue_map[key] = revenue_map.get(key, 0) + float(value or 0)
 
-            # ==========================================
-            # MONTA SÉRIE DE 30 DIAS (SEM BURACOS)
-            # ==========================================
+            # ================================
+            # RESULTADO 30 DIAS
+            # ================================
             result = []
 
             for i in range(30):
-                current_day = start_date + timedelta(days=i)
-                key = current_day.strftime("%Y-%m-%d")
+                d = today - timedelta(days=29 - i)
+                key = d.strftime("%Y-%m-%d")
 
                 result.append({
-                    "date": current_day.strftime("%d/%m"),
+                    "date": d.strftime("%d/%m"),
                     "value": round(revenue_map.get(key, 0), 2)
                 })
 
