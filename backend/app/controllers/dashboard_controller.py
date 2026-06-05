@@ -194,10 +194,13 @@ class DashboardController:
             today = datetime.utcnow().date()
             start_date = today - timedelta(days=29)
 
-            rows = (
+            # ==========================================
+            # VENDAS DE PRODUTOS
+            # ==========================================
+            sales_rows = (
                 db.session.query(
-                    func.date(SalesRecord.sold_at).label("day"),
-                    func.sum(SalesRecord.value).label("revenue")
+                    func.date(SalesRecord.sold_at),
+                    func.sum(SalesRecord.value)
                 )
                 .filter(
                     SalesRecord.company_id == company_id,
@@ -210,41 +213,60 @@ class DashboardController:
                 .all()
             )
 
-            # DEBUG
-            print("================================")
-            print("COMPANY ID:", company_id)
-            print("START DATE:", start_date)
-            print("ROWS:", rows)
-
-            for row in rows:
-                print(
-                    "DAY:", row[0],
-                    "TYPE:", type(row[0]),
-                    "VALUE:", row[1]
-                )
-
-            print("================================")
-
-            # =========================================
-            # NORMALIZA AS CHAVES PARA STRING YYYY-MM-DD
-            # =========================================
-
             revenue_map = {}
 
-            for row in rows:
-
-                day = row[0]
+            for day, value in sales_rows:
 
                 if day is None:
                     continue
 
-                revenue_map[str(day)] = float(row[1] or 0)
+                revenue_map[str(day)] = float(value or 0)
 
+            # ==========================================
+            # RECEITA DOS SERVIÇOS
+            # ==========================================
+            service_rows = (
+                db.session.query(
+                    func.date(Schedule.end_time),
+                    func.sum(Service.price)
+                )
+                .join(
+                    Service,
+                    Service.id == Schedule.service_id
+                )
+                .filter(
+                    Schedule.company_id == company_id,
+                    Schedule.status == "finished",
+                    Schedule.end_time >= start_date
+                )
+                .group_by(
+                    func.date(Schedule.end_time)
+                )
+                .all()
+            )
+
+            for day, value in service_rows:
+
+                if day is None:
+                    continue
+
+                day_key = str(day)
+
+                revenue_map[day_key] = (
+                    revenue_map.get(day_key, 0)
+                    + float(value or 0)
+                )
+
+            # ==========================================
+            # MONTA RETORNO
+            # ==========================================
             result = []
 
             for i in range(30):
 
-                current_day = start_date + timedelta(days=i)
+                current_day = (
+                    start_date + timedelta(days=i)
+                )
 
                 result.append({
                     "date": current_day.strftime("%d/%m"),
@@ -265,7 +287,6 @@ class DashboardController:
                 "error": "Erro ao gerar gráfico",
                 "details": str(e)
             }), 500
-
     # =========================================================
     # TOP SERVICES
     # =========================================================

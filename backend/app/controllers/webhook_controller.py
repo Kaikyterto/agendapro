@@ -1,10 +1,10 @@
 from flask import request, jsonify
 from datetime import datetime
-import os
 import mercadopago
 
 from app.models.company import Company
 from app.models.sales_record import SalesRecord
+from app.models.mercado_pago_account import MercadoPagoAccount
 from app.database.db import db
 
 
@@ -15,83 +15,91 @@ class WebhookController:
 
         try:
 
-            print("\n================ WEBHOOK MP =================")
-
             data = request.get_json()
 
-            print("PAYLOAD:", data)
-
             if not data:
-                print("ERRO: payload vazio")
-                return jsonify({"msg": "Sem dados"}), 400
+                return jsonify({
+                    "msg": "Sem dados"
+                }), 400
 
             # =====================================================
-            # FILTRA EVENTO
+            # SUPORTA WEBHOOK V1 E FEED V2
             # =====================================================
-            if data.get("type") != "payment":
-                print("EVENTO IGNORADO:", data.get("type"))
-                return jsonify({"msg": "Evento ignorado"}), 200
+            payment_id = None
 
-            payment_id = data["data"]["id"]
+            if data.get("type") == "payment":
+                payment_id = data.get("data", {}).get("id")
 
-            print("PAYMENT ID:", payment_id)
+            elif data.get("topic") == "payment":
+                payment_id = data.get("resource")
+
+            if not payment_id:
+                return jsonify({
+                    "msg": "Evento ignorado"
+                }), 200
 
             # =====================================================
-            # SDK PLATAFORMA
+            # IDENTIFICA A CONTA MP QUE RECEBEU O EVENTO
             # =====================================================
-            from app.models.mercado_pago_account import MercadoPagoAccount
-            print("WEBHOOK USER_ID:", data.get("user_id"))
-            mp_user_id = int(data.get("user_id"))
+            mp_user_id = data.get("user_id")
+
+            if not mp_user_id:
+                return jsonify({
+                    "msg": "user_id não informado"
+                }), 400
 
             mp_account = MercadoPagoAccount.query.filter_by(
-                mp_user_id=mp_user_id,
+                mp_user_id=int(mp_user_id),
                 connected=True
             ).first()
 
             if not mp_account:
                 return jsonify({
-                    "error": "Conta Mercado Pago não encontrada"
+                    "msg": "Conta Mercado Pago não encontrada"
                 }), 404
 
+            # =====================================================
+            # CONSULTA PAGAMENTO NA CONTA CORRETA
+            # =====================================================
             sdk = mercadopago.SDK(
                 mp_account.access_token
             )
-            
 
-            payment_response = sdk.payment().get(payment_id)
+            payment_response = sdk.payment().get(
+                payment_id
+            )
 
-            print("PAYMENT RESPONSE:", payment_response)
-
-            payment = payment_response.get("response", {})
+            payment = payment_response.get(
+                "response",
+                {}
+            )
 
             status = payment.get("status")
-            external_reference = payment.get("external_reference")
-
-            print("STATUS:", status)
-            print("EXTERNAL REFERENCE:", external_reference)
+            external_reference = payment.get(
+                "external_reference"
+            )
 
             if not external_reference:
-                print("ERRO: external_reference vazio")
-                return jsonify({"msg": "Sem referência"}), 400
+                return jsonify({
+                    "msg": "Sem referência"
+                }), 400
 
             # =====================================================
             # PAGAMENTO APROVADO
             # =====================================================
             if status == "approved":
 
-                print("PAGAMENTO APROVADO")
-
                 # =========================================
                 # ASSINATURA DA PLATAFORMA
                 # =========================================
-                if external_reference.startswith("company_"):
+                if external_reference.startswith(
+                    "company_"
+                ):
 
-                    company_id = external_reference.replace(
-                        "company_",
-                        ""
+                    company_id = (
+                        external_reference
+                        .replace("company_", "")
                     )
-
-                    print("ATIVANDO EMPRESA:", company_id)
 
                     company = db.session.get(
                         Company,
@@ -99,17 +107,16 @@ class WebhookController:
                     )
 
                     if not company:
-                        print("EMPRESA NÃO ENCONTRADA")
                         return jsonify({
                             "msg": "Empresa não encontrada"
                         }), 404
 
                     company.status = "active"
-                    company.mercado_pago_payment_id = str(payment_id)
+                    company.mercado_pago_payment_id = str(
+                        payment_id
+                    )
 
                     db.session.commit()
-
-                    print("EMPRESA ATIVADA COM SUCESSO")
 
                     return jsonify({
                         "msg": "Empresa ativada"
@@ -118,7 +125,9 @@ class WebhookController:
                 # =========================================
                 # VENDA
                 # =========================================
-                if external_reference.startswith("sale_"):
+                if external_reference.startswith(
+                    "sale_"
+                ):
 
                     sale_id = (
                         external_reference
@@ -126,52 +135,33 @@ class WebhookController:
                         .split("_")[0]
                     )
 
-                    print("SALE ID:", sale_id)
-
                     order = db.session.get(
                         SalesRecord,
                         int(sale_id)
                     )
 
                     if not order:
-                        print("PEDIDO NÃO ENCONTRADO")
                         return jsonify({
                             "msg": "Pedido não encontrado"
                         }), 404
 
-                    print("ANTES:")
-                    print("STATUS:", order.status)
-                    print("SOLD_AT:", order.sold_at)
+                    # Evita processamento duplicado
+                    if order.status != "paid":
 
-                    order.status = "paid"
-                    order.payment_id = str(payment_id)
-                    order.sold_at = datetime.utcnow()
+                        order.status = "paid"
+                        order.payment_id = str(
+                            payment_id
+                        )
 
-                    db.session.commit()
+                        order.sold_at = (
+                            datetime.utcnow()
+                        )
 
-                    print("DEPOIS:")
-                    print("STATUS:", order.status)
-                    print("SOLD_AT:", order.sold_at)
-
-                    print("PEDIDO MARCADO COMO PAGO")
+                        db.session.commit()
 
                     return jsonify({
                         "msg": "Pedido pago"
                     }), 200
-
-                print(
-                    "EXTERNAL REFERENCE NÃO RECONHECIDA:",
-                    external_reference
-                )
-
-            else:
-
-                print(
-                    "PAGAMENTO NÃO APROVADO:",
-                    status
-                )
-
-            print("================ FIM WEBHOOK =================\n")
 
             return jsonify({
                 "msg": "Pagamento não aprovado"
@@ -179,7 +169,7 @@ class WebhookController:
 
         except Exception as e:
 
-            print("ERRO WEBHOOK:", str(e))
+            db.session.rollback()
 
             return jsonify({
                 "error": str(e)
