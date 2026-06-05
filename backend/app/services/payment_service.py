@@ -92,13 +92,16 @@ class PaymentService:
 
             "description": data.get(
                 "description",
-                "Assinatura AgendaPro"
+                f"Pedido #{data['sale_record_id']}"
             ),
 
             "payment_method_id": "pix",
 
             "external_reference":
-                f"company_{data['company_id']}",
+                f"sale_{data['sale_record_id']}",
+
+            "notification_url":
+                "https://agendapro-z63z.onrender.com/webhook/mercadopago",
 
             "payer": {
                 "first_name":
