@@ -92,16 +92,13 @@ class PaymentService:
 
             "description": data.get(
                 "description",
-                f"Pedido #{data['sale_record_id']}"
+                "Assinatura AgendaPro"
             ),
 
             "payment_method_id": "pix",
 
             "external_reference":
-                f"sale_{data['sale_record_id']}",
-
-            "notification_url":
-                "https://agendapro-z63z.onrender.com/webhook/mercadopago",
+                f"company_{data['company_id']}",
 
             "payer": {
                 "first_name":
@@ -190,31 +187,34 @@ class PaymentService:
         )
 
         payment_data = {
-            "transaction_amount": float(
-                data["amount"]
-            ),
+        "transaction_amount": float(
+            data["amount"]
+        ),
 
-            "description": data.get(
-                "description",
-                f"Pedido #{data['sale_record_id']}"
-            ),
+        "description": data.get(
+            "description",
+            f"Pedido #{data['sale_record_id']}"
+        ),
 
-            "payment_method_id": "pix",
+        "payment_method_id": "pix",
 
-            "external_reference":
-                f"sale_{data['sale_record_id']}",
+        "external_reference":
+            f"sale_{data['sale_record_id']}",
 
-            "payer": {
-                "first_name":
-                    data["customer_name"],
+        "notification_url":
+            "https://agendapro-z63z.onrender.com/webhook/mercadopago",
 
-                "email":
-                    data.get(
-                        "email",
-                        "cliente@agendapro.com"
-                    )
-            }
+        "payer": {
+            "first_name":
+                data["customer_name"],
+
+            "email":
+                data.get(
+                    "email",
+                    "cliente@agendapro.com"
+                )
         }
+    }
 
         response = (
             sdk.payment()
