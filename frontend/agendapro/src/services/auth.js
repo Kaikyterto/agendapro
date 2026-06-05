@@ -52,6 +52,36 @@ export const loginService = async (credentials) => {
 };
 
 // =========================================================
+// REGISTER
+// =========================================================
+export const registerService = async (payload) => {
+  const response = await fetch(`${API_URL}/auth/register`, {
+    method: "POST",
+
+    headers: {
+      "Content-Type": "application/json",
+    },
+
+    body: JSON.stringify({
+      name: payload.name,
+      company_name: payload.companyName,
+      email: payload.email.trim(),
+      password: payload.password,
+    }),
+  });
+
+  const data = await parseResponse(response);
+
+  if (!response.ok) {
+    throw new Error(
+      data?.error || data?.message || data?.msg || "Erro ao criar conta"
+    );
+  }
+
+  return data;
+};
+
+// =========================================================
 // PARSE RESPONSE (ROBUSTO)
 // =========================================================
 const parseResponse = async (response) => {
