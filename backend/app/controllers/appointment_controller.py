@@ -23,7 +23,6 @@ class AppointmentController:
         data = request.get_json() or {}
 
         try:
-
             service_id = data.get("service_id")
             worker_id = data.get("worker_id")
             start_datetime = data.get("start_datetime")
@@ -42,8 +41,8 @@ class AppointmentController:
                 return jsonify({"error": "Nome e telefone são obrigatórios"}), 400
 
             try:
-                start_datetime_clean = start_datetime.replace("Z", "+00:00")
-                start_datetime_obj = datetime.fromisoformat(start_datetime_clean)
+                start_datetime = start_datetime.replace("Z", "+00:00")
+                start_datetime_obj = datetime.fromisoformat(start_datetime)
                 start_datetime_obj = start_datetime_obj.replace(tzinfo=None)
             except ValueError:
                 return jsonify({"error": "Formato de data inválido"}), 400
@@ -81,7 +80,7 @@ class AppointmentController:
             # =====================================================
             # WORKER SCHEDULE VALIDATION
             # =====================================================
-            weekday = start_datetime_obj.weekday()  # 0–6 padrão correto
+            weekday = start_datetime_obj.weekday()  # 0 = segunda ... 6 = domingo
 
             worker_schedules = WorkerSchedule.query.filter(
                 WorkerSchedule.worker_id == worker.id,
@@ -164,7 +163,8 @@ class AppointmentController:
             schedules = Schedule.query.options(
                 joinedload(Schedule.service),
                 joinedload(Schedule.worker)
-            ).filter_by(company_id=company_id).order_by(Schedule.start_time.asc()).all()
+            ).filter_by(company_id=company_id)\
+             .order_by(Schedule.start_time.asc()).all()
 
             return jsonify([
                 {
