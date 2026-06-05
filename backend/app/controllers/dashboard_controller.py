@@ -210,6 +210,21 @@ class DashboardController:
                 .all()
             )
 
+            # DEBUG
+            print("================================")
+            print("COMPANY ID:", company_id)
+            print("START DATE:", start_date)
+            print("ROWS:", rows)
+
+            for row in rows:
+                print(
+                    "DAY:", row[0],
+                    "TYPE:", type(row[0]),
+                    "VALUE:", row[1]
+                )
+
+            print("================================")
+
             # =========================================
             # NORMALIZA AS CHAVES PARA STRING YYYY-MM-DD
             # =========================================
