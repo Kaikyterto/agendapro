@@ -136,8 +136,8 @@ class AppointmentController:
 
             for ws in worker_schedules:
                 if (
-                    ws.start_time <= appointment_start_time and
-                    ws.end_time >= appointment_end_time
+                    ws.start_time <= appointment_start_time < ws.end_time
+                    and ws.start_time < appointment_end_time <= ws.end_time
                 ):
                     valid = True
                     break
