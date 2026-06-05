@@ -6,11 +6,9 @@ const API_URL = "https://agendapro-z63z.onrender.com";
 export const loginService = async (credentials) => {
   const response = await fetch(`${API_URL}/auth/login`, {
     method: "POST",
-
     headers: {
       "Content-Type": "application/json",
     },
-
     body: JSON.stringify({
       email: credentials.email.trim(),
       password: credentials.password,
@@ -19,13 +17,25 @@ export const loginService = async (credentials) => {
 
   const data = await parseResponse(response);
 
+  // ==========================================
+  // PAGAMENTO PENDENTE (403 CONTROLADO)
+  // ==========================================
+  if (response.status === 403 && data?.payment_pending === true) {
+    return data;
+  }
+
+  // ==========================================
+  // OUTROS ERROS
+  // ==========================================
   if (!response.ok) {
     throw new Error(
       data?.error || data?.message || data?.msg || "Erro ao realizar login"
     );
   }
 
-  // salva token (IMPORTANTE)
+  // ==========================================
+  // LOGIN OK
+  // ==========================================
   if (data?.access_token) {
     localStorage.setItem("@AgendaPro:token", data.access_token);
   }
@@ -36,36 +46,6 @@ export const loginService = async (credentials) => {
 
   if (data?.company) {
     localStorage.setItem("@AgendaPro:company", JSON.stringify(data.company));
-  }
-
-  return data;
-};
-
-// =========================================================
-// REGISTER
-// =========================================================
-export const registerService = async (payload) => {
-  const response = await fetch(`${API_URL}/auth/register`, {
-    method: "POST",
-
-    headers: {
-      "Content-Type": "application/json",
-    },
-
-    body: JSON.stringify({
-      name: payload.name,
-      company_name: payload.companyName,
-      email: payload.email.trim(),
-      password: payload.password,
-    }),
-  });
-
-  const data = await parseResponse(response);
-
-  if (!response.ok) {
-    throw new Error(
-      data?.error || data?.message || data?.msg || "Erro ao criar conta"
-    );
   }
 
   return data;
