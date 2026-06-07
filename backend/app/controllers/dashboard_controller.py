@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 from flask import jsonify
 from flask_jwt_extended import get_jwt
 
-from sqlalchemy import func
 
 from app.models.schedule import Schedule
 from app.models.worker_schedule import WorkerSchedule
@@ -13,6 +12,8 @@ from app.models.worker import Worker
 from app.models.sales_record import SalesRecord
 from app.database.db import db
 from sqlalchemy import func, cast, Date
+from prophet import Prophet
+import pandas as pd
 
 
 class DashboardController:
@@ -589,52 +590,224 @@ class DashboardController:
                     "error": "Empresa não identificada"
                 }), 401
 
-            last_30_days = datetime.utcnow() - timedelta(
-                days=30
+            today = datetime.utcnow().date()
+
+            # idealmente usar 180 dias
+            start_date = datetime.combine(
+                today - timedelta(days=180),
+                datetime.min.time()
             )
 
-            revenue = (
+            revenue_map = {}
+
+            # ===================================
+            # PRODUTOS
+            # ===================================
+            sales_rows = (
                 db.session.query(
+                    func.date(
+                        cast(
+                            SalesRecord.sold_at,
+                            Date
+                        )
+                    ).label("day"),
+
                     func.coalesce(
-                        func.sum(SalesRecord.value),
+                        func.sum(
+                            SalesRecord.value
+                        ),
                         0
                     )
                 )
                 .filter(
                     SalesRecord.company_id == company_id,
                     SalesRecord.status == "paid",
-                    SalesRecord.sold_at >= last_30_days
+                    SalesRecord.sold_at >= start_date
                 )
-                .scalar()
+                .group_by(
+                    func.date(
+                        cast(
+                            SalesRecord.sold_at,
+                            Date
+                        )
+                    )
+                )
+                .all()
             )
 
-            revenue = float(revenue)
+            for day, value in sales_rows:
 
-            daily_average = revenue / 30
+                if day:
 
-            next_month_prediction = round(
-                daily_average * 30,
+                    key = str(day)
+
+                    revenue_map[key] = (
+                        revenue_map.get(key, 0)
+                        + float(value or 0)
+                    )
+
+            # ===================================
+            # SERVIÇOS
+            # ===================================
+            service_rows = (
+                db.session.query(
+                    func.date(
+                        cast(
+                            Schedule.end_time,
+                            Date
+                        )
+                    ).label("day"),
+
+                    func.coalesce(
+                        func.sum(
+                            Service.price
+                        ),
+                        0
+                    )
+                )
+                .join(
+                    Service,
+                    Service.id == Schedule.service_id
+                )
+                .filter(
+                    Schedule.company_id == company_id,
+                    Schedule.status == "finished",
+                    Schedule.end_time >= start_date
+                )
+                .group_by(
+                    func.date(
+                        cast(
+                            Schedule.end_time,
+                            Date
+                        )
+                    )
+                )
+                .all()
+            )
+
+            for day, value in service_rows:
+
+                if day:
+
+                    key = str(day)
+
+                    revenue_map[key] = (
+                        revenue_map.get(key, 0)
+                        + float(value or 0)
+                    )
+
+            # ===================================
+            # DATASET PROPHET
+            # ===================================
+            rows = []
+
+            current_day = start_date.date()
+
+            while current_day <= today:
+
+                key = current_day.strftime(
+                    "%Y-%m-%d"
+                )
+
+                rows.append({
+                    "ds": current_day,
+                    "y": revenue_map.get(
+                        key,
+                        0
+                    )
+                })
+
+                current_day += timedelta(days=1)
+
+            if len(rows) < 30:
+
+                return jsonify({
+                    "error":
+                    "Histórico insuficiente para previsão"
+                }), 400
+
+            df = pd.DataFrame(rows)
+
+            # ===================================
+            # TREINAR MODELO
+            # ===================================
+            model = Prophet(
+                yearly_seasonality=False,
+                weekly_seasonality=True,
+                daily_seasonality=False,
+                interval_width=0.95
+            )
+
+            model.fit(df)
+
+            # ===================================
+            # PREVER 30 DIAS
+            # ===================================
+            future = model.make_future_dataframe(
+                periods=30
+            )
+
+            forecast = model.predict(
+                future
+            )
+
+            future_period = forecast.tail(30)
+
+            predicted_revenue = round(
+                float(
+                    future_period["yhat"].sum()
+                ),
+                2
+            )
+
+            min_expected = round(
+                float(
+                    future_period["yhat_lower"].sum()
+                ),
+                2
+            )
+
+            max_expected = round(
+                float(
+                    future_period["yhat_upper"].sum()
+                ),
+                2
+            )
+
+            confidence = round(
+                (
+                    predicted_revenue
+                    / max_expected
+                ) * 100,
                 2
             )
 
             return jsonify({
 
                 "predicted_revenue":
-                next_month_prediction,
+                    predicted_revenue,
 
-                "daily_average":
-                round(daily_average, 2),
+                "min_expected":
+                    min_expected,
+
+                "max_expected":
+                    max_expected,
 
                 "confidence":
-                75
+                    confidence,
+
+                "history_days":
+                    len(df)
 
             }), 200
 
         except Exception as e:
 
             return jsonify({
-                "error": "Erro ao gerar previsão",
-                "details": str(e)
+                "error":
+                "Erro ao gerar previsão",
+                "details":
+                str(e)
             }), 500
         
     @staticmethod
