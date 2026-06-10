@@ -99,6 +99,7 @@ def create_app():
     from app.routes.webhook_routes import webhook_bp
     from app.routes.dashboard_routes import dashboard_bp
     from app.routes.mercado_pago_routes import mercado_pago_bp
+    from app.routes.service_routes import services_bp
 
     # =====================================================
     # AUTH (PÚBLICO)
@@ -117,6 +118,7 @@ def create_app():
         workers_bp,
         dashboard_bp,
         mercado_pago_bp,
+        services_bp,
     ]
 
     for blueprint in api_blueprints:

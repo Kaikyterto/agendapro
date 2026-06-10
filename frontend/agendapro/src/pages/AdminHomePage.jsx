@@ -9,6 +9,7 @@ import {
   Users,
   BarChart3,
   Settings,
+  Scissors,
 } from "lucide-react";
 
 const AdminHomePage = () => {
@@ -28,6 +29,13 @@ const AdminHomePage = () => {
       description: "Cadastre funcionários e vincule serviços disponíveis.",
       icon: Users,
       path: `/admin/${slug}/funcionarios`,
+    },
+
+    {
+      title: "Serviços",
+      description: "Gerencie serviços, preços, duração e imagens.",
+      icon: Scissors,
+      path: `/admin/${slug}/servicos`,
     },
 
     {
@@ -62,20 +70,13 @@ const AdminHomePage = () => {
 
   return (
     <div className="min-h-screen bg-[#0b0d11] text-white overflow-hidden">
-      {/* ======================================== */}
       {/* BACKGROUND */}
-      {/* ======================================== */}
       <div className="absolute top-[-15%] left-[-10%] w-[500px] h-[500px] bg-blue-600/10 blur-[140px] rounded-full pointer-events-none" />
-
       <div className="absolute bottom-[-15%] right-[-10%] w-[500px] h-[500px] bg-blue-900/10 blur-[140px] rounded-full pointer-events-none" />
 
-      {/* ======================================== */}
       {/* CONTENT */}
-      {/* ======================================== */}
       <div className="relative z-10 max-w-7xl mx-auto px-6 py-12">
-        {/* ====================================== */}
         {/* HEADER */}
-        {/* ====================================== */}
         <div className="mb-14">
           <p className="text-blue-400 font-semibold mb-3">
             Painel administrativo
@@ -89,9 +90,7 @@ const AdminHomePage = () => {
           </p>
         </div>
 
-        {/* ====================================== */}
         {/* GRID */}
-        {/* ====================================== */}
         <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
           {cards.map((card) => {
             const Icon = card.icon;
@@ -117,20 +116,16 @@ const AdminHomePage = () => {
                   hover:shadow-blue-500/10
                 "
               >
-                {/* ICON */}
                 <div className="w-14 h-14 rounded-2xl bg-blue-500/10 flex items-center justify-center mb-6 transition-all group-hover:bg-blue-500/20">
                   <Icon size={26} className="text-blue-400" />
                 </div>
 
-                {/* TITLE */}
                 <h2 className="text-2xl font-bold mb-2">{card.title}</h2>
 
-                {/* DESCRIPTION */}
                 <p className="text-slate-400 mb-6 leading-relaxed">
                   {card.description}
                 </p>
 
-                {/* ACTION */}
                 <div className="flex items-center gap-2 text-blue-400 font-semibold">
                   Acessar
                   <ArrowRight

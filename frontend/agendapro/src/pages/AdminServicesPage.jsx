@@ -1,0 +1,418 @@
+import { useEffect, useMemo, useState } from "react";
+
+import {
+  Scissors,
+  Plus,
+  Search,
+  Pencil,
+  Trash2,
+  X,
+  Clock,
+  DollarSign,
+  Loader2,
+  Image as ImageIcon,
+} from "lucide-react";
+
+import Button from "../components/Button";
+
+import { uploadImage } from "../services/upload";
+
+import {
+  getServices,
+  createService,
+  updateService,
+  deleteService,
+} from "../services/services";
+
+const initialForm = {
+  name: "",
+  description: "",
+  duration: "",
+  value: "",
+  image_url: "",
+};
+
+const AdminServicesPage = () => {
+  const [services, setServices] = useState([]);
+
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+
+  const [search, setSearch] = useState("");
+
+  const [openModal, setOpenModal] = useState(false);
+  const [editingService, setEditingService] = useState(null);
+
+  const [form, setForm] = useState(initialForm);
+
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const [imageFile, setImageFile] = useState(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  // =========================================================
+  // LOAD DATA
+  // =========================================================
+  const loadData = async () => {
+    try {
+      setLoading(true);
+
+      const servicesData = await getServices();
+
+      setServices(Array.isArray(servicesData) ? servicesData : []);
+    } catch (err) {
+      console.error(err);
+      setError("Erro ao carregar serviços");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  // =========================================================
+  // FILTER
+  // =========================================================
+  const filteredServices = useMemo(() => {
+    return [...services]
+      .filter((s) =>
+        s?.name?.toLowerCase().includes(search.trim().toLowerCase())
+      )
+      .sort((a, b) => b.id - a.id);
+  }, [services, search]);
+
+  // =========================================================
+  // FORM HANDLERS
+  // =========================================================
+  const resetForm = () => {
+    setForm(initialForm);
+    setEditingService(null);
+    setImageFile(null);
+    setError("");
+    setSuccess("");
+  };
+
+  const handleOpenCreate = () => {
+    resetForm();
+    setOpenModal(true);
+  };
+
+  const handleOpenEdit = (service) => {
+    setEditingService(service);
+
+    setForm({
+      name: service?.name || "",
+      description: service?.description || "",
+      duration: service?.duration || "",
+      value: service?.value || service?.price || "",
+      image_url: service?.image_url || "",
+    });
+
+    setImageFile(null);
+    setOpenModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setOpenModal(false);
+    resetForm();
+  };
+
+  const handleChange = (field, value) => {
+    setForm((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  // =========================================================
+  // SUBMIT
+  // =========================================================
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      setSubmitting(true);
+      setError("");
+      setSuccess("");
+
+      if (!form.name.trim()) {
+        setError("Nome é obrigatório");
+        return;
+      }
+
+      if (!form.duration || Number(form.duration) <= 0) {
+        setError("Duração inválida");
+        return;
+      }
+
+      if (!form.value || Number(form.value) <= 0) {
+        setError("Valor inválido");
+        return;
+      }
+
+      let imageUrl = form.image_url;
+
+      if (imageFile) {
+        setUploadingImage(true);
+
+        try {
+          const upload = await uploadImage(imageFile, "services");
+          imageUrl = upload.url;
+        } catch (err) {
+          console.error(err);
+          setError("Erro ao enviar imagem");
+          return;
+        } finally {
+          setUploadingImage(false);
+        }
+      }
+
+      const payload = {
+        name: form.name.trim(),
+        description: form.description.trim(),
+        duration: Number(form.duration),
+        value: Number(form.value),
+        image_url: imageUrl || null,
+      };
+
+      if (editingService) {
+        await updateService(editingService.id, payload);
+        setSuccess("Serviço atualizado com sucesso!");
+      } else {
+        await createService(payload);
+        setSuccess("Serviço criado com sucesso!");
+      }
+
+      await loadData();
+
+      setTimeout(() => {
+        handleCloseModal();
+      }, 600);
+    } catch (err) {
+      console.error(err);
+      setError("Erro ao salvar serviço");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // =========================================================
+  // DELETE
+  // =========================================================
+  const handleDelete = async (id) => {
+    const confirmed = window.confirm("Deseja realmente remover este serviço?");
+    if (!confirmed) return;
+
+    try {
+      await deleteService(id);
+      setServices((prev) => prev.filter((s) => s.id !== id));
+    } catch (err) {
+      console.error(err);
+      alert("Erro ao remover serviço");
+    }
+  };
+
+  // =========================================================
+  // LOADING
+  // =========================================================
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#07090d] text-white">
+        <Loader2 className="animate-spin text-violet-400" size={42} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#07090d] text-white p-4 md:p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* HEADER */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 mb-8">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-[28px] bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border border-violet-400/20 flex items-center justify-center">
+              <Scissors size={30} className="text-violet-300" />
+            </div>
+
+            <div>
+              <h1 className="text-3xl md:text-4xl font-black">Serviços</h1>
+              <p className="text-white/50">Gerencie seus serviços</p>
+            </div>
+          </div>
+
+          <Button
+            onClick={handleOpenCreate}
+            className="bg-gradient-to-r from-violet-500 to-fuchsia-500 h-14 px-6 rounded-2xl font-bold"
+          >
+            <Plus size={18} />
+            Novo Serviço
+          </Button>
+        </div>
+
+        {/* SEARCH */}
+        <div className="flex items-center gap-3 mb-8 bg-[#111827] border border-violet-500/10 rounded-3xl px-5 h-16">
+          <Search size={18} className="text-violet-300" />
+
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar serviço..."
+            className="bg-transparent outline-none w-full"
+          />
+        </div>
+
+        {/* GRID */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+          {filteredServices.map((service) => (
+            <div
+              key={service.id}
+              className="rounded-[32px] border border-violet-500/10 bg-[#111827] overflow-hidden"
+            >
+              <div className="aspect-video bg-black/30">
+                {service.image_url ? (
+                  <img
+                    src={service.image_url}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-white/20">
+                    <ImageIcon size={40} />
+                  </div>
+                )}
+              </div>
+
+              <div className="p-5">
+                <h3 className="text-xl font-black">{service.name}</h3>
+
+                <p className="text-white/50 text-sm mt-1">
+                  {service.description || "Sem descrição"}
+                </p>
+
+                <div className="flex items-center justify-between mt-4">
+                  <div>
+                    <p className="text-white/40 text-xs">Preço</p>
+                    <h4 className="text-violet-300 font-bold">
+                      R${" "}
+                      {Number(service.value || service.price || 0).toFixed(2)}
+                    </h4>
+                  </div>
+
+                  <div>
+                    <p className="text-white/40 text-xs">Duração</p>
+                    <h4 className="font-bold">{service.duration} min</h4>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 mt-5">
+                  <Button
+                    onClick={() => handleOpenEdit(service)}
+                    className="flex-1 h-12 bg-violet-500/10 text-violet-300"
+                  >
+                    <Pencil size={16} />
+                  </Button>
+
+                  <Button
+                    onClick={() => handleDelete(service.id)}
+                    className="flex-1 h-12 bg-red-500/10 text-red-300"
+                  >
+                    <Trash2 size={16} />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* EMPTY */}
+        {filteredServices.length === 0 && (
+          <div className="text-center py-20 text-white/40">
+            Nenhum serviço encontrado
+          </div>
+        )}
+
+        {/* MODAL */}
+        {openModal && (
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4">
+            <div className="w-full max-w-2xl bg-[#0f172a] rounded-[32px] p-6">
+              <div className="flex justify-between mb-6">
+                <h2 className="text-2xl font-black">
+                  {editingService ? "Editar Serviço" : "Novo Serviço"}
+                </h2>
+
+                <button onClick={handleCloseModal}>
+                  <X />
+                </button>
+              </div>
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <input
+                  placeholder="Nome"
+                  value={form.name}
+                  onChange={(e) => handleChange("name", e.target.value)}
+                  className="w-full h-14 bg-[#111827] rounded-2xl px-4"
+                />
+
+                <textarea
+                  placeholder="Descrição"
+                  value={form.description}
+                  onChange={(e) => handleChange("description", e.target.value)}
+                  className="w-full h-28 bg-[#111827] rounded-2xl p-4"
+                />
+
+                <div className="grid grid-cols-2 gap-4">
+                  <input
+                    type="number"
+                    placeholder="Duração (min)"
+                    value={form.duration}
+                    onChange={(e) => handleChange("duration", e.target.value)}
+                    className="h-14 bg-[#111827] rounded-2xl px-4"
+                  />
+
+                  <input
+                    type="number"
+                    placeholder="Valor"
+                    value={form.value}
+                    onChange={(e) => handleChange("value", e.target.value)}
+                    className="h-14 bg-[#111827] rounded-2xl px-4"
+                  />
+                </div>
+
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setImageFile(e.target.files[0])}
+                />
+
+                {(imageFile || form.image_url) && (
+                  <img
+                    src={
+                      imageFile
+                        ? URL.createObjectURL(imageFile)
+                        : form.image_url
+                    }
+                    className="w-full h-52 object-cover rounded-2xl"
+                  />
+                )}
+
+                {error && <p className="text-red-400">{error}</p>}
+                {success && <p className="text-emerald-400">{success}</p>}
+
+                <Button
+                  type="submit"
+                  disabled={submitting || uploadingImage}
+                  className="w-full h-14 bg-gradient-to-r from-violet-500 to-fuchsia-500"
+                >
+                  {submitting ? "Salvando..." : "Salvar"}
+                </Button>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default AdminServicesPage;
