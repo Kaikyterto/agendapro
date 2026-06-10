@@ -39,6 +39,8 @@ const CompanyBookingPage = () => {
 
   const [selectedSlot, setSelectedSlot] = useState(null);
 
+  const [submitting, setSubmitting] = useState(false);
+
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().split("T")[0]
   );
@@ -199,8 +201,9 @@ const CompanyBookingPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    setError("");
+    if (submitting) return;
 
+    setError("");
     setSuccess("");
 
     if (!selectedService) {
@@ -218,28 +221,26 @@ const CompanyBookingPage = () => {
       return;
     }
 
-    if (!form.name || !form.phone) {
-      setError("Preencha nome e telefone");
+    if (!form.name?.trim()) {
+      setError("Informe seu nome");
+      return;
+    }
+
+    if (!form.phone?.trim()) {
+      setError("Informe seu telefone");
       return;
     }
 
     try {
+      setSubmitting(true);
+
       await createAppointment({
         service_id: selectedService.id,
-
         worker_id: selectedWorker.id,
-
-        // =====================================================
-        // NOVA LÓGICA
-        // =====================================================
-
         start_datetime: selectedSlot.datetime || selectedSlot.start,
-
-        name: form.name,
-
-        phone: form.phone,
-
-        notes: form.notes,
+        name: form.name.trim(),
+        phone: form.phone.trim(),
+        notes: form.notes?.trim() || null,
       });
 
       setSuccess("Agendamento realizado com sucesso!");
@@ -254,7 +255,6 @@ const CompanyBookingPage = () => {
 
       setTimeout(() => {
         setShowBookingModal(false);
-
         resetBookingState();
       }, 1800);
     } catch (err) {
@@ -262,9 +262,11 @@ const CompanyBookingPage = () => {
 
       setError(
         err?.response?.data?.error ||
-          err?.message ||
+          err?.response?.data?.message ||
           "Erro ao realizar agendamento"
       );
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -349,6 +351,8 @@ const CompanyBookingPage = () => {
                     <img
                       src={service.image_url}
                       alt={service.name}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-52 sm:h-64 object-cover"
                     />
                   )}
@@ -449,6 +453,9 @@ const CompanyBookingPage = () => {
                           <img
                             src={worker.avatar_url}
                             alt={worker.name}
+                            loading="lazy"
+                            decoding="async"
+                            referrerPolicy="no-referrer"
                             className="w-full h-full object-cover"
                           />
                         ) : (

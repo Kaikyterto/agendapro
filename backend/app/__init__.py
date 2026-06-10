@@ -127,4 +127,12 @@ def create_app():
     # =====================================================
     app.register_blueprint(webhook_bp, url_prefix="/webhook")
 
+    # =====================================================
+    # UPLOAD
+    # =====================================================
+
+    from app.controllers.upload_controller import upload_bp
+
+    app.register_blueprint(upload_bp)
+
     return app

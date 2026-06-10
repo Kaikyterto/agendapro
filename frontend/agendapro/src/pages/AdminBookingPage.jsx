@@ -32,6 +32,8 @@ const AdminBookingPage = () => {
 
   const [dateFilter, setDateFilter] = useState("");
 
+  const [actionLoading, setActionLoading] = useState(null);
+
   // =========================================================
   // LOAD APPOINTMENTS
   // =========================================================
@@ -72,6 +74,8 @@ const AdminBookingPage = () => {
 
   const handleFinish = async (id) => {
     try {
+      setActionLoading(id);
+
       await apiFetch(`/appointments/${id}/finish`, {
         method: "PATCH",
         auth: true,
@@ -89,28 +93,10 @@ const AdminBookingPage = () => {
       );
     } catch (err) {
       console.error(err);
-    }
-  };
 
-  const handleCancel = async (id) => {
-    try {
-      await apiFetch(`/appointments/${id}/cancel`, {
-        method: "PATCH",
-        auth: true,
-      });
-
-      setAppointments((prev) =>
-        prev.map((a) =>
-          a.id === id
-            ? {
-                ...a,
-                status: "cancelled",
-              }
-            : a
-        )
-      );
-    } catch (err) {
-      console.error(err);
+      setError(err?.response?.data?.message || "Erro ao finalizar agendamento");
+    } finally {
+      setActionLoading(null);
     }
   };
 

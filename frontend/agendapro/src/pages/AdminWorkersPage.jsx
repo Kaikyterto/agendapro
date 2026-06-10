@@ -4,6 +4,8 @@ import { User, Plus, Search, Pencil, Trash2, X, Loader2 } from "lucide-react";
 
 import Button from "../components/Button";
 
+import { uploadImage } from "../services/upload";
+
 import {
   getWorkers,
   getServices,
@@ -60,6 +62,9 @@ const AdminWorkersPage = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+
   // =========================================================
   // LOAD DATA
   // =========================================================
@@ -107,6 +112,8 @@ const AdminWorkersPage = () => {
   const resetForm = () => {
     setForm(initialForm);
 
+    setAvatarFile(null);
+
     setSchedules([]);
     setNewSchedule(initialSchedule);
 
@@ -124,6 +131,7 @@ const AdminWorkersPage = () => {
   const handleOpenEdit = async (worker) => {
     try {
       setEditingWorker(worker);
+      setAvatarFile(null);
 
       setForm({
         name: worker?.name || "",
@@ -231,10 +239,30 @@ const AdminWorkersPage = () => {
       setError("");
       setSuccess("");
 
+      let avatarUrl = form.avatar_url;
+
+      if (avatarFile) {
+        setUploadingImage(true);
+
+        try {
+          const upload = await uploadImage(avatarFile, "workers");
+
+          avatarUrl = upload.url;
+        } catch (err) {
+          console.error(err);
+
+          setError(err?.response?.data?.message || "Erro ao enviar imagem");
+
+          return;
+        } finally {
+          setUploadingImage(false);
+        }
+      }
+
       const payload = {
         name: form.name.trim(),
         phone: form.phone?.trim() || null,
-        avatar_url: form.avatar_url?.trim() || null,
+        avatar_url: avatarUrl || null,
         is_active: form.is_active,
         service_ids: form.service_ids || [],
       };
@@ -358,10 +386,24 @@ const AdminWorkersPage = () => {
           {filteredWorkers.map((worker) => (
             <div key={worker.id} className="bg-[#111827] rounded-3xl p-5">
               <div className="flex justify-between">
-                <div>
-                  <h3 className="font-bold text-lg">{worker.name}</h3>
+                <div className="flex items-center gap-3">
+                  {worker.avatar_url ? (
+                    <img
+                      src={worker.avatar_url}
+                      alt={worker.name}
+                      className="w-12 h-12 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
+                      <User size={18} />
+                    </div>
+                  )}
 
-                  <p className="text-white/50 text-sm">{worker.phone}</p>
+                  <div>
+                    <h3 className="font-bold text-lg">{worker.name}</h3>
+
+                    <p className="text-white/50 text-sm">{worker.phone}</p>
+                  </div>
                 </div>
 
                 <div className="flex gap-2">
@@ -418,12 +460,38 @@ const AdminWorkersPage = () => {
                   className="w-full h-12 bg-[#111827] rounded-xl px-4"
                 />
 
-                <input
-                  placeholder="URL da imagem"
-                  value={form.avatar_url}
-                  onChange={(e) => handleChange("avatar_url", e.target.value)}
-                  className="w-full h-12 bg-[#111827] rounded-xl px-4"
-                />
+                <div>
+                  <label className="block mb-2 text-sm">
+                    Foto do Funcionário
+                  </label>
+
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+
+                      if (file) {
+                        setAvatarFile(file);
+                      }
+                    }}
+                    className="w-full h-12 bg-[#111827] rounded-xl px-4 py-2"
+                  />
+                </div>
+
+                {(avatarFile || form.avatar_url) && (
+                  <div className="mt-4 flex justify-center">
+                    <img
+                      src={
+                        avatarFile
+                          ? URL.createObjectURL(avatarFile)
+                          : form.avatar_url
+                      }
+                      alt="Preview"
+                      className="w-24 h-24 rounded-full object-cover border border-white/10"
+                    />
+                  </div>
+                )}
 
                 {/* SERVICES */}
                 <div className="bg-[#111827] rounded-2xl p-4">
@@ -572,8 +640,16 @@ const AdminWorkersPage = () => {
 
                 {success && <p className="text-green-400">{success}</p>}
 
-                <Button type="submit" disabled={submitting} className="w-full">
-                  {submitting ? "Salvando..." : "Salvar"}
+                <Button
+                  type="submit"
+                  disabled={submitting || uploadingImage}
+                  className="w-full"
+                >
+                  {uploadingImage
+                    ? "Enviando imagem..."
+                    : submitting
+                    ? "Salvando..."
+                    : "Salvar"}
                 </Button>
               </form>
             </div>

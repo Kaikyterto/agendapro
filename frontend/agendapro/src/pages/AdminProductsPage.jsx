@@ -16,6 +16,8 @@ import {
 
 import Button from "../components/Button";
 
+import { uploadImage } from "../services/upload";
+
 import {
   getProducts,
   createProduct,
@@ -49,6 +51,9 @@ const AdminProductsPage = () => {
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+
+  const [imageFile, setImageFile] = useState(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const loadData = async () => {
     try {
@@ -93,6 +98,9 @@ const AdminProductsPage = () => {
   const resetForm = () => {
     setForm(initialForm);
     setEditingProduct(null);
+
+    setImageFile(null);
+
     setError("");
     setSuccess("");
   };
@@ -104,6 +112,8 @@ const AdminProductsPage = () => {
 
   const handleOpenEdit = (product) => {
     setEditingProduct(product);
+
+    setImageFile(null);
 
     setForm({
       name: product?.name || "",
@@ -146,10 +156,30 @@ const AdminProductsPage = () => {
         return;
       }
 
+      let imageUrl = form.image_url;
+
+      if (imageFile) {
+        setUploadingImage(true);
+
+        try {
+          const upload = await uploadImage(imageFile, "products");
+
+          imageUrl = upload.url;
+        } catch (err) {
+          console.error(err);
+
+          setError(err?.response?.data?.message || "Erro ao enviar imagem");
+
+          return;
+        } finally {
+          setUploadingImage(false);
+        }
+      }
+
       const payload = {
         name: form.name.trim(),
         description: form.description.trim(),
-        image_url: form.image_url.trim(),
+        image_url: imageUrl || null,
         value: Number(form.value),
         active: form.active,
       };
@@ -432,23 +462,32 @@ const AdminProductsPage = () => {
 
                   <div>
                     <label className="text-sm text-white/60 mb-2 block">
-                      URL da imagem
+                      Imagem do Produto
                     </label>
 
                     <input
-                      value={form.image_url}
-                      onChange={(e) =>
-                        handleChange("image_url", e.target.value)
-                      }
-                      className="w-full h-14 rounded-2xl bg-[#111827] border border-white/10 px-4 outline-none focus:border-violet-400 transition-all"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+
+                        if (file) {
+                          setImageFile(file);
+                        }
+                      }}
+                      className="w-full h-14 rounded-2xl bg-[#111827] border border-white/10 px-4 py-3 outline-none"
                     />
                   </div>
                 </div>
 
-                {form.image_url && (
+                {(imageFile || form.image_url) && (
                   <div className="rounded-3xl overflow-hidden border border-violet-500/20">
                     <img
-                      src={form.image_url}
+                      src={
+                        imageFile
+                          ? URL.createObjectURL(imageFile)
+                          : form.image_url
+                      }
                       alt="Preview"
                       className="w-full h-56 object-cover"
                     />
@@ -480,7 +519,7 @@ const AdminProductsPage = () => {
 
                 <Button
                   type="submit"
-                  disabled={submitting}
+                  disabled={submitting || uploadingImage}
                   className="w-full h-14 bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:opacity-90 text-white rounded-2xl font-bold mt-2 disabled:opacity-60 border-0"
                 >
                   {submitting ? (
