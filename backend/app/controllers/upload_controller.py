@@ -33,7 +33,8 @@ def upload_file():
             "message": str(e)
         }), 400
 
-    except Exception:
+    except Exception as e:
+        print(f"ERRO:{e}")
         return jsonify({
             "success": False,
             "message": "Erro interno ao realizar upload"
