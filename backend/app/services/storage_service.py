@@ -81,7 +81,6 @@ class StorageService:
                 }
             )
 
-            # 🔥 checagem de erro do supabase
             if hasattr(response, "error") and response.error:
                 raise Exception(response.error.message)
 
@@ -92,7 +91,6 @@ class StorageService:
                 .get_public_url(path)
             )
 
-            # Supabase retorna dict com 'publicUrl'
             public_url = (
                 public_url_data.get("publicUrl")
                 if isinstance(public_url_data, dict)
@@ -106,8 +104,12 @@ class StorageService:
             }
 
         except Exception as e:
-            print("UPLOAD ERROR:", str(e))
-            raise Exception(f"Erro ao fazer upload: {str(e)}")
+            import traceback
+            return {
+                "success": False,
+                "message": str(e),
+                "trace": traceback.format_exc()
+            }, 500
 
     def delete_image(self, path: str):
         try:
