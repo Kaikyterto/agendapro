@@ -131,7 +131,7 @@ def create_app():
     # UPLOAD
     # =====================================================
 
-    from app.controllers.upload_controller import upload_bp
+    from app.routes.upload_routes import upload_bp
 
     app.register_blueprint(upload_bp)
 
