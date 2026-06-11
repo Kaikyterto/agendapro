@@ -94,26 +94,26 @@ const AdminDashboardPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#07090d] text-white p-4 md:p-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-[#07090d] text-white p-4 md:p-8 overflow-x-hidden">
+      <div className="max-w-7xl mx-auto w-full">
         {/* HEADER */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-black bg-gradient-to-r from-white via-violet-200 to-fuchsia-300 bg-clip-text text-transparent">
+        <div className="mb-8 text-center sm:text-left">
+          <h1 className="text-3xl sm:text-4xl font-black bg-gradient-to-r from-white via-violet-200 to-fuchsia-300 bg-clip-text text-transparent break-words">
             Business Intelligence
           </h1>
-          <p className="text-white/50 mt-2">
+          <p className="text-white/50 mt-2 text-sm sm:text-base">
             Métricas, previsões e insights do negócio.
           </p>
         </div>
 
         {error && (
-          <div className="mb-6 p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-300">
+          <div className="mb-6 p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm">
             {error}
           </div>
         )}
 
-        {/* CARDS */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+        {/* CARDS RESPONSIVOS */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
           <StatCard
             title="Receita"
             value={`R$ ${overview.monthly_revenue || 0}`}
@@ -137,14 +137,19 @@ const AdminDashboardPage = () => {
         </div>
 
         {/* GRÁFICOS PRINCIPAIS */}
-        <div className="grid lg:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           {/* REVENUE */}
-          <div className="lg:col-span-2 bg-[#111827] rounded-3xl p-5 border border-white/10">
-            <h3 className="font-bold mb-4">Receita últimos 30 dias</h3>
+          <div className="lg:col-span-2 bg-[#111827] rounded-3xl p-4 sm:p-5 border border-white/10 min-w-0">
+            <h3 className="font-bold mb-4 text-base sm:text-lg">
+              Receita últimos 30 dias
+            </h3>
 
-            <div className="h-80">
+            <div className="h-64 sm:h-80 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={revenueChart}>
+                <AreaChart
+                  data={revenueChart}
+                  margin={{ left: -20, right: 10, bottom: 0, top: 5 }}
+                >
                   <defs>
                     <linearGradient id="violetFill" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#a855f7" stopOpacity={0.4} />
@@ -152,9 +157,23 @@ const AdminDashboardPage = () => {
                     </linearGradient>
                   </defs>
 
-                  <CartesianGrid stroke="rgba(255,255,255,0.05)" />
-                  <XAxis dataKey="date" stroke="rgba(255,255,255,0.4)" />
-                  <YAxis stroke="rgba(255,255,255,0.4)" />
+                  <CartesianGrid
+                    stroke="rgba(255,255,255,0.05)"
+                    vertical={false}
+                  />
+                  {/* Esconde os eixos no mobile puro se a tela for menor que 640px para evitar bagunça visual */}
+                  <XAxis
+                    dataKey="date"
+                    stroke="rgba(255,255,255,0.4)"
+                    tickLine={false}
+                    fontSize={11}
+                    hide={window.innerWidth < 480}
+                  />
+                  <YAxis
+                    stroke="rgba(255,255,255,0.4)"
+                    tickLine={false}
+                    fontSize={11}
+                  />
 
                   <Tooltip
                     contentStyle={{
@@ -178,21 +197,21 @@ const AdminDashboardPage = () => {
           </div>
 
           {/* OCUPAÇÃO */}
-          <div className="bg-[#111827] rounded-3xl p-5 border border-white/10">
-            <h3 className="font-bold mb-4">Ocupação</h3>
+          <div className="bg-[#111827] rounded-3xl p-5 border border-white/10 flex flex-col justify-center">
+            <h3 className="font-bold mb-2 text-base sm:text-lg">Ocupação</h3>
 
-            <div className="text-5xl font-black text-violet-300">
+            <div className="text-4xl sm:text-5xl font-black text-violet-300">
               {occupancyPercent}%
             </div>
 
-            <p className="text-white/50 mt-3">
+            <p className="text-white/50 mt-2 text-sm">
               {occupancy.booked_minutes || 0} min reservados
             </p>
           </div>
         </div>
 
         {/* RANKINGS */}
-        <div className="grid lg:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           <RankingCard
             title="Top Serviços"
             data={topServices}
@@ -211,36 +230,42 @@ const AdminDashboardPage = () => {
         </div>
 
         {/* INSIGHTS + FORECAST */}
-        <div className="grid lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* INSIGHTS */}
           <div className="bg-[#111827] rounded-3xl p-5 border border-white/10">
             <div className="flex items-center gap-2 mb-4">
-              <Brain />
-              <h3 className="font-bold">Insights</h3>
+              <Brain size={20} className="text-violet-300" />
+              <h3 className="font-bold text-base sm:text-lg">Insights</h3>
             </div>
 
             <div className="space-y-3">
               {insights.map((item, index) => (
                 <div
                   key={index}
-                  className="p-4 rounded-2xl bg-white/5 hover:bg-white/10 transition"
+                  className="p-4 rounded-2xl bg-white/5 hover:bg-white/10 transition text-sm sm:text-base"
                 >
                   {item.message}
                 </div>
               ))}
+              {insights.length === 0 && (
+                <p className="text-white/40 text-sm">
+                  Nenhum insight disponível no momento.
+                </p>
+              )}
             </div>
           </div>
 
           {/* FORECAST */}
-          <div className="bg-[#111827] rounded-3xl p-5 border border-white/10">
-            <h3 className="font-bold mb-4">Forecast</h3>
+          <div className="bg-[#111827] rounded-3xl p-5 border border-white/10 flex flex-col justify-between">
+            <div>
+              <h3 className="font-bold mb-4 text-base sm:text-lg">Forecast</h3>
+              <p className="text-white/50 text-sm">Receita prevista</p>
+              <h2 className="text-3xl sm:text-4xl font-black mt-2 text-violet-300 break-words">
+                R$ {forecast.predicted_revenue || 0}
+              </h2>
+            </div>
 
-            <p className="text-white/50">Receita prevista</p>
-            <h2 className="text-4xl font-black mt-2 text-violet-300">
-              R$ {forecast.predicted_revenue || 0}
-            </h2>
-
-            <p className="mt-4 text-white/60">
+            <p className="mt-4 text-white/60 text-xs sm:text-sm">
               Confiança: {forecast.confidence || 0}%
             </p>
           </div>
@@ -255,41 +280,58 @@ const AdminDashboardPage = () => {
 ======================= */
 
 const StatCard = ({ title, value, icon: Icon }) => (
-  <div className="bg-[#111827] rounded-3xl p-5 border border-white/10">
-    <div className="flex justify-between items-center">
-      <div>
-        <p className="text-white/50">{title}</p>
-        <h3 className="text-3xl font-black mt-2">{value}</h3>
+  <div className="bg-[#111827] rounded-3xl p-5 border border-white/10 w-full min-w-0">
+    <div className="flex justify-between items-center gap-2">
+      <div className="min-w-0 flex-1">
+        <p className="text-white/50 text-xs sm:text-sm uppercase tracking-wider font-semibold truncate">
+          {title}
+        </p>
+        <h3 className="text-2xl sm:text-3xl font-black mt-1 break-words whitespace-normal">
+          {value}
+        </h3>
       </div>
 
-      <div className="text-violet-300">
-        <Icon />
+      <div className="text-violet-300 bg-violet-500/10 p-3 rounded-2xl shrink-0">
+        <Icon size={20} />
       </div>
     </div>
   </div>
 );
 
 const RankingCard = ({ title, data, field }) => (
-  <div className="bg-[#111827] rounded-3xl p-5 border border-white/10">
-    <h3 className="font-bold mb-4">{title}</h3>
+  <div className="bg-[#111827] rounded-3xl p-4 sm:p-5 border border-white/10 w-full min-w-0">
+    <h3 className="font-bold mb-4 text-base sm:text-lg truncate">{title}</h3>
 
-    <div className="space-y-2">
-      {data.map((item) => (
+    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+      {data.map((item, idx) => (
         <div
-          key={item.id}
-          className="flex justify-between py-2 px-2 rounded-xl hover:bg-white/5 transition"
+          key={item.id || idx}
+          className="flex justify-between items-center py-2 px-2 rounded-xl hover:bg-white/5 transition text-sm gap-2"
         >
-          <span className="text-white/80">{item.name}</span>
-          <span className="text-violet-300 font-bold">{item[field]}</span>
+          <span className="text-white/80 truncate flex-1">{item.name}</span>
+          <span className="text-violet-300 font-bold shrink-0">
+            {item[field]}
+          </span>
         </div>
       ))}
+      {data.length === 0 && (
+        <p className="text-white/30 text-xs text-center py-4">Sem dados</p>
+      )}
     </div>
 
-    <div className="h-40 mt-4">
+    <div className="h-36 mt-4 w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data}>
-          <CartesianGrid stroke="rgba(255,255,255,0.05)" />
-          <Bar dataKey={field} fill="#a855f7" radius={[8, 8, 0, 0]} />
+        <BarChart
+          data={data}
+          margin={{ left: -35, right: 0, bottom: 0, top: 0 }}
+        >
+          <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
+          <Bar
+            dataKey={field}
+            fill="#a855f7"
+            radius={[6, 6, 0, 0]}
+            maxBarSize={30}
+          />
         </BarChart>
       </ResponsiveContainer>
     </div>

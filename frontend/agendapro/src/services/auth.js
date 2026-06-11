@@ -67,6 +67,7 @@ export const registerService = async (payload) => {
       company_name: payload.companyName,
       email: payload.email.trim(),
       password: payload.password,
+      logo: payload.logo,
     }),
   });
 

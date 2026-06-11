@@ -4,6 +4,8 @@ import { registerService } from "../services/auth";
 
 import { ArrowRight, LogIn, Mail, Lock, User, Building2 } from "lucide-react";
 
+import { uploadImage } from "../services/upload";
+
 const RegisterPage = () => {
   const navigate = useNavigate();
 
@@ -15,6 +17,7 @@ const RegisterPage = () => {
     email: "",
     password: "",
     confirmPassword: "",
+    logoFile: null,
   });
 
   const [error, setError] = useState("");
@@ -55,11 +58,20 @@ const RegisterPage = () => {
     try {
       setIsLoading(true);
 
+      let uploadedLogoUrl = "";
+
+      // Envia a imagem para a pasta "logos" se o usuário selecionou um arquivo
+      if (formData.logoFile) {
+        const uploadResult = await uploadImage(formData.logoFile, "logos");
+        uploadedLogoUrl = uploadResult?.url || uploadResult;
+      }
+
       const data = await registerService({
         name: formData.name,
         companyName: formData.companyName,
         email: formData.email,
         password: formData.password,
+        logo: uploadedLogoUrl,
       });
 
       navigate("/payment", {
@@ -70,7 +82,6 @@ const RegisterPage = () => {
       });
     } catch (err) {
       console.error(err);
-
       setError(err.message || "Erro ao criar conta.");
     } finally {
       setIsLoading(false);
@@ -132,14 +143,14 @@ const RegisterPage = () => {
             </div>
 
             {/* ========================================== */}
-            {/* COMPANY */}
+            {/* COMPANY & LOGO */}
             {/* ========================================== */}
             <div>
               <label className="text-sm text-slate-400 mb-2 block">
                 Nome da empresa
               </label>
 
-              <div className="relative">
+              <div className="relative mb-4">
                 <Building2
                   size={18}
                   className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"
@@ -154,6 +165,49 @@ const RegisterPage = () => {
                   className="w-full bg-[#0f1115] border border-white/[0.05] rounded-xl pl-12 pr-4 py-3 text-white outline-none focus:border-blue-500 transition-all"
                 />
               </div>
+
+              {/* LABEL CUSTOMIZADO PARA O UPLOAD */}
+              <label className="group relative flex flex-col items-center justify-center w-full min-h-[100px] border border-dashed border-white/[0.1] hover:border-blue-500/50 bg-[#0f1115]/50 hover:bg-blue-500/[0.02] rounded-xl p-4 cursor-pointer transition-all text-center">
+                {/* Input nativo escondido */}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      logoFile: e.target.files?.[0] || null,
+                    }))
+                  }
+                />
+
+                {formData.logoFile ? (
+                  // Estado: Foto Selecionada
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="w-12 h-12 rounded-lg bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
+                      <Building2 size={20} className="text-blue-500" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-white max-w-[280px] truncate">
+                        {formData.logoFile.name}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        Clique para alterar a logo
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  // Estado: Sem foto
+                  <div className="flex flex-col items-center gap-1.5">
+                    <span className="text-xs font-semibold text-blue-500 bg-blue-500/10 px-2.5 py-1 rounded-full group-hover:bg-blue-500/20 transition-all">
+                      + Adicionar Logo
+                    </span>
+                    <p className="text-xs text-slate-500">
+                      Formatos aceitos: PNG, JPG ou SVG
+                    </p>
+                  </div>
+                )}
+              </label>
             </div>
 
             {/* ========================================== */}

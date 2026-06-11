@@ -111,9 +111,32 @@ class WebhookController:
                             "msg": "Empresa não encontrada"
                         }), 404
 
+                    from datetime import UTC, datetime, timedelta
+
+                    now = datetime.now(UTC)
+
                     company.status = "active"
                     company.mercado_pago_payment_id = str(
                         payment_id
+                    )
+
+                    # Renovação
+                    if (
+                        company.expires_at and
+                        company.expires_at > now
+                    ):
+                        company.expires_at = (
+                            company.expires_at +
+                            timedelta(days=30)
+                        )
+                    else:
+                        company.expires_at = (
+                            now +
+                            timedelta(days=30)
+                        )
+
+                    company.next_billing_at = (
+                        company.expires_at
                     )
 
                     db.session.commit()

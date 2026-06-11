@@ -233,21 +233,20 @@ const AdminProductsPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#07090d] text-white p-4 md:p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* HEADER */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 mb-8">
+    <div className="min-h-screen bg-[#07090d] text-white p-4 md:p-8 overflow-x-hidden">
+      <div className="max-w-7xl mx-auto w-full">
+        {/* HEADER RESPONSIVO */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5 mb-8">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-[28px] bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border border-violet-400/20 flex items-center justify-center shadow-lg shadow-violet-500/10">
-              <Package size={30} className="text-violet-300" />
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-[24px] sm:rounded-[28px] bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border border-violet-400/20 flex items-center justify-center shadow-lg shadow-violet-500/10 shrink-0">
+              <Package size={26} className="text-violet-300" />
             </div>
 
-            <div>
-              <h1 className="text-3xl md:text-4xl font-black bg-gradient-to-r from-white via-violet-200 to-fuchsia-300 bg-clip-text text-transparent">
+            <div className="min-w-0">
+              <h1 className="text-2xl sm:text-4xl font-black bg-gradient-to-r from-white via-violet-200 to-fuchsia-300 bg-clip-text text-transparent truncate">
                 Produtos
               </h1>
-
-              <p className="text-white/50 mt-1">
+              <p className="text-white/50 text-xs sm:text-sm mt-1 truncate">
                 Gerencie os produtos da sua empresa
               </p>
             </div>
@@ -255,60 +254,60 @@ const AdminProductsPage = () => {
 
           <Button
             onClick={handleOpenCreate}
-            className="bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:opacity-90 text-white h-14 px-6 rounded-2xl font-bold border-0 shadow-xl shadow-violet-500/20"
+            className="bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:opacity-90 text-white h-12 sm:h-14 px-6 rounded-2xl font-bold border-0 shadow-xl shadow-violet-500/20 w-full sm:w-auto justify-center"
           >
             <Plus size={18} />
             Novo Produto
           </Button>
         </div>
 
-        {/* DASHBOARD */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+        {/* DASHBOARD RESPONSIVO */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
           <DashboardCard
             title="Faturamento"
             value={`R$ ${Number(dashboard?.revenue || 0).toFixed(2)}`}
-            icon={<DollarSign size={22} />}
+            icon={<DollarSign size={20} />}
           />
 
           <DashboardCard
             title="Vendas"
             value={dashboard?.sales_count || 0}
-            icon={<ShoppingCart size={22} />}
+            icon={<ShoppingCart size={20} />}
           />
 
           <DashboardCard
             title="Produtos Vendidos"
             value={dashboard?.products_sold || 0}
-            icon={<Boxes size={22} />}
+            icon={<Boxes size={20} />}
           />
 
           <DashboardCard
             title="Ticket Médio"
             value={`R$ ${Number(dashboard?.average_ticket || 0).toFixed(2)}`}
-            icon={<TrendingUp size={22} />}
+            icon={<TrendingUp size={20} />}
           />
         </div>
 
         {/* SEARCH */}
-        <div className="flex items-center gap-3 mb-8 bg-[#111827] border border-violet-500/10 rounded-3xl px-5 h-16 backdrop-blur-xl shadow-lg">
-          <Search size={18} className="text-violet-300" />
+        <div className="flex items-center gap-3 mb-8 bg-[#111827] border border-violet-500/10 rounded-3xl px-4 sm:px-5 h-14 sm:h-16 backdrop-blur-xl shadow-lg">
+          <Search size={18} className="text-violet-300 shrink-0" />
 
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar produto..."
-            className="bg-transparent outline-none w-full text-white placeholder:text-white/30"
+            className="bg-transparent outline-none w-full text-white placeholder:text-white/30 text-sm sm:text-base"
           />
         </div>
 
-        {/* PRODUCTS */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+        {/* GRID DE PRODUTOS */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredProducts.map((product) => (
             <div
               key={product.id}
-              className="rounded-[32px] overflow-hidden border border-violet-500/10 bg-[#111827] shadow-xl shadow-black/20 transition-all duration-300 hover:-translate-y-1 hover:border-violet-400/30"
+              className="rounded-[28px] sm:rounded-[32px] overflow-hidden border border-violet-500/10 bg-[#111827] shadow-xl shadow-black/20 transition-all duration-300 hover:-translate-y-1 hover:border-violet-400/30 flex flex-col h-full"
             >
-              <div className="aspect-video bg-black/30 overflow-hidden">
+              <div className="aspect-video bg-black/30 overflow-hidden relative w-full shrink-0">
                 {product.image_url ? (
                   <img
                     src={product.image_url}
@@ -317,67 +316,71 @@ const AdminProductsPage = () => {
                   />
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center text-white/20 gap-2">
-                    <ImageIcon size={40} />
-                    <span className="text-sm">Sem imagem</span>
+                    <ImageIcon size={36} />
+                    <span className="text-xs">Sem imagem</span>
                   </div>
                 )}
               </div>
 
-              <div className="p-5">
-                <div className="flex items-start justify-between gap-4 mb-4">
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-xl font-black truncate">
+              <div className="p-5 flex flex-col flex-1 justify-between">
+                <div>
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <h3 className="text-lg sm:text-xl font-black truncate flex-1">
                       {product.name}
                     </h3>
 
-                    <p className="text-white/50 text-sm mt-1 line-clamp-2">
-                      {product.description || "Sem descrição"}
-                    </p>
+                    <div
+                      className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold whitespace-nowrap border shrink-0 ${
+                        product.active
+                          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                          : "bg-red-500/10 text-red-400 border-red-500/20"
+                      }`}
+                    >
+                      {product.active ? "Ativo" : "Inativo"}
+                    </div>
                   </div>
 
-                  <div
-                    className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap border ${
-                      product.active
-                        ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                        : "bg-red-500/10 text-red-400 border-red-500/20"
-                    }`}
-                  >
-                    {product.active ? "Ativo" : "Inativo"}
-                  </div>
+                  <p className="text-white/50 text-xs sm:text-sm mb-4 line-clamp-2 h-9 sm:h-10 overflow-hidden">
+                    {product.description || "Sem descrição"}
+                  </p>
                 </div>
 
-                <div className="flex items-center justify-between mb-5">
-                  <div>
-                    <p className="text-white/40 text-xs">Valor</p>
+                <div>
+                  <div className="flex items-center justify-between mb-4 bg-black/10 p-3 rounded-2xl">
+                    <div>
+                      <p className="text-white/40 text-[10px] uppercase font-semibold">
+                        Valor
+                      </p>
+                      <h4 className="text-xl font-black text-violet-300">
+                        R$ {Number(product.value || 0).toFixed(2)}
+                      </h4>
+                    </div>
 
-                    <h4 className="text-2xl font-black text-violet-300">
-                      R$ {Number(product.value || 0).toFixed(2)}
-                    </h4>
+                    <div className="text-right">
+                      <p className="text-white/40 text-[10px] uppercase font-semibold">
+                        Vendidos
+                      </p>
+                      <h4 className="text-base font-bold">
+                        {product?.sales?.total_quantity || 0}
+                      </h4>
+                    </div>
                   </div>
 
-                  <div className="text-right">
-                    <p className="text-white/40 text-xs">Vendidos</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button
+                      onClick={() => handleOpenEdit(product)}
+                      className="h-11 bg-violet-500/10 hover:bg-violet-500/20 text-violet-300 border border-violet-500/20 rounded-xl sm:rounded-2xl justify-center"
+                    >
+                      <Pencil size={15} />
+                    </Button>
 
-                    <h4 className="text-lg font-bold">
-                      {product?.sales?.total_quantity || 0}
-                    </h4>
+                    <Button
+                      onClick={() => handleDelete(product.id)}
+                      className="h-11 bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/20 rounded-xl sm:rounded-2xl justify-center"
+                    >
+                      <Trash2 size={15} />
+                    </Button>
                   </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <Button
-                    onClick={() => handleOpenEdit(product)}
-                    className="h-12 bg-violet-500/10 hover:bg-violet-500/20 text-violet-300 border border-violet-500/20 rounded-2xl"
-                  >
-                    <Pencil size={16} />
-                  </Button>
-
-                  <Button
-                    onClick={() => handleDelete(product.id)}
-                    className="h-12 bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/20 rounded-2xl"
-                  >
-                    <Trash2 size={16} />
-                  </Button>
                 </div>
               </div>
             </div>
@@ -385,22 +388,21 @@ const AdminProductsPage = () => {
         </div>
 
         {filteredProducts.length === 0 && (
-          <div className="text-center py-20 text-white/40">
+          <div className="text-center py-20 text-white/40 text-sm">
             Nenhum produto encontrado.
           </div>
         )}
 
-        {/* MODAL */}
+        {/* MODAL RESPONSIVO COM SCROLL INTERNO SEGURO */}
         {openModal && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="w-full max-w-2xl max-h-[95vh] overflow-y-auto rounded-[32px] border border-violet-500/20 bg-[#0f172a] p-6 shadow-2xl shadow-violet-500/10">
-              <div className="flex items-start justify-between gap-4 mb-6">
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div className="w-full max-w-2xl my-auto rounded-[24px] sm:rounded-[32px] border border-violet-500/20 bg-[#0f172a] p-5 sm:p-6 shadow-2xl shadow-violet-500/10 max-h-[90vh] overflow-y-auto custom-scrollbar">
+              <div className="flex items-start justify-between gap-4 mb-6 sticky top-0 bg-[#0f172a] pb-2 z-10">
                 <div>
-                  <h2 className="text-3xl font-black">
+                  <h2 className="text-2xl sm:text-3xl font-black">
                     {editingProduct ? "Editar Produto" : "Novo Produto"}
                   </h2>
-
-                  <p className="text-white/40 text-sm mt-1">
+                  <p className="text-white/40 text-xs sm:text-sm mt-1">
                     Preencha as informações abaixo
                   </p>
                 </div>
@@ -408,47 +410,44 @@ const AdminProductsPage = () => {
                 <button
                   type="button"
                   onClick={handleCloseModal}
-                  className="min-w-[44px] h-11 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all"
+                  className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all shrink-0"
                 >
                   <X size={18} />
                 </button>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-5">
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="md:col-span-2">
-                    <label className="text-sm text-white/60 mb-2 block">
+                    <label className="text-xs sm:text-sm text-white/60 mb-2 block font-medium">
                       Nome
                     </label>
-
                     <input
                       value={form.name}
                       onChange={(e) => handleChange("name", e.target.value)}
                       required
-                      className="w-full h-14 rounded-2xl bg-[#111827] border border-white/10 px-4 outline-none focus:border-violet-400 transition-all"
+                      className="w-full h-12 sm:h-14 rounded-xl sm:rounded-2xl bg-[#111827] border border-white/10 px-4 outline-none focus:border-violet-400 transition-all text-sm"
                     />
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className="text-sm text-white/60 mb-2 block">
+                    <label className="text-xs sm:text-sm text-white/60 mb-2 block font-medium">
                       Descrição
                     </label>
-
                     <textarea
                       value={form.description}
                       onChange={(e) =>
                         handleChange("description", e.target.value)
                       }
-                      rows={5}
-                      className="w-full rounded-2xl bg-[#111827] border border-white/10 px-4 py-4 outline-none resize-none focus:border-violet-400 transition-all"
+                      rows={4}
+                      className="w-full rounded-xl sm:rounded-2xl bg-[#111827] border border-white/10 px-4 py-3 sm:py-4 outline-none resize-none focus:border-violet-400 transition-all text-sm"
                     />
                   </div>
 
                   <div>
-                    <label className="text-sm text-white/60 mb-2 block">
+                    <label className="text-xs sm:text-sm text-white/60 mb-2 block font-medium">
                       Valor
                     </label>
-
                     <input
                       type="number"
                       step="0.01"
@@ -456,32 +455,30 @@ const AdminProductsPage = () => {
                       value={form.value}
                       onChange={(e) => handleChange("value", e.target.value)}
                       required
-                      className="w-full h-14 rounded-2xl bg-[#111827] border border-white/10 px-4 outline-none focus:border-violet-400 transition-all"
+                      className="w-full h-12 sm:h-14 rounded-xl sm:rounded-2xl bg-[#111827] border border-white/10 px-4 outline-none focus:border-violet-400 transition-all text-sm"
                     />
                   </div>
 
                   <div>
-                    <label className="text-sm text-white/60 mb-2 block">
+                    <label className="text-xs sm:text-sm text-white/60 mb-2 block font-medium">
                       Imagem do Produto
                     </label>
-
                     <input
                       type="file"
                       accept="image/*"
                       onChange={(e) => {
                         const file = e.target.files?.[0];
-
                         if (file) {
                           setImageFile(file);
                         }
                       }}
-                      className="w-full h-14 rounded-2xl bg-[#111827] border border-white/10 px-4 py-3 outline-none"
+                      className="w-full h-12 sm:h-14 rounded-xl sm:rounded-2xl bg-[#111827] border border-white/10 px-4 py-2 text-xs sm:text-sm file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-violet-500/20 file:text-violet-300"
                     />
                   </div>
                 </div>
 
                 {(imageFile || form.image_url) && (
-                  <div className="rounded-3xl overflow-hidden border border-violet-500/20">
+                  <div className="rounded-2xl overflow-hidden border border-violet-500/20 max-h-48 w-full">
                     <img
                       src={
                         imageFile
@@ -489,30 +486,31 @@ const AdminProductsPage = () => {
                           : form.image_url
                       }
                       alt="Preview"
-                      className="w-full h-56 object-cover"
+                      className="w-full h-full object-cover"
                     />
                   </div>
                 )}
 
-                <div className="flex items-center justify-between rounded-2xl bg-[#111827] border border-white/10 px-4 h-14">
-                  <span className="text-white/70">Produto ativo</span>
-
+                <div className="flex items-center justify-between rounded-xl sm:rounded-2xl bg-[#111827] border border-white/10 px-4 h-12 sm:h-14">
+                  <span className="text-xs sm:text-sm text-white/70">
+                    Produto ativo
+                  </span>
                   <input
                     type="checkbox"
                     checked={form.active}
                     onChange={(e) => handleChange("active", e.target.checked)}
-                    className="w-5 h-5 accent-violet-500"
+                    className="w-5 h-5 accent-violet-500 cursor-pointer"
                   />
                 </div>
 
                 {error && (
-                  <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm">
+                  <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-xs sm:text-sm">
                     {error}
                   </div>
                 )}
 
                 {success && (
-                  <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm">
+                  <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs sm:text-sm">
                     {success}
                   </div>
                 )}
@@ -520,13 +518,13 @@ const AdminProductsPage = () => {
                 <Button
                   type="submit"
                   disabled={submitting || uploadingImage}
-                  className="w-full h-14 bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:opacity-90 text-white rounded-2xl font-bold mt-2 disabled:opacity-60 border-0"
+                  className="w-full h-12 sm:h-14 bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:opacity-90 text-white rounded-xl sm:rounded-2xl font-bold mt-2 disabled:opacity-60 border-0 justify-center text-sm sm:text-base"
                 >
                   {submitting ? (
-                    <>
-                      <Loader2 size={18} className="animate-spin" />
+                    <span className="flex items-center gap-2">
+                      <Loader2 size={16} className="animate-spin" />
                       Salvando...
-                    </>
+                    </span>
                   ) : editingProduct ? (
                     "Salvar Alterações"
                   ) : (
@@ -544,16 +542,16 @@ const AdminProductsPage = () => {
 
 const DashboardCard = ({ title, value, icon }) => {
   return (
-    <div className="rounded-[28px] border border-violet-500/10 bg-[#111827] p-5 shadow-xl shadow-black/20">
-      <div className="flex items-center justify-between mb-5">
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border border-violet-500/20 flex items-center justify-center text-violet-300">
+    <div className="rounded-[24px] sm:rounded-[28px] border border-violet-500/10 bg-[#111827] p-4 sm:p-5 shadow-xl shadow-black/20 w-full min-w-0">
+      <div className="flex items-center justify-between mb-3 sm:mb-5">
+        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border border-violet-500/20 flex items-center justify-center text-violet-300 shrink-0">
           {icon}
         </div>
       </div>
 
-      <p className="text-sm text-white/50">{title}</p>
+      <p className="text-xs sm:text-sm text-white/50 truncate">{title}</p>
 
-      <h3 className="text-3xl font-black mt-2 break-words text-white">
+      <h3 className="text-xl sm:text-3xl font-black mt-1 break-words text-white whitespace-normal">
         {value}
       </h3>
     </div>

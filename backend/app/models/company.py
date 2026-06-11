@@ -4,10 +4,7 @@ from app.database.db import db
 class Company(db.Model):
     __tablename__ = "companies"
 
-    id = db.Column(
-        db.Integer,
-        primary_key=True
-    )
+    id = db.Column(db.Integer, primary_key=True)
 
     name = db.Column(
         db.String(50),
@@ -21,24 +18,43 @@ class Company(db.Model):
         index=True
     )
 
-    # Status da assinatura do SaaS
+    # pending_payment
+    # active
+    # past_due
+    # cancelled
+    # expired
     status = db.Column(
         db.String(30),
         nullable=False,
         default="pending_payment"
     )
 
-    # Plano contratado
     plan = db.Column(
         db.String(30),
         nullable=False,
         default="basic"
     )
 
-    # ID da cobrança/assinatura da empresa
-    # (não confundir com pagamentos dos clientes)
     mercado_pago_payment_id = db.Column(
         db.String(120),
+        nullable=True
+    )
+
+    # ID da assinatura recorrente no MP
+    mercado_pago_subscription_id = db.Column(
+        db.String(120),
+        nullable=True
+    )
+
+   
+    next_billing_at = db.Column(
+        db.DateTime,
+        nullable=True
+    )
+
+   
+    expires_at = db.Column(
+        db.DateTime,
         nullable=True
     )
 

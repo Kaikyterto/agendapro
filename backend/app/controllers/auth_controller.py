@@ -4,11 +4,23 @@ from flask_jwt_extended import create_access_token
 from app.models.user import User
 from app.models.company import Company
 from app.database.db import db
+from datetime import datetime
 
 from app.services.payment_service import PaymentService
 
 
 class AuthController:
+
+    @staticmethod
+    def company_has_active_subscription(company):
+
+        if company.status != "active":
+            return False
+
+        if not company.expires_at:
+            return False
+
+        return company.expires_at > datetime.utcnow()
 
     # =========================================================
     # LOGIN
@@ -54,7 +66,7 @@ class AuthController:
         # =====================================================
         # EMPRESA NÃO ATIVA
         # =====================================================
-        if company.status != "active":
+        if not AuthController.company_has_active_subscription(company):
 
             payment = None
 
@@ -129,6 +141,7 @@ class AuthController:
         company_name = data.get("company_name")
         email = data.get("email")
         password = data.get("password")
+        logo = data.get("logo")
 
         if not company_name or not email or not password:
             return jsonify({
@@ -168,13 +181,12 @@ class AuthController:
 
         try:
 
-            # =================================================
-            # EMPRESA
-            # =================================================
+
             new_company = Company(
                 name=company_name,
                 slug=slug,
-                status="pending_payment"
+                status="pending_payment",
+                logo_url=logo  
             )
 
             db.session.add(new_company)
@@ -207,7 +219,7 @@ class AuthController:
                 })
             )
 
-            new_company.mercado_pago_payment_id = str(
+            new_company.mercago_pago_payment_id = str(
                 payment["payment_id"]
             )
 
@@ -223,7 +235,8 @@ class AuthController:
                     "id": new_company.id,
                     "name": new_company.name,
                     "slug": new_company.slug,
-                    "status": new_company.status
+                    "status": new_company.status,
+                    "logo_url": new_company.logo_url
                 },
 
                 "user": {

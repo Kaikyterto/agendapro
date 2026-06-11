@@ -21,17 +21,11 @@ const AdminBookingPage = () => {
   const { slug } = useParams();
 
   const [appointments, setAppointments] = useState([]);
-
   const [loading, setLoading] = useState(true);
-
   const [error, setError] = useState("");
-
   const [search, setSearch] = useState("");
-
   const [statusFilter, setStatusFilter] = useState("all");
-
   const [dateFilter, setDateFilter] = useState("");
-
   const [actionLoading, setActionLoading] = useState(null);
 
   // =========================================================
@@ -53,9 +47,7 @@ const AdminBookingPage = () => {
       setAppointments(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error(err);
-
       setError("Erro ao carregar agendamentos");
-
       setAppointments([]);
     } finally {
       setLoading(false);
@@ -93,8 +85,31 @@ const AdminBookingPage = () => {
       );
     } catch (err) {
       console.error(err);
-
       setError(err?.response?.data?.message || "Erro ao finalizar agendamento");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleCancel = async (id) => {
+    const confirmed = window.confirm(
+      "Deseja realmente cancelar este agendamento?"
+    );
+    if (!confirmed) return;
+
+    try {
+      setActionLoading(id);
+      await apiFetch(`/appointments/${id}/cancel`, {
+        method: "PATCH",
+        auth: true,
+      });
+
+      setAppointments((prev) =>
+        prev.map((a) => (a.id === id ? { ...a, status: "cancelled" } : a))
+      );
+    } catch (err) {
+      console.error(err);
+      setError(err?.response?.data?.message || "Erro ao cancelar agendamento");
     } finally {
       setActionLoading(null);
     }
@@ -118,7 +133,6 @@ const AdminBookingPage = () => {
 
         if (dateFilter && a.start) {
           const appointmentDate = new Date(a.start).toISOString().split("T")[0];
-
           matchesDate = appointmentDate === dateFilter;
         }
 
@@ -126,9 +140,7 @@ const AdminBookingPage = () => {
       })
       .sort((a, b) => {
         if (!a.start) return 1;
-
         if (!b.start) return -1;
-
         return new Date(a.start) - new Date(b.start);
       });
   }, [appointments, search, statusFilter, dateFilter]);
@@ -140,18 +152,11 @@ const AdminBookingPage = () => {
   const stats = useMemo(() => {
     return {
       total: appointments.length,
-
       finished: appointments.filter((a) => a.status === "finished").length,
-
       pending: appointments.filter((a) => a.status === "pending").length,
-
       cancelled: appointments.filter((a) => a.status === "cancelled").length,
     };
   }, [appointments]);
-
-  // =========================================================
-  // LOADING
-  // =========================================================
 
   if (loading) {
     return (
@@ -165,10 +170,9 @@ const AdminBookingPage = () => {
     <div className="min-h-screen bg-[#07090d] text-white p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
         {/* HEADER */}
-
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 mb-8">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-[28px] bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border border-violet-400/20 flex items-center justify-center shadow-lg shadow-violet-500/10">
+            <div className="w-16 h-16 rounded-[28px] bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border border-violet-400/20 flex items-center justify-center shadow-lg shadow-violet-500/10 shrink-0">
               <CalendarDays size={30} className="text-violet-300" />
             </div>
 
@@ -176,8 +180,7 @@ const AdminBookingPage = () => {
               <h1 className="text-3xl md:text-4xl font-black bg-gradient-to-r from-white via-violet-200 to-fuchsia-300 bg-clip-text text-transparent">
                 Agendamentos
               </h1>
-
-              <p className="text-white/50 mt-1">
+              <p className="text-white/50 mt-1 text-sm">
                 Gerencie os horários da sua empresa
               </p>
             </div>
@@ -185,16 +188,14 @@ const AdminBookingPage = () => {
         </div>
 
         {/* ERROR */}
-
         {error && (
           <div className="mb-6 p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm">
             {error}
           </div>
         )}
 
-        {/* STATS */}
-
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-5 mb-8">
+        {/* STATS RESPONSIVO */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
           <StatCard
             title="Total"
             value={stats.total}
@@ -225,71 +226,57 @@ const AdminBookingPage = () => {
         </div>
 
         {/* SEARCH */}
-
         <div className="flex items-center gap-3 mb-4 bg-[#111827] border border-violet-500/10 rounded-3xl px-5 h-16 backdrop-blur-xl shadow-lg">
-          <Search size={18} className="text-violet-300" />
+          <Search size={18} className="text-violet-300 shrink-0" />
 
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar cliente..."
-            className="bg-transparent outline-none w-full text-white placeholder:text-white/30"
+            className="bg-transparent outline-none w-full text-white placeholder:text-white/30 text-sm sm:text-base"
           />
         </div>
 
         {/* FILTERS */}
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-          {/* STATUS */}
-
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
           <div className="bg-[#111827] border border-violet-500/10 rounded-3xl px-5 h-16 flex items-center shadow-lg">
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-transparent outline-none w-full text-white"
+              className="bg-transparent outline-none w-full text-white text-sm cursor-pointer"
             >
               <option value="all" className="bg-[#111827]">
                 Todos os status
               </option>
-
               <option value="pending" className="bg-[#111827]">
                 Pendentes
               </option>
-
               <option value="finished" className="bg-[#111827]">
                 Finalizados
               </option>
-
               <option value="cancelled" className="bg-[#111827]">
                 Cancelados
               </option>
             </select>
           </div>
 
-          {/* DATE */}
-
           <div className="bg-[#111827] border border-violet-500/10 rounded-3xl px-5 h-16 flex items-center shadow-lg">
             <input
               type="date"
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
-              className="bg-transparent outline-none w-full text-white"
+              className="bg-transparent outline-none w-full text-white text-sm cursor-pointer"
             />
           </div>
         </div>
 
-        {/* TABLE */}
-
+        {/* TABLE (DESKTOP) */}
         <div className="hidden lg:block overflow-hidden rounded-[32px] border border-violet-500/10 bg-[#111827] shadow-xl shadow-black/20">
           <div className="grid grid-cols-5 px-6 py-5 border-b border-white/10 text-white/50 text-sm font-semibold">
             <div>Cliente</div>
-
             <div>Serviço</div>
-
             <div>Profissional</div>
-
             <div>Data</div>
-
             <div>Status</div>
           </div>
 
@@ -299,28 +286,26 @@ const AdminBookingPage = () => {
               className="grid grid-cols-5 px-6 py-5 border-b border-white/5 hover:bg-white/[0.03] transition-all items-center"
             >
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-2xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
+                <div className="w-11 h-11 rounded-2xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
                   <User size={18} className="text-violet-300" />
                 </div>
 
-                <div>
-                  <p className="font-semibold">{a.customer_name}</p>
-
-                  <p className="text-xs text-white/40">{a.phone}</p>
+                <div className="min-w-0">
+                  <p className="font-semibold truncate">{a.customer_name}</p>
+                  <p className="text-xs text-white/40 truncate">{a.phone}</p>
                 </div>
               </div>
 
-              <div className="text-white/70">
+              <div className="text-white/70 truncate">
                 {a.service?.name || "Sem serviço"}
               </div>
 
-              <div className="text-white/60 font-medium">
+              <div className="text-white/60 font-medium truncate">
                 {a.worker?.name || "Não definido"}
               </div>
 
-              <div className="text-sm text-white/60 flex items-center gap-2">
-                <Clock size={15} />
-
+              <div className="text-sm text-white/60 flex items-center gap-2 whitespace-nowrap">
+                <Clock size={15} className="shrink-0" />
                 {a.start
                   ? new Date(a.start).toLocaleString("pt-BR")
                   : "Sem data"}
@@ -330,17 +315,23 @@ const AdminBookingPage = () => {
                 <StatusBadge status={a.status} />
 
                 {a.status === "pending" && (
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 shrink-0">
                     <Button
                       onClick={() => handleFinish(a.id)}
-                      className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/20 h-11 px-4 rounded-2xl"
+                      disabled={actionLoading === a.id}
+                      className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/20 h-11 px-4 rounded-2xl justify-center"
                     >
-                      <Check size={16} />
+                      {actionLoading === a.id ? (
+                        <Loader2 size={16} className="animate-spin" />
+                      ) : (
+                        <Check size={16} />
+                      )}
                     </Button>
 
                     <Button
                       onClick={() => handleCancel(a.id)}
-                      className="bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/20 h-11 px-4 rounded-2xl"
+                      disabled={actionLoading === a.id}
+                      className="bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/20 h-11 px-4 rounded-2xl justify-center"
                     >
                       <X size={16} />
                     </Button>
@@ -357,45 +348,57 @@ const AdminBookingPage = () => {
           )}
         </div>
 
-        {/* MOBILE */}
-
+        {/* MOBILE (CORRIGIDO) */}
         <div className="lg:hidden space-y-4">
           {filtered.map((a) => (
             <div
               key={a.id}
-              className="rounded-[28px] border border-violet-500/10 bg-[#111827] p-5 shadow-xl shadow-black/20"
+              className="rounded-[24px] sm:rounded-[28px] border border-violet-500/10 bg-[#111827] p-5 shadow-xl shadow-black/20"
             >
-              <div className="flex items-start justify-between gap-4 mb-5">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
+              <div className="flex items-start justify-between gap-3 mb-5">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-11 h-11 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
                     <User size={18} className="text-violet-300" />
                   </div>
 
-                  <div>
-                    <h3 className="font-bold">{a.customer_name}</h3>
-
-                    <p className="text-sm text-white/40">{a.phone}</p>
+                  <div className="min-w-0">
+                    <h3 className="font-bold text-base truncate">
+                      {a.customer_name}
+                    </h3>
+                    <p className="text-xs text-white/40 truncate">{a.phone}</p>
                   </div>
                 </div>
 
-                <StatusBadge status={a.status} />
+                <div className="shrink-0">
+                  <StatusBadge status={a.status} />
+                </div>
               </div>
 
-              <div className="space-y-3 mb-5">
-                <p className="text-white/70 text-sm">
-                  Serviço: {a.service_name}
+              <div className="space-y-2 mb-5 bg-black/10 p-3 rounded-2xl border border-white/5">
+                <p className="text-white/70 text-sm truncate">
+                  <span className="text-white/40 text-xs font-semibold uppercase block mb-0.5">
+                    Serviço
+                  </span>
+                  {a.service?.name || "Sem serviço"}
                 </p>
 
-                <p className="text-white/60 text-sm">
-                  Profissional: {a.worker_name || "Não definido"}
+                <p className="text-white/60 text-sm truncate">
+                  <span className="text-white/40 text-xs font-semibold uppercase block mb-0.5">
+                    Profissional
+                  </span>
+                  {a.worker?.name || "Não definido"}
                 </p>
 
-                <div className="flex items-center gap-2 text-white/50 text-sm">
-                  <Clock size={14} />
-
-                  {a.start
-                    ? new Date(a.start).toLocaleString("pt-BR")
-                    : "Sem data"}
+                <div className="text-white/50 text-sm pt-1 border-t border-white/5 mt-1">
+                  <span className="text-white/40 text-xs font-semibold uppercase block mb-1">
+                    Horário
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <Clock size={14} className="text-violet-400" />
+                    {a.start
+                      ? new Date(a.start).toLocaleString("pt-BR")
+                      : "Sem data"}
+                  </div>
                 </div>
               </div>
 
@@ -403,14 +406,20 @@ const AdminBookingPage = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <Button
                     onClick={() => handleFinish(a.id)}
-                    className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/20 h-12 rounded-2xl"
+                    disabled={actionLoading === a.id}
+                    className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/20 h-12 rounded-xl justify-center"
                   >
-                    <Check size={16} />
+                    {actionLoading === a.id ? (
+                      <Loader2 size={16} className="animate-spin" />
+                    ) : (
+                      <Check size={16} />
+                    )}
                   </Button>
 
                   <Button
                     onClick={() => handleCancel(a.id)}
-                    className="bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/20 h-12 rounded-2xl"
+                    disabled={actionLoading === a.id}
+                    className="bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/20 h-12 rounded-xl justify-center"
                   >
                     <X size={16} />
                   </Button>
@@ -420,7 +429,7 @@ const AdminBookingPage = () => {
           ))}
 
           {filtered.length === 0 && (
-            <div className="text-center text-white/40 py-10">
+            <div className="text-center text-white/40 py-10 text-sm">
               Nenhum agendamento encontrado.
             </div>
           )}
@@ -434,29 +443,27 @@ const StatCard = ({ title, value, icon: Icon, color }) => {
   const styles = {
     violet:
       "from-violet-500/10 to-fuchsia-500/10 border-violet-500/20 text-violet-300",
-
     yellow:
       "from-yellow-500/10 to-amber-500/10 border-yellow-500/20 text-yellow-300",
-
     green:
       "from-emerald-500/10 to-green-500/10 border-emerald-500/20 text-emerald-300",
-
     red: "from-red-500/10 to-rose-500/10 border-red-500/20 text-red-300",
   };
 
   return (
     <div
-      className={`rounded-[28px] border bg-gradient-to-br p-5 shadow-xl shadow-black/20 ${styles[color]}`}
+      className={`rounded-[24px] sm:rounded-[28px] border bg-gradient-to-br p-5 shadow-xl shadow-black/20 ${styles[color]}`}
     >
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm opacity-70">{title}</p>
-
-          <h3 className="text-3xl font-black mt-2 text-white">{value}</h3>
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-xs sm:text-sm opacity-70 truncate">{title}</p>
+          <h3 className="text-2xl sm:text-3xl font-black mt-2 text-white truncate">
+            {value}
+          </h3>
         </div>
 
-        <div className="w-14 h-14 rounded-2xl bg-black/20 border border-white/10 flex items-center justify-center">
-          <Icon size={24} />
+        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-black/20 border border-white/10 flex items-center justify-center shrink-0">
+          <Icon size={22} />
         </div>
       </div>
     </div>
@@ -472,15 +479,13 @@ const StatusBadge = ({ status }) => {
 
   const styles = {
     pending: "bg-yellow-500/10 text-yellow-300 border border-yellow-500/20",
-
     finished: "bg-emerald-500/10 text-emerald-300 border border-emerald-500/20",
-
     cancelled: "bg-red-500/10 text-red-300 border border-red-500/20",
   };
 
   return (
     <span
-      className={`px-4 py-2 rounded-full text-xs font-bold ${styles[status]}`}
+      className={`px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-bold border whitespace-nowrap inline-block ${styles[status]}`}
     >
       {labels[status]}
     </span>
