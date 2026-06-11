@@ -9,7 +9,7 @@ import {
   Users,
   BarChart3,
   Settings,
-  Scissors,
+  Sparkles,
 } from "lucide-react";
 
 const AdminHomePage = () => {
@@ -34,7 +34,7 @@ const AdminHomePage = () => {
     {
       title: "Serviços",
       description: "Gerencie serviços, preços, duração e imagens.",
-      icon: Scissors,
+      icon: Sparkles,
       path: `/admin/${slug}/servicos`,
     },
 

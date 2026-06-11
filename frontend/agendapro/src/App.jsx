@@ -15,6 +15,7 @@ import AdminProductsPage from "./pages/AdminProductsPage";
 import AdminWorkersPage from "./pages/AdminWorkersPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
 import AdminSettingsPage from "./pages/AdminSettingsPage";
+import AdminServicesPage from "./pages/AdminServicesPage";
 
 export default function App() {
   return (
@@ -23,38 +24,30 @@ export default function App() {
       {/* AUTH */}
       {/* ============================================= */}
       <Route path="/" element={<LoginPage />} />
-
       <Route path="/register" element={<RegisterPage />} />
-
       <Route path="/payment" element={<PaymentPage />} />
-
       {/* ============================================= */}
       {/* ADMIN (MULTI-TENANT COM SLUG) */}
       {/* ============================================= */}
-
       <Route path="/admin/:slug" element={<AdminHomePage />} />
-
       <Route path="/admin/:slug/agendamentos" element={<AdminBookingPage />} />
-
       <Route path="/admin/:slug/produtos" element={<AdminProductsPage />} />
-
+      <Route
+        path="/admin/:slug/servicos"
+        element={<AdminServicesPage />}
+      />{" "}
+      {/* 👈 NOVO */}
       <Route path="/admin/:slug/funcionarios" element={<AdminWorkersPage />} />
-
       <Route path="/admin/:slug/vendas" element={<AdminDashboardPage />} />
-
       <Route
         path="/admin/:slug/configuracoes"
         element={<AdminSettingsPage />}
       />
-
       {/* ============================================= */}
       {/* PUBLIC COMPANY */}
       {/* ============================================= */}
-
       <Route path="/:slug" element={<HomePage />} />
-
       <Route path="/:slug/produtos" element={<CompanyProductsPage />} />
-
       <Route path="/:slug/agendar" element={<CompanyBookingPage />} />
     </Routes>
   );
