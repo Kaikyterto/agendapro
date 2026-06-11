@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   XCircle,
   CalendarClock,
+  SlidersHorizontal,
 } from "lucide-react";
 
 import { apiFetch } from "../services/api";
@@ -23,9 +24,14 @@ const AdminBookingPage = () => {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // Estados dos Filtros Organizados
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [workerFilter, setWorkerFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("");
+  const [orderDirection, setOrderDirection] = useState("desc"); // desc = mais recentes, asc = mais antigos
+
   const [actionLoading, setActionLoading] = useState(null);
 
   // =========================================================
@@ -116,7 +122,20 @@ const AdminBookingPage = () => {
   };
 
   // =========================================================
-  // FILTER
+  // EXTRACT WORKERS (Lista única de profissionais dos agendamentos)
+  // =========================================================
+  const workersList = useMemo(() => {
+    const map = new Map();
+    appointments.forEach((a) => {
+      if (a.worker?.id && a.worker?.name) {
+        map.set(String(a.worker.id), a.worker.name);
+      }
+    });
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+  }, [appointments]);
+
+  // =========================================================
+  // FILTER & SORT (Padrão inicial por Data)
   // =========================================================
 
   const filtered = useMemo(() => {
@@ -129,21 +148,35 @@ const AdminBookingPage = () => {
         const matchesStatus =
           statusFilter === "all" ? true : a.status === statusFilter;
 
-        let matchesDate = true;
+        const matchesWorker =
+          workerFilter === "all" ? true : String(a.worker?.id) === workerFilter;
 
+        let matchesDate = true;
         if (dateFilter && a.start) {
           const appointmentDate = new Date(a.start).toISOString().split("T")[0];
           matchesDate = appointmentDate === dateFilter;
         }
 
-        return matchesSearch && matchesStatus && matchesDate;
+        return matchesSearch && matchesStatus && matchesWorker && matchesDate;
       })
       .sort((a, b) => {
         if (!a.start) return 1;
         if (!b.start) return -1;
-        return new Date(a.start) - new Date(b.start);
+
+        const dateA = new Date(a.start).getTime();
+        const dateB = new Date(b.start).getTime();
+
+        // Ordem cronológica por data
+        return orderDirection === "desc" ? dateB - dateA : dateA - dateB;
       });
-  }, [appointments, search, statusFilter, dateFilter]);
+  }, [
+    appointments,
+    search,
+    statusFilter,
+    workerFilter,
+    dateFilter,
+    orderDirection,
+  ]);
 
   // =========================================================
   // STATS
@@ -168,9 +201,9 @@ const AdminBookingPage = () => {
 
   return (
     <div className="min-h-screen bg-[#07090d] text-white p-4 md:p-8">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-7xl mx-auto space-y-6">
         {/* HEADER */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 mb-8">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-[28px] bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border border-violet-400/20 flex items-center justify-center shadow-lg shadow-violet-500/10 shrink-0">
               <CalendarDays size={30} className="text-violet-300" />
@@ -189,13 +222,13 @@ const AdminBookingPage = () => {
 
         {/* ERROR */}
         {error && (
-          <div className="mb-6 p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm">
+          <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm">
             {error}
           </div>
         )}
 
         {/* STATS RESPONSIVO */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           <StatCard
             title="Total"
             value={stats.total}
@@ -225,48 +258,106 @@ const AdminBookingPage = () => {
           />
         </div>
 
-        {/* SEARCH */}
-        <div className="flex items-center gap-3 mb-4 bg-[#111827] border border-violet-500/10 rounded-3xl px-5 h-16 backdrop-blur-xl shadow-lg">
-          <Search size={18} className="text-violet-300 shrink-0" />
-
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar cliente..."
-            className="bg-transparent outline-none w-full text-white placeholder:text-white/30 text-sm sm:text-base"
-          />
-        </div>
-
-        {/* FILTERS */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-          <div className="bg-[#111827] border border-violet-500/10 rounded-3xl px-5 h-16 flex items-center shadow-lg">
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-transparent outline-none w-full text-white text-sm cursor-pointer"
-            >
-              <option value="all" className="bg-[#111827]">
-                Todos os status
-              </option>
-              <option value="pending" className="bg-[#111827]">
-                Pendentes
-              </option>
-              <option value="finished" className="bg-[#111827]">
-                Finalizados
-              </option>
-              <option value="cancelled" className="bg-[#111827]">
-                Cancelados
-              </option>
-            </select>
+        {/* PAINEL DE FILTROS ORGANIZADO */}
+        <div className="bg-[#111827] border border-white/5 rounded-3xl p-4 sm:p-5 shadow-xl space-y-4">
+          {/* Barra de Busca Principal */}
+          <div className="flex items-center gap-3 bg-black/20 border border-white/5 rounded-2xl px-4 h-13">
+            <Search size={18} className="text-violet-300 shrink-0" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar por nome do cliente..."
+              className="bg-transparent outline-none w-full text-white placeholder:text-white/30 text-sm"
+            />
           </div>
 
-          <div className="bg-[#111827] border border-violet-500/10 rounded-3xl px-5 h-16 flex items-center shadow-lg">
-            <input
-              type="date"
-              value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
-              className="bg-transparent outline-none w-full text-white text-sm cursor-pointer"
-            />
+          {/* Subfiltros Explicativos */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Status */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] uppercase tracking-wider text-white/40 font-bold px-1">
+                Filtrar por Status
+              </label>
+              <div className="bg-black/20 border border-white/10 rounded-xl px-3 h-11 flex items-center transition-all focus-within:border-violet-500/50">
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="bg-transparent outline-none w-full text-white text-xs cursor-pointer"
+                >
+                  <option value="all" className="bg-[#111827]">
+                    Todos os status
+                  </option>
+                  <option value="pending" className="bg-[#111827]">
+                    Pendentes
+                  </option>
+                  <option value="finished" className="bg-[#111827]">
+                    Finalizados
+                  </option>
+                  <option value="cancelled" className="bg-[#111827]">
+                    Cancelados
+                  </option>
+                </select>
+              </div>
+            </div>
+
+            {/* Profissional */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] uppercase tracking-wider text-white/40 font-bold px-1">
+                Filtrar por Profissional
+              </label>
+              <div className="bg-black/20 border border-white/10 rounded-xl px-3 h-11 flex items-center transition-all focus-within:border-violet-500/50">
+                <select
+                  value={workerFilter}
+                  onChange={(e) => setWorkerFilter(e.target.value)}
+                  className="bg-transparent outline-none w-full text-white text-xs cursor-pointer"
+                >
+                  <option value="all" className="bg-[#111827]">
+                    Todos os profissionais
+                  </option>
+                  {workersList.map((w) => (
+                    <option key={w.id} value={w.id} className="bg-[#111827]">
+                      {w.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Data Especifica */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] uppercase tracking-wider text-white/40 font-bold px-1">
+                Data do Agendamento
+              </label>
+              <div className="bg-black/20 border border-white/10 rounded-xl px-3 h-11 flex items-center transition-all focus-within:border-violet-500/50">
+                <input
+                  type="date"
+                  value={dateFilter}
+                  onChange={(e) => setDateFilter(e.target.value)}
+                  className="bg-transparent outline-none w-full text-white text-xs cursor-pointer invert-calendar-icon"
+                />
+              </div>
+            </div>
+
+            {/* Ordenação por Data */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] uppercase tracking-wider text-white/40 font-bold px-1">
+                Ordem Cronológica
+              </label>
+              <div className="bg-black/20 border border-white/10 rounded-xl px-3 h-11 flex items-center transition-all focus-within:border-violet-500/50">
+                <select
+                  value={orderDirection}
+                  onChange={(e) => setOrderDirection(e.target.value)}
+                  className="bg-transparent outline-none w-full text-white text-xs cursor-pointer"
+                >
+                  <option value="desc" className="bg-[#111827]">
+                    Mais recentes primeiro
+                  </option>
+                  <option value="asc" className="bg-[#111827]">
+                    Mais antigos primeiro
+                  </option>
+                </select>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -348,7 +439,7 @@ const AdminBookingPage = () => {
           )}
         </div>
 
-        {/* MOBILE (CORRIGIDO) */}
+        {/* MOBILE */}
         <div className="lg:hidden space-y-4">
           {filtered.map((a) => (
             <div

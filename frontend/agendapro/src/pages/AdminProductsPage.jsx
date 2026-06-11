@@ -15,9 +15,7 @@ import {
 } from "lucide-react";
 
 import Button from "../components/Button";
-
 import { uploadImage } from "../services/upload";
-
 import {
   getProducts,
   createProduct,
@@ -40,13 +38,9 @@ const AdminProductsPage = () => {
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-
   const [search, setSearch] = useState("");
-
   const [openModal, setOpenModal] = useState(false);
-
   const [editingProduct, setEditingProduct] = useState(null);
-
   const [form, setForm] = useState(initialForm);
 
   const [error, setError] = useState("");
@@ -73,7 +67,6 @@ const AdminProductsPage = () => {
         : [];
 
       setProducts(normalizedProducts);
-
       setDashboard(dashboardData || null);
     } catch (err) {
       console.error(err);
@@ -98,9 +91,7 @@ const AdminProductsPage = () => {
   const resetForm = () => {
     setForm(initialForm);
     setEditingProduct(null);
-
     setImageFile(null);
-
     setError("");
     setSuccess("");
   };
@@ -112,7 +103,6 @@ const AdminProductsPage = () => {
 
   const handleOpenEdit = (product) => {
     setEditingProduct(product);
-
     setImageFile(null);
 
     setForm({
@@ -160,16 +150,12 @@ const AdminProductsPage = () => {
 
       if (imageFile) {
         setUploadingImage(true);
-
         try {
           const upload = await uploadImage(imageFile, "products");
-
           imageUrl = upload.url;
         } catch (err) {
           console.error(err);
-
           setError(err?.response?.data?.message || "Erro ao enviar imagem");
-
           return;
         } finally {
           setUploadingImage(false);
@@ -186,11 +172,9 @@ const AdminProductsPage = () => {
 
       if (editingProduct) {
         await updateProduct(editingProduct.id, payload);
-
         setSuccess("Produto atualizado com sucesso!");
       } else {
         await createProduct(payload);
-
         setSuccess("Produto criado com sucesso!");
       }
 
@@ -201,7 +185,6 @@ const AdminProductsPage = () => {
       }, 700);
     } catch (err) {
       console.error(err);
-
       setError(err?.response?.data?.error || "Erro ao salvar produto");
     } finally {
       setSubmitting(false);
@@ -210,16 +193,13 @@ const AdminProductsPage = () => {
 
   const handleDelete = async (id) => {
     const confirmed = window.confirm("Deseja realmente remover este produto?");
-
     if (!confirmed) return;
 
     try {
       await deleteProduct(id);
-
       setProducts((prev) => prev.filter((product) => product.id !== id));
     } catch (err) {
       console.error(err);
-
       alert(err?.response?.data?.error || "Erro ao remover produto");
     }
   };
@@ -254,7 +234,7 @@ const AdminProductsPage = () => {
 
           <Button
             onClick={handleOpenCreate}
-            className="bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:opacity-90 text-white h-12 sm:h-14 px-6 rounded-2xl font-bold border-0 shadow-xl shadow-violet-500/20 w-full sm:w-auto justify-center"
+            className="bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:opacity-90 text-white h-12 sm:h-14 px-6 rounded-2xl font-bold border-0 shadow-xl shadow-violet-500/20 w-full sm:w-auto justify-center shrink-0"
           >
             <Plus size={18} />
             Novo Produto
@@ -322,9 +302,9 @@ const AdminProductsPage = () => {
                 )}
               </div>
 
-              <div className="p-5 flex flex-col flex-1 justify-between">
+              <div className="p-5 flex flex-col flex-1 justify-between min-w-0">
                 <div>
-                  <div className="flex items-start justify-between gap-2 mb-3">
+                  <div className="flex items-start justify-between gap-2 mb-3 min-w-0">
                     <h3 className="text-lg sm:text-xl font-black truncate flex-1">
                       {product.name}
                     </h3>
@@ -340,28 +320,30 @@ const AdminProductsPage = () => {
                     </div>
                   </div>
 
-                  <p className="text-white/50 text-xs sm:text-sm mb-4 line-clamp-2 h-9 sm:h-10 overflow-hidden">
+                  <p className="text-white/50 text-xs sm:text-sm mb-4 line-clamp-2 h-9 sm:h-10 overflow-hidden break-words">
                     {product.description || "Sem descrição"}
                   </p>
                 </div>
 
                 <div>
-                  <div className="flex items-center justify-between mb-4 bg-black/10 p-3 rounded-2xl">
-                    <div>
-                      <p className="text-white/40 text-[10px] uppercase font-semibold">
+                  <div className="flex items-center justify-between mb-4 bg-black/10 p-3 rounded-2xl gap-2 min-w-0">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-white/40 text-[10px] uppercase font-semibold truncate">
                         Valor
                       </p>
-                      <h4 className="text-xl font-black text-violet-300">
+                      <h4 className="text-lg sm:text-xl font-black text-violet-300 truncate">
                         R$ {Number(product.value || 0).toFixed(2)}
                       </h4>
                     </div>
 
-                    <div className="text-right">
+                    <div className="text-right shrink-0">
                       <p className="text-white/40 text-[10px] uppercase font-semibold">
                         Vendidos
                       </p>
                       <h4 className="text-base font-bold">
-                        {product?.sales?.total_quantity || 0}
+                        {product?.sales_count ||
+                          product?.sales?.total_quantity ||
+                          0}
                       </h4>
                     </div>
                   </div>
@@ -393,7 +375,7 @@ const AdminProductsPage = () => {
           </div>
         )}
 
-        {/* MODAL RESPONSIVO COM SCROLL INTERNO SEGURO */}
+        {/* MODAL RESPONSIVO */}
         {openModal && (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
             <div className="w-full max-w-2xl my-auto rounded-[24px] sm:rounded-[32px] border border-violet-500/20 bg-[#0f172a] p-5 sm:p-6 shadow-2xl shadow-violet-500/10 max-h-[90vh] overflow-y-auto custom-scrollbar">
@@ -426,7 +408,7 @@ const AdminProductsPage = () => {
                       value={form.name}
                       onChange={(e) => handleChange("name", e.target.value)}
                       required
-                      className="w-full h-12 sm:h-14 rounded-xl sm:rounded-2xl bg-[#111827] border border-white/10 px-4 outline-none focus:border-violet-400 transition-all text-sm"
+                      className="w-full h-12 sm:h-14 rounded-xl sm:rounded-2xl bg-[#111827] border border-white/10 px-4 outline-none focus:border-violet-400 transition-all text-sm text-white"
                     />
                   </div>
 
@@ -440,7 +422,7 @@ const AdminProductsPage = () => {
                         handleChange("description", e.target.value)
                       }
                       rows={4}
-                      className="w-full rounded-xl sm:rounded-2xl bg-[#111827] border border-white/10 px-4 py-3 sm:py-4 outline-none resize-none focus:border-violet-400 transition-all text-sm"
+                      className="w-full rounded-xl sm:rounded-2xl bg-[#111827] border border-white/10 px-4 py-3 sm:py-4 outline-none resize-none focus:border-violet-400 transition-all text-sm text-white"
                     />
                   </div>
 
@@ -455,7 +437,7 @@ const AdminProductsPage = () => {
                       value={form.value}
                       onChange={(e) => handleChange("value", e.target.value)}
                       required
-                      className="w-full h-12 sm:h-14 rounded-xl sm:rounded-2xl bg-[#111827] border border-white/10 px-4 outline-none focus:border-violet-400 transition-all text-sm"
+                      className="w-full h-12 sm:h-14 rounded-xl sm:rounded-2xl bg-[#111827] border border-white/10 px-4 outline-none focus:border-violet-400 transition-all text-sm text-white"
                     />
                   </div>
 
@@ -478,7 +460,7 @@ const AdminProductsPage = () => {
                 </div>
 
                 {(imageFile || form.image_url) && (
-                  <div className="rounded-2xl overflow-hidden border border-violet-500/20 max-h-48 w-full">
+                  <div className="rounded-2xl overflow-hidden border border-violet-500/20 max-h-48 w-full relative aspect-video bg-black/20">
                     <img
                       src={
                         imageFile
@@ -518,10 +500,10 @@ const AdminProductsPage = () => {
                 <Button
                   type="submit"
                   disabled={submitting || uploadingImage}
-                  className="w-full h-12 sm:h-14 bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:opacity-90 text-white rounded-xl sm:rounded-2xl font-bold mt-2 disabled:opacity-60 border-0 justify-center text-sm sm:text-base"
+                  className="w-full h-12 sm:h-14 bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:opacity-90 text-white rounded-xl sm:rounded-2xl font-bold mt-2 disabled:opacity-60 border-0 justify-center text-sm sm:text-base text-center"
                 >
                   {submitting ? (
-                    <span className="flex items-center gap-2">
+                    <span className="flex items-center justify-center gap-2">
                       <Loader2 size={16} className="animate-spin" />
                       Salvando...
                     </span>
@@ -540,20 +522,21 @@ const AdminProductsPage = () => {
   );
 };
 
+// COMPONENTE DASHCARD DECLARADO NO MESMO ESCOPO PARA EVITAR ERROS DE COMPILAÇÃO
 const DashboardCard = ({ title, value, icon }) => {
   return (
-    <div className="rounded-[24px] sm:rounded-[28px] border border-violet-500/10 bg-[#111827] p-4 sm:p-5 shadow-xl shadow-black/20 w-full min-w-0">
+    <div className="rounded-[24px] sm:rounded-[28px] border border-violet-500/10 bg-[#111827] p-4 sm:p-5 shadow-xl shadow-black/20 w-full min-w-0 flex flex-col justify-between">
       <div className="flex items-center justify-between mb-3 sm:mb-5">
         <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border border-violet-500/20 flex items-center justify-center text-violet-300 shrink-0">
           {icon}
         </div>
       </div>
-
-      <p className="text-xs sm:text-sm text-white/50 truncate">{title}</p>
-
-      <h3 className="text-xl sm:text-3xl font-black mt-1 break-words text-white whitespace-normal">
-        {value}
-      </h3>
+      <div>
+        <p className="text-xs sm:text-sm text-white/50 truncate">{title}</p>
+        <h3 className="text-xl sm:text-2xl lg:text-3xl font-black mt-1 text-white truncate">
+          {value}
+        </h3>
+      </div>
     </div>
   );
 };

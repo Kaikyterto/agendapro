@@ -3,10 +3,8 @@ import {
   TrendingUp,
   DollarSign,
   CalendarDays,
-  Users,
-  Package,
-  Brain,
   Target,
+  Brain,
   Loader2,
 } from "lucide-react";
 import {
@@ -95,28 +93,31 @@ const AdminDashboardPage = () => {
 
   return (
     <div className="min-h-screen bg-[#07090d] text-white p-4 md:p-8 overflow-x-hidden">
-      <div className="max-w-7xl mx-auto w-full">
+      <div className="max-w-7xl mx-auto w-full space-y-8">
         {/* HEADER */}
-        <div className="mb-8 text-center sm:text-left">
-          <h1 className="text-3xl sm:text-4xl font-black bg-gradient-to-r from-white via-violet-200 to-fuchsia-300 bg-clip-text text-transparent break-words">
+        <div className="text-left">
+          <h1 className="text-2xl sm:text-4xl font-black bg-gradient-to-r from-white via-violet-200 to-fuchsia-300 bg-clip-text text-transparent truncate">
             Business Intelligence
           </h1>
-          <p className="text-white/50 mt-2 text-sm sm:text-base">
+          <p className="text-white/50 mt-1 text-xs sm:text-sm">
             Métricas, previsões e insights do negócio.
           </p>
         </div>
 
         {error && (
-          <div className="mb-6 p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm">
+          <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm">
             {error}
           </div>
         )}
 
-        {/* CARDS RESPONSIVOS */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+        {/* CARDS METRICAS */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           <StatCard
             title="Receita"
-            value={`R$ ${overview.monthly_revenue || 0}`}
+            value={`R$ ${Number(overview.monthly_revenue || 0).toLocaleString(
+              "pt-BR",
+              { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+            )}`}
             icon={DollarSign}
           />
           <StatCard
@@ -136,51 +137,57 @@ const AdminDashboardPage = () => {
           />
         </div>
 
-        {/* GRÁFICOS PRINCIPAIS */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          {/* REVENUE */}
-          <div className="lg:col-span-2 bg-[#111827] rounded-3xl p-4 sm:p-5 border border-white/10 min-w-0">
-            <h3 className="font-bold mb-4 text-base sm:text-lg">
+        {/* SEÇÃO GRÁFICO PRINCIPAL + OCUPAÇÃO */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* REVENUE CHART */}
+          <div className="lg:col-span-2 bg-[#111827] rounded-3xl p-4 sm:p-6 border border-white/10 w-full min-w-0 overflow-hidden">
+            <h3 className="font-bold mb-4 text-sm sm:text-base text-white/90">
               Receita últimos 30 dias
             </h3>
 
-            <div className="h-64 sm:h-80 w-full">
+            <div className="h-60 sm:h-72 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
                   data={revenueChart}
-                  margin={{ left: -20, right: 10, bottom: 0, top: 5 }}
+                  margin={{ left: -25, right: 5, bottom: 0, top: 10 }}
                 >
                   <defs>
                     <linearGradient id="violetFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#a855f7" stopOpacity={0.4} />
+                      <stop offset="5%" stopColor="#a855f7" stopOpacity={0.3} />
                       <stop offset="95%" stopColor="#a855f7" stopOpacity={0} />
                     </linearGradient>
                   </defs>
 
                   <CartesianGrid
-                    stroke="rgba(255,255,255,0.05)"
+                    stroke="rgba(255,255,255,0.03)"
                     vertical={false}
                   />
-                  {/* Esconde os eixos no mobile puro se a tela for menor que 640px para evitar bagunça visual */}
+
+                  {/* Remove o eixo X em celulares pequenos para ganhar espaço limpo */}
                   <XAxis
                     dataKey="date"
-                    stroke="rgba(255,255,255,0.4)"
+                    stroke="rgba(255,255,255,0.3)"
                     tickLine={false}
-                    fontSize={11}
-                    hide={window.innerWidth < 480}
+                    axisLine={false}
+                    fontSize={10}
+                    dy={10}
+                    hide={window.innerWidth < 640}
                   />
                   <YAxis
-                    stroke="rgba(255,255,255,0.4)"
+                    stroke="rgba(255,255,255,0.3)"
                     tickLine={false}
-                    fontSize={11}
+                    axisLine={false}
+                    fontSize={10}
+                    dx={-5}
                   />
 
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: "#111827",
-                      border: "1px solid rgba(255,255,255,0.1)",
-                      borderRadius: "16px",
+                      backgroundColor: "#1f2937",
+                      border: "1px solid rgba(255,255,255,0.08)",
+                      borderRadius: "12px",
                       color: "#fff",
+                      fontSize: "12px",
                     }}
                   />
 
@@ -197,21 +204,21 @@ const AdminDashboardPage = () => {
           </div>
 
           {/* OCUPAÇÃO */}
-          <div className="bg-[#111827] rounded-3xl p-5 border border-white/10 flex flex-col justify-center">
-            <h3 className="font-bold mb-2 text-base sm:text-lg">Ocupação</h3>
-
-            <div className="text-4xl sm:text-5xl font-black text-violet-300">
+          <div className="bg-[#111827] rounded-3xl p-5 sm:p-6 border border-white/10 flex flex-col justify-center w-full min-w-0">
+            <h3 className="font-bold text-sm sm:text-base text-white/50 mb-1">
+              Ocupação
+            </h3>
+            <div className="text-4xl sm:text-5xl font-black text-violet-300 tracking-tight truncate">
               {occupancyPercent}%
             </div>
-
-            <p className="text-white/50 mt-2 text-sm">
+            <p className="text-white/40 mt-1 text-xs sm:text-sm">
               {occupancy.booked_minutes || 0} min reservados
             </p>
           </div>
         </div>
 
         {/* RANKINGS */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <RankingCard
             title="Top Serviços"
             data={topServices}
@@ -232,23 +239,23 @@ const AdminDashboardPage = () => {
         {/* INSIGHTS + FORECAST */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* INSIGHTS */}
-          <div className="bg-[#111827] rounded-3xl p-5 border border-white/10">
+          <div className="bg-[#111827] rounded-3xl p-5 border border-white/10 w-full min-w-0">
             <div className="flex items-center gap-2 mb-4">
-              <Brain size={20} className="text-violet-300" />
-              <h3 className="font-bold text-base sm:text-lg">Insights</h3>
+              <Brain size={18} className="text-violet-300 shrink-0" />
+              <h3 className="font-bold text-sm sm:text-base">Insights</h3>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               {insights.map((item, index) => (
                 <div
                   key={index}
-                  className="p-4 rounded-2xl bg-white/5 hover:bg-white/10 transition text-sm sm:text-base"
+                  className="p-3.5 rounded-2xl bg-white/5 hover:bg-white/10 transition text-xs sm:text-sm leading-relaxed text-white/90 break-words"
                 >
                   {item.message}
                 </div>
               ))}
               {insights.length === 0 && (
-                <p className="text-white/40 text-sm">
+                <p className="text-white/40 text-xs text-center py-4">
                   Nenhum insight disponível no momento.
                 </p>
               )}
@@ -256,17 +263,26 @@ const AdminDashboardPage = () => {
           </div>
 
           {/* FORECAST */}
-          <div className="bg-[#111827] rounded-3xl p-5 border border-white/10 flex flex-col justify-between">
+          <div className="bg-[#111827] rounded-3xl p-5 border border-white/10 flex flex-col justify-between w-full min-w-0 gap-6">
             <div>
-              <h3 className="font-bold mb-4 text-base sm:text-lg">Forecast</h3>
-              <p className="text-white/50 text-sm">Receita prevista</p>
-              <h2 className="text-3xl sm:text-4xl font-black mt-2 text-violet-300 break-words">
-                R$ {forecast.predicted_revenue || 0}
+              <h3 className="font-bold mb-3 text-sm sm:text-base">Forecast</h3>
+              <p className="text-white/50 text-xs sm:text-sm">
+                Receita prevista
+              </p>
+              <h2 className="text-2xl sm:text-4xl font-black mt-1 text-violet-300 truncate">
+                R${" "}
+                {Number(forecast.predicted_revenue || 0).toLocaleString(
+                  "pt-BR",
+                  { minimumFractionDigits: 2 }
+                )}
               </h2>
             </div>
 
-            <p className="mt-4 text-white/60 text-xs sm:text-sm">
-              Confiança: {forecast.confidence || 0}%
+            <p className="text-white/40 text-xs sm:text-sm bg-black/20 p-3 rounded-xl border border-white/5 w-fit">
+              Confiança:{" "}
+              <span className="text-emerald-400 font-bold">
+                {forecast.confidence || 0}%
+              </span>
             </p>
           </div>
         </div>
@@ -276,61 +292,66 @@ const AdminDashboardPage = () => {
 };
 
 /* =======================
-   COMPONENTS
+    SUBCOMPONENTS
 ======================= */
 
 const StatCard = ({ title, value, icon: Icon }) => (
   <div className="bg-[#111827] rounded-3xl p-5 border border-white/10 w-full min-w-0">
-    <div className="flex justify-between items-center gap-2">
+    <div className="flex justify-between items-center gap-3 min-w-0">
       <div className="min-w-0 flex-1">
-        <p className="text-white/50 text-xs sm:text-sm uppercase tracking-wider font-semibold truncate">
+        <p className="text-white/40 text-[11px] uppercase tracking-wider font-semibold truncate">
           {title}
         </p>
-        <h3 className="text-2xl sm:text-3xl font-black mt-1 break-words whitespace-normal">
+        <h3 className="text-lg sm:text-2xl font-black mt-1 text-white truncate">
           {value}
         </h3>
       </div>
 
-      <div className="text-violet-300 bg-violet-500/10 p-3 rounded-2xl shrink-0">
-        <Icon size={20} />
+      <div className="text-violet-300 bg-violet-500/10 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl shrink-0">
+        <Icon size={18} />
       </div>
     </div>
   </div>
 );
 
 const RankingCard = ({ title, data, field }) => (
-  <div className="bg-[#111827] rounded-3xl p-4 sm:p-5 border border-white/10 w-full min-w-0">
-    <h3 className="font-bold mb-4 text-base sm:text-lg truncate">{title}</h3>
+  <div className="bg-[#111827] rounded-3xl p-4 sm:p-5 border border-white/10 w-full min-w-0 flex flex-col justify-between overflow-hidden">
+    <div>
+      <h3 className="font-bold mb-3 text-sm sm:text-base truncate text-white/90">
+        {title}
+      </h3>
 
-    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-      {data.map((item, idx) => (
-        <div
-          key={item.id || idx}
-          className="flex justify-between items-center py-2 px-2 rounded-xl hover:bg-white/5 transition text-sm gap-2"
-        >
-          <span className="text-white/80 truncate flex-1">{item.name}</span>
-          <span className="text-violet-300 font-bold shrink-0">
-            {item[field]}
-          </span>
-        </div>
-      ))}
-      {data.length === 0 && (
-        <p className="text-white/30 text-xs text-center py-4">Sem dados</p>
-      )}
+      <div className="space-y-1 max-h-40 overflow-y-auto pr-1 custom-scrollbar">
+        {data.map((item, idx) => (
+          <div
+            key={item.id || idx}
+            className="flex justify-between items-center py-1.5 px-2 rounded-xl hover:bg-white/5 transition text-xs gap-3 min-w-0"
+          >
+            <span className="text-white/70 truncate flex-1">{item.name}</span>
+            <span className="text-violet-300 font-bold shrink-0">
+              {item[field]}
+            </span>
+          </div>
+        ))}
+        {data.length === 0 && (
+          <p className="text-white/30 text-xs text-center py-4">Sem dados</p>
+        )}
+      </div>
     </div>
 
-    <div className="h-36 mt-4 w-full">
+    {/* CONTAINER DO RECHARTS CORRIGIDO COM TAMANHO MAXIMO CONTROLADO */}
+    <div className="h-28 mt-4 w-full overflow-hidden">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={data}
-          margin={{ left: -35, right: 0, bottom: 0, top: 0 }}
+          margin={{ left: -40, right: 0, bottom: 0, top: 5 }}
         >
-          <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
+          <CartesianGrid stroke="rgba(255,255,255,0.03)" vertical={false} />
           <Bar
             dataKey={field}
             fill="#a855f7"
-            radius={[6, 6, 0, 0]}
-            maxBarSize={30}
+            radius={[4, 4, 0, 0]}
+            maxBarSize={24}
           />
         </BarChart>
       </ResponsiveContainer>

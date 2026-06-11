@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import {
-  Scissors,
+  Briefcase,
   Plus,
   Search,
   Pencil,
@@ -233,7 +233,7 @@ const AdminServicesPage = () => {
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 mb-8">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-[28px] bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border border-violet-400/20 flex items-center justify-center">
-              <Scissors size={30} className="text-violet-300" />
+              <Briefcase size={30} className="text-violet-300" />
             </div>
 
             <div>
