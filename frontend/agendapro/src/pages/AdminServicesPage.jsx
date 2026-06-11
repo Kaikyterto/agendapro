@@ -22,7 +22,7 @@ import {
   createService,
   updateService,
   deleteService,
-} from "../services/services";
+} from "../services/service";
 
 const initialForm = {
   name: "",
