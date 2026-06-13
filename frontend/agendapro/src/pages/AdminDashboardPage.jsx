@@ -43,14 +43,12 @@ const AdminDashboardPage = () => {
   const [forecast, setForecast] = useState({});
   const [insights, setInsights] = useState([]);
 
-  // Estado para controlar responsividade dos eixos do Recharts sem quebrar o SSR/Hydration
   const [isMobile, setIsMobile] = useState(false);
   const [screenKey, setScreenKey] = useState(0);
 
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 640);
-      // Altera a key para forçar o Recharts a recalcular o container no mobile sem bugar
       setScreenKey((prev) => prev + 1);
     };
 
@@ -180,7 +178,7 @@ const AdminDashboardPage = () => {
                 >
                   <defs>
                     <linearGradient id="violetFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#a855f7" stopOpacity={0.3} />
+                      <stop offset="5%" stopColor="#a855f7" stopOpacity={0.2} />
                       <stop offset="95%" stopColor="#a855f7" stopOpacity={0} />
                     </linearGradient>
                   </defs>
@@ -221,8 +219,13 @@ const AdminDashboardPage = () => {
                     type="monotone"
                     dataKey="value"
                     stroke="#a855f7"
-                    fill="url(#violetFill)"
+                    /* No mobile, usa cor sólida ou tira o degradê complexo para não quebrar a GPU */
+                    fill={
+                      isMobile ? "rgba(168, 85, 247, 0.05)" : "url(#violetFill)"
+                    }
                     strokeWidth={2}
+                    /* Desativa animação no mobile para impedir bugs gráficos de traçado */
+                    isAnimationActive={!isMobile}
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -250,18 +253,21 @@ const AdminDashboardPage = () => {
             data={topServices}
             field="appointments"
             screenKey={screenKey}
+            isMobile={isMobile}
           />
           <RankingCard
             title="Top Produtos"
             data={topProducts}
             field="quantity"
             screenKey={screenKey}
+            isMobile={isMobile}
           />
           <RankingCard
             title="Top Profissionais"
             data={topWorkers}
             field="appointments"
             screenKey={screenKey}
+            isMobile={isMobile}
           />
         </div>
 
@@ -343,7 +349,7 @@ const StatCard = ({ title, value, icon: Icon }) => (
   </div>
 );
 
-const RankingCard = ({ title, data, field, screenKey }) => (
+const RankingCard = ({ title, data, field, screenKey, isMobile }) => (
   <div className="bg-[#111827] rounded-3xl p-4 sm:p-5 border border-white/10 w-full min-w-0 flex flex-col justify-between overflow-hidden">
     <div className="min-w-0 w-full">
       <h3 className="font-bold mb-3 text-sm sm:text-base truncate text-white/90">
@@ -368,7 +374,6 @@ const RankingCard = ({ title, data, field, screenKey }) => (
       </div>
     </div>
 
-    {/* CONTAINER GRÁFICO OTIMIZADO PARA MOBILE */}
     <div className="h-28 mt-4 w-full min-w-0 overflow-hidden">
       <ResponsiveContainer
         width="100%"
@@ -385,6 +390,8 @@ const RankingCard = ({ title, data, field, screenKey }) => (
             fill="#a855f7"
             radius={[4, 4, 0, 0]}
             maxBarSize={24}
+            /* Desativa a animação das barras no mobile para salvar a GPU do celular */
+            isAnimationActive={!isMobile}
           />
         </BarChart>
       </ResponsiveContainer>

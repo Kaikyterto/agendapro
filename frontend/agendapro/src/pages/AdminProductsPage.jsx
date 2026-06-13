@@ -97,9 +97,11 @@ const AdminProductsPage = () => {
   const filteredProducts = useMemo(() => {
     return [...products]
       .filter((product) =>
-        product?.name?.toLowerCase().includes(search.trim().toLowerCase())
+        (product?.name || "")
+          .toLowerCase()
+          .includes(search.trim().toLowerCase())
       )
-      .sort((a, b) => b.id - a.id);
+      .sort((a, b) => (b.id || 0) - (a.id || 0));
   }, [products, search]);
 
   const resetForm = () => {
@@ -186,7 +188,7 @@ const AdminProductsPage = () => {
 
       if (editingProduct) {
         await updateProduct(editingProduct.id, payload);
-        setSuccess("Produto actualizado com sucesso!");
+        setSuccess("Produto atualizado com sucesso!");
       } else {
         await createProduct(payload);
         setSuccess("Produto criado com sucesso!");
@@ -259,7 +261,10 @@ const AdminProductsPage = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
           <DashboardCard
             title="Faturamento"
-            value={`R$ ${Number(dashboard?.revenue || 0).toFixed(2)}`}
+            value={`R$ ${Number(dashboard?.revenue || 0).toLocaleString(
+              "pt-BR",
+              { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+            )}`}
             icon={<DollarSign size={20} />}
           />
 
@@ -277,7 +282,10 @@ const AdminProductsPage = () => {
 
           <DashboardCard
             title="Ticket Médio"
-            value={`R$ ${Number(dashboard?.average_ticket || 0).toFixed(2)}`}
+            value={`R$ ${Number(dashboard?.average_ticket || 0).toLocaleString(
+              "pt-BR",
+              { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+            )}`}
             icon={<TrendingUp size={20} />}
           />
         </div>
@@ -349,7 +357,11 @@ const AdminProductsPage = () => {
                         Valor
                       </p>
                       <h4 className="text-lg sm:text-xl font-black text-violet-300 truncate">
-                        R$ {Number(product.value || 0).toFixed(2)}
+                        R${" "}
+                        {Number(product.value || 0).toLocaleString("pt-BR", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
                       </h4>
                     </div>
 
@@ -396,7 +408,7 @@ const AdminProductsPage = () => {
         {openModal && (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
             <div className="w-full max-w-2xl my-auto rounded-[24px] sm:rounded-[32px] border border-violet-500/20 bg-[#0f172a] p-5 sm:p-6 shadow-2xl shadow-violet-500/10 max-h-[90vh] overflow-y-auto custom-scrollbar">
-              <div className="flex items-start justify-between gap-4 mb-6 sticky top-0 bg-[#0f172a] pb-2 z-10">
+              <div className="flex items-start justify-between gap-4 mb-6 {`sticky top-0 bg-[#0f172a] pb-2 z-10`}">
                 <div>
                   <h2 className="text-2xl sm:text-3xl font-black">
                     {editingProduct ? "Editar Produto" : "Novo Produto"}
@@ -539,17 +551,15 @@ const AdminProductsPage = () => {
 
 const DashboardCard = ({ title, value, icon }) => {
   return (
-    <div className="rounded-[24px] sm:rounded-[28px] border border-violet-500/10 bg-[#111827] p-4 sm:p-5 shadow-xl shadow-black/20 w-full min-w-0 flex flex-col justify-between">
-      <div className="flex items-center justify-between mb-3 sm:mb-5">
-        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border border-violet-500/20 flex items-center justify-center text-violet-300 shrink-0">
-          {icon}
-        </div>
-      </div>
-      <div>
+    <div className="rounded-[24px] sm:rounded-[28px] border border-violet-500/10 bg-[#111827] p-4 sm:p-5 shadow-xl shadow-black/20 w-full min-w-0 flex items-center justify-between gap-4">
+      <div className="min-w-0 flex-1">
         <p className="text-xs sm:text-sm text-white/50 truncate">{title}</p>
-        <h3 className="text-xl sm:text-2xl lg:text-3xl font-black mt-1 text-white truncate">
+        <h3 className="text-lg sm:text-xl lg:text-2xl font-black mt-1 text-white truncate">
           {value}
         </h3>
+      </div>
+      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border border-violet-500/20 flex items-center justify-center text-violet-300 shrink-0">
+        {icon}
       </div>
     </div>
   );
