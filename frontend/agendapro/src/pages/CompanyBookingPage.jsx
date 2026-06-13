@@ -341,76 +341,65 @@ const CompanyBookingPage = () => {
           <div className="mt-12">
             <h2 className="text-2xl font-bold mb-6">Escolha um serviço</h2>
 
-            <div className="grid gap-5">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
               {services.map((service) => (
                 <div
                   key={service.id}
-                  className="rounded-[28px] overflow-hidden border border-white/10 bg-white/5 hover:border-white/20 transition-all duration-300 backdrop-blur-xl"
+                  className="rounded-2xl overflow-hidden border border-white/10 bg-white/5 backdrop-blur-xl"
                 >
                   {service.image_url && (
                     <img
                       src={service.image_url}
                       alt={service.name}
                       loading="lazy"
-                      decoding="async"
-                      className="w-full h-52 sm:h-64 object-cover"
+                      className="w-full aspect-square object-cover"
                     />
                   )}
 
-                  <div className="p-5 sm:p-6">
-                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-5">
-                      <div className="flex-1">
-                        <h3 className="text-2xl font-bold">{service.name}</h3>
+                  <div className="p-3">
+                    <h3 className="font-semibold text-sm line-clamp-2 min-h-[40px]">
+                      {service.name}
+                    </h3>
 
-                        <p className="text-white/60 mt-2 leading-relaxed">
-                          {service.description}
-                        </p>
-                      </div>
-
-                      <div
-                        className="px-4 py-2 rounded-2xl text-sm font-semibold w-fit"
+                    <div className="flex items-center justify-between mt-2">
+                      <span
+                        className="text-xs font-bold"
                         style={{
-                          backgroundColor: "var(--primary)",
+                          color: "var(--primary)",
                         }}
                       >
                         R$ {service.price}
-                      </div>
+                      </span>
+
+                      <span className="text-[11px] text-white/50">
+                        {service.duration} min
+                      </span>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5 mt-6">
-                      <div className="flex items-center gap-2 text-white/60">
-                        <Clock3 size={16} />
+                    <Button
+                      onClick={async () => {
+                        try {
+                          resetBookingState();
 
-                        <span>{service.duration} min</span>
-                      </div>
+                          const workersData = await getServiceWorkers(
+                            slug,
+                            service.id
+                          );
 
-                      <Button
-                        onClick={async () => {
-                          try {
-                            resetBookingState();
-
-                            const workersData = await getServiceWorkers(
-                              slug,
-                              service.id
-                            );
-
-                            setSelectedService(service);
-
-                            setWorkers(workersData);
-
-                            setShowWorkersModal(true);
-                          } catch (err) {
-                            console.error(err);
-                          }
-                        }}
-                        className="w-full sm:w-auto"
-                        style={{
-                          backgroundColor: "var(--primary)",
-                        }}
-                      >
-                        Agendar
-                      </Button>
-                    </div>
+                          setSelectedService(service);
+                          setWorkers(workersData);
+                          setShowWorkersModal(true);
+                        } catch (err) {
+                          console.error(err);
+                        }
+                      }}
+                      className="w-full mt-3 h-9 text-xs"
+                      style={{
+                        backgroundColor: "var(--primary)",
+                      }}
+                    >
+                      Agendar
+                    </Button>
                   </div>
                 </div>
               ))}

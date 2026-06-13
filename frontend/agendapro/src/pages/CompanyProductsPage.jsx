@@ -261,28 +261,33 @@ export default function CompanyProductsPage() {
 
       {/* PRODUCTS */}
       <main className="relative z-10 max-w-7xl mx-auto px-4 py-10">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-4">
           {products.map((product) => (
             <div
               key={product.id}
-              className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden"
+              className="bg-white/5 border border-white/10 rounded-xl overflow-hidden"
             >
               <img
                 src={product.image_url}
+                alt={product.name}
                 className="w-full aspect-square object-cover"
               />
 
-              <div className="p-4">
-                <h3 className="font-bold">{product.name}</h3>
+              <div className="p-2">
+                <h3 className="font-medium text-xs line-clamp-2 min-h-[32px]">
+                  {product.name}
+                </h3>
 
-                <div className="flex justify-between mt-3">
-                  <span>R$ {Number(product.value).toFixed(2)}</span>
+                <div className="mt-2 flex flex-col gap-2">
+                  <span className="text-[11px] font-semibold text-[var(--primary)]">
+                    R$ {Number(product.value).toFixed(2)}
+                  </span>
 
                   <button
                     onClick={() => addToCart(product)}
-                    className="p-2 bg-[var(--primary)] rounded-xl"
+                    className="h-8 flex items-center justify-center bg-[var(--primary)] rounded-lg"
                   >
-                    <Plus size={18} />
+                    <Plus size={14} />
                   </button>
                 </div>
               </div>
