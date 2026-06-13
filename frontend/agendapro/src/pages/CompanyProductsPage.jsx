@@ -186,9 +186,6 @@ export default function CompanyProductsPage() {
     }
   };
 
-  // =========================
-  // LOADING
-  // =========================
   if (loading) {
     return (
       <div className="min-h-screen bg-[#07090d] flex items-center justify-center">
@@ -197,59 +194,20 @@ export default function CompanyProductsPage() {
     );
   }
 
-  // =========================
-  // UI
-  // =========================
   return (
-    <div className="min-h-screen bg-[#07090d] text-white">
-      {/* BACKGROUND */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] rounded-full bg-[var(--primary)] opacity-20 blur-[120px]" />
-        <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] rounded-full bg-[var(--accent)] opacity-10 blur-[120px]" />
-      </div>
-
-      {showPixModal && pixData && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[1000] p-4">
-          <div className="bg-[#0d0f14] w-full max-w-md rounded-2xl p-6 border border-white/10">
-            <h2 className="text-xl font-bold mb-4 text-center">
-              Pagamento via PIX
-            </h2>
-
-            <div className="flex justify-center mb-4">
-              <img
-                src={`data:image/png;base64,${pixData.qrCodeBase64}`}
-                alt="QR Code PIX"
-                className="w-64 h-64 rounded-xl bg-white p-2"
-              />
-            </div>
-
-            <textarea
-              readOnly
-              value={pixData.pixCode}
-              rows={5}
-              className="w-full p-3 rounded-xl bg-white/5 text-xs resize-none"
-            />
-
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(pixData.pixCode);
-                setToast("Código PIX copiado!");
-                setTimeout(() => setToast(""), 2000);
-              }}
-              className="w-full mt-3 h-11 rounded-xl font-bold bg-[var(--primary)]"
-            >
-              Copiar código PIX
-            </button>
-
-            <button
-              onClick={() => setShowPixModal(false)}
-              className="w-full mt-2 h-11 rounded-xl border border-white/10"
-            >
-              Fechar
-            </button>
-          </div>
+    <div className="min-h-screen bg-[#07090d] text-white transform-gpu">
+      {/* TOAST NOTIFICATION */}
+      {toast && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-neutral-900 border border-white/10 px-4 py-2 rounded-xl text-xs font-semibold z-[9999] shadow-2xl">
+          {toast}
         </div>
       )}
+
+      {/* BACKGROUND - REMOVIDO BLUR RADICAL MOBILE PARA IMPEDIR ARTEFATOS */}
+      <div className="fixed inset-0 pointer-events-none hidden sm:block">
+        <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] rounded-full bg-[var(--primary)] opacity-10 blur-[120px]" />
+        <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] rounded-full bg-[var(--accent)] opacity-5 blur-[120px]" />
+      </div>
 
       {/* NAV */}
       <Nav
@@ -259,94 +217,123 @@ export default function CompanyProductsPage() {
         onCartClick={() => setIsCartOpen(true)}
       />
 
-      {/* PRODUCTS */}
-      <main className="relative z-10 max-w-7xl mx-auto px-4 py-10">
-        <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-4">
+      {/* PRODUCTS MAIN */}
+      <main className="relative z-10 max-w-7xl mx-auto px-3 py-6">
+        {/* GRID DE PRODUTOS COMPACTO */}
+        <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2.5">
           {products.map((product) => (
             <div
               key={product.id}
-              className="bg-white/5 border border-white/10 rounded-xl overflow-hidden"
+              className="bg-[#111827]/60 border border-white/5 rounded-xl overflow-hidden flex flex-col justify-between h-full shadow-lg transform-gpu"
             >
-              <img
-                src={product.image_url}
-                alt={product.name}
-                className="w-full aspect-square object-cover"
-              />
+              <div className="w-full aspect-square bg-black/20 overflow-hidden relative">
+                <img
+                  src={product.image_url}
+                  alt={product.name}
+                  loading="lazy"
+                  decoding="async"
+                  className="w-full h-full object-cover"
+                />
+              </div>
 
-              <div className="p-2">
-                <h3 className="font-medium text-xs line-clamp-2 min-h-[32px]">
+              {/* CARD BODY REDUZIDO */}
+              <div className="p-2 flex flex-col flex-1 justify-between gap-1.5">
+                <h3 className="font-semibold text-[11px] sm:text-xs line-clamp-2 leading-tight text-white/90 min-h-[28px] sm:min-h-[32px] break-words">
                   {product.name}
                 </h3>
 
-                <div className="mt-2 flex flex-col gap-2">
-                  <span className="text-[11px] font-semibold text-[var(--primary)]">
-                    R$ {Number(product.value).toFixed(2)}
+                <div className="flex flex-col gap-1.5 mt-auto">
+                  <span className="text-[11px] sm:text-xs font-bold text-[var(--primary)] truncate">
+                    R${" "}
+                    {Number(product.value || 0).toLocaleString("pt-BR", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
                   </span>
 
                   <button
                     onClick={() => addToCart(product)}
-                    className="h-8 flex items-center justify-center bg-[var(--primary)] rounded-lg"
+                    className="h-7 sm:h-8 w-full flex items-center justify-center bg-[var(--primary)] hover:opacity-90 active:scale-[0.98] transition-all rounded-lg text-white"
                   >
-                    <Plus size={14} />
+                    <Plus size={13} />
                   </button>
                 </div>
               </div>
             </div>
           ))}
         </div>
+
+        {products.length === 0 && (
+          <div className="text-center py-20 text-white/30 text-xs">
+            Nenhum produto disponível no momento.
+          </div>
+        )}
       </main>
 
-      {/* CART */}
+      {/* CART SIDEBAR */}
       {isCartOpen && (
-        <div className="fixed inset-0 z-50 flex justify-end">
-          {/* OVERLAY */}
+        <div className="fixed inset-0 z-50 flex justify-end transform-gpu">
           <div
-            className="absolute inset-0 bg-black/60"
+            className="absolute inset-0 bg-black/70"
             onClick={() => setIsCartOpen(false)}
           />
 
-          {/* SIDEBAR */}
           <aside
-            className="relative z-10 w-full max-w-md bg-[#0d0f14] h-full p-5 flex flex-col shadow-2xl"
-            onClick={(e) => e.stopPropagation()} // 👈 impede fechar ao clicar dentro
+            className="relative z-10 w-full max-w-md bg-[#0d0f14] h-full p-5 flex flex-col shadow-2xl transform-gpu"
+            onClick={(e) => e.stopPropagation()}
           >
-            {/* HEADER */}
-            <div className="flex justify-between mb-4">
-              <h2 className="text-xl font-bold">Carrinho</h2>
-              <button onClick={() => setIsCartOpen(false)}>
-                <X />
+            <div className="flex justify-between items-center mb-5">
+              <h2 className="text-lg font-bold">Carrinho</h2>
+              <button
+                onClick={() => setIsCartOpen(false)}
+                className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center hover:bg-white/10"
+              >
+                <X size={16} />
               </button>
             </div>
 
-            {/* ITEMS */}
-            <div className="flex-1 overflow-auto space-y-4">
+            <div className="flex-1 overflow-y-auto space-y-3 pr-1 custom-scrollbar">
               {cart.length === 0 ? (
-                <p className="text-white/40">Carrinho vazio</p>
+                <p className="text-white/40 text-xs text-center py-10">
+                  Seu carrinho está vazio
+                </p>
               ) : (
                 cart.map((item) => (
                   <div
                     key={item.id}
-                    className="flex gap-3 bg-white/5 p-3 rounded-xl"
+                    className="flex gap-3 bg-white/5 p-2.5 rounded-xl border border-white/5"
                   >
                     <img
                       src={item.image_url}
-                      className="w-14 h-14 rounded-lg object-cover"
+                      className="w-12 h-12 rounded-lg object-cover bg-black/20 shrink-0"
+                      alt={item.name}
                     />
 
-                    <div className="flex-1">
-                      <p>{item.name}</p>
-                      <p className="text-[var(--primary)]">
-                        R$ {(item.value * item.quantity).toFixed(2)}
+                    <div className="flex-1 min-w-0 flex flex-col justify-between">
+                      <p className="text-xs font-medium text-white/90 truncate">
+                        {item.name}
+                      </p>
+                      <p className="text-[11px] font-semibold text-[var(--primary)]">
+                        R${" "}
+                        {(Number(item.value || 0) * item.quantity).toFixed(2)}
                       </p>
 
-                      <div className="flex gap-2 mt-2 items-center">
-                        <button onClick={() => removeFromCart(item.id)}>
+                      <div className="flex gap-3 mt-1 items-center bg-black/20 w-fit px-2 py-0.5 rounded-lg border border-white/5 text-xs">
+                        <button
+                          className="text-white/50 hover:text-white"
+                          onClick={() => removeFromCart(item.id)}
+                        >
                           -
                         </button>
-
-                        <span>{item.quantity}</span>
-
-                        <button onClick={() => addToCart(item)}>+</button>
+                        <span className="font-bold text-[11px]">
+                          {item.quantity}
+                        </span>
+                        <button
+                          className="text-white/50 hover:text-white"
+                          onClick={() => addToCart(item)}
+                        >
+                          +
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -354,18 +341,17 @@ export default function CompanyProductsPage() {
               )}
             </div>
 
-            {/* TOTAL + CHECKOUT */}
-            <div className="border-t border-white/10 pt-4">
-              {error && <p className="text-red-400 text-sm mb-2">{error}</p>}
-
-              <div className="flex justify-between mb-3">
-                <span>Total</span>
-                <span>R$ {total.toFixed(2)}</span>
+            <div className="border-t border-white/10 pt-4 mt-4">
+              <div className="flex justify-between mb-3 text-sm">
+                <span className="text-white/60">Total</span>
+                <span className="font-bold text-base">
+                  R$ {total.toFixed(2)}
+                </span>
               </div>
 
               <button
                 onClick={openCheckout}
-                className="w-full bg-[var(--primary)] h-12 rounded-xl font-bold"
+                className="w-full bg-[var(--primary)] h-11 text-sm rounded-xl font-bold hover:opacity-90 transition-all"
               >
                 Finalizar compra
               </button>
@@ -376,30 +362,84 @@ export default function CompanyProductsPage() {
 
       {/* MODAL CHECKOUT */}
       {showCustomerModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[999]">
-          <div className="bg-[#0d0f14] p-6 rounded-2xl w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">Seus dados</h2>
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[999] p-4 transform-gpu">
+          <div className="bg-[#0d0f14] p-5 rounded-2xl w-full max-w-sm border border-white/10 shadow-2xl">
+            <h2 className="text-base font-bold mb-3">Seus dados</h2>
 
-            <input
-              className="w-full mb-3 p-2 bg-white/5 rounded"
-              placeholder="Nome"
-              value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
-            />
+            <div className="space-y-3">
+              <input
+                className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
+                placeholder="Nome"
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+              />
 
-            <input
-              className="w-full mb-4 p-2 bg-white/5 rounded"
-              placeholder="Telefone"
-              value={customerPhone}
-              onChange={(e) => setCustomerPhone(e.target.value)}
+              <input
+                className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
+                placeholder="Telefone"
+                value={customerPhone}
+                onChange={(e) => setCustomerPhone(e.target.value)}
+              />
+            </div>
+
+            {error && <p className="text-red-400 text-[11px] mt-2">{error}</p>}
+
+            <div className="grid grid-cols-2 gap-2 mt-4">
+              <button
+                onClick={() => setShowCustomerModal(false)}
+                className="h-10 border border-white/10 rounded-xl text-xs font-semibold"
+              >
+                Cancelar
+              </button>
+              <button
+                disabled={checkoutLoading}
+                onClick={handleCheckout}
+                className="h-10 bg-[var(--primary)] rounded-xl text-xs font-bold hover:opacity-90 disabled:opacity-50"
+              >
+                {checkoutLoading ? "Processando..." : "Comprar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL PIX */}
+      {showPixModal && pixData && (
+        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-[1000] p-4 transform-gpu">
+          <div className="bg-[#0d0f14] w-full max-w-sm rounded-2xl p-5 border border-white/10 text-center shadow-2xl">
+            <h2 className="text-base font-bold mb-4">Pagamento via PIX</h2>
+
+            <div className="flex justify-center mb-4">
+              <img
+                src={`data:image/png;base64,${pixData.qrCodeBase64}`}
+                alt="QR Code PIX"
+                className="w-48 h-48 rounded-xl bg-white p-2"
+              />
+            </div>
+
+            <textarea
+              readOnly
+              value={pixData.pixCode}
+              rows={3}
+              className="w-full p-2.5 rounded-xl bg-white/5 text-[10px] resize-none outline-none border border-white/5 text-white/60 select-all"
             />
 
             <button
-              disabled={checkoutLoading}
-              onClick={handleCheckout}
-              className="w-full bg-[var(--primary)] h-11 rounded-xl font-bold"
+              onClick={() => {
+                navigator.clipboard.writeText(pixData.pixCode);
+                setToast("Código PIX copiado!");
+                setTimeout(() => setToast(""), 2000);
+              }}
+              className="w-full mt-3 h-10 rounded-xl font-bold bg-[var(--primary)] text-xs hover:opacity-90"
             >
-              {checkoutLoading ? "Processando..." : "Comprar"}
+              Copiar código PIX
+            </button>
+
+            <button
+              onClick={() => setShowPixModal(false)}
+              className="w-full mt-2 h-10 rounded-xl border border-white/10 text-xs font-semibold text-white/60"
+            >
+              Fechar
             </button>
           </div>
         </div>
