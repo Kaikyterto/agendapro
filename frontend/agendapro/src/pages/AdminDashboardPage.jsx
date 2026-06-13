@@ -108,7 +108,7 @@ const AdminDashboardPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#07090d] text-white p-4 md:p-8 overflow-x-hidden">
+    <div className="min-h-screen bg-[#07090d] text-white p-4 md:p-8 overflow-x-hidden transform-gpu">
       <div className="max-w-7xl mx-auto w-full space-y-8">
         {/* HEADER */}
         <div className="text-left">
@@ -156,7 +156,7 @@ const AdminDashboardPage = () => {
         {/* SEÇÃO GRÁFICO PRINCIPAL + OCUPAÇÃO */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* REVENUE CHART */}
-          <div className="lg:col-span-2 bg-[#111827] rounded-3xl p-4 sm:p-6 border border-white/10 w-full min-w-0 overflow-hidden">
+          <div className="lg:col-span-2 bg-[#111827] rounded-3xl p-4 sm:p-6 border border-white/10 w-full min-w-0 overflow-hidden transform-gpu">
             <h3 className="font-bold mb-4 text-sm sm:text-base text-white/90">
               Receita últimos 30 dias
             </h3>
@@ -219,12 +219,10 @@ const AdminDashboardPage = () => {
                     type="monotone"
                     dataKey="value"
                     stroke="#a855f7"
-                    /* No mobile, usa cor sólida ou tira o degradê complexo para não quebrar a GPU */
                     fill={
                       isMobile ? "rgba(168, 85, 247, 0.05)" : "url(#violetFill)"
                     }
                     strokeWidth={2}
-                    /* Desativa animação no mobile para impedir bugs gráficos de traçado */
                     isAnimationActive={!isMobile}
                   />
                 </AreaChart>
@@ -233,7 +231,7 @@ const AdminDashboardPage = () => {
           </div>
 
           {/* OCUPAÇÃO */}
-          <div className="bg-[#111827] rounded-3xl p-5 sm:p-6 border border-white/10 flex flex-col justify-center w-full min-w-0">
+          <div className="bg-[#111827] rounded-3xl p-5 sm:p-6 border border-white/10 flex flex-col justify-center w-full min-w-0 transform-gpu">
             <h3 className="font-bold text-sm sm:text-base text-white/50 mb-1">
               Ocupação
             </h3>
@@ -274,7 +272,7 @@ const AdminDashboardPage = () => {
         {/* INSIGHTS + FORECAST */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* INSIGHTS */}
-          <div className="bg-[#111827] rounded-3xl p-5 border border-white/10 w-full min-w-0">
+          <div className="bg-[#111827] rounded-3xl p-5 border border-white/10 w-full min-w-0 transform-gpu">
             <div className="flex items-center gap-2 mb-4">
               <Brain size={18} className="text-violet-300 shrink-0" />
               <h3 className="font-bold text-sm sm:text-base">Insights</h3>
@@ -298,7 +296,7 @@ const AdminDashboardPage = () => {
           </div>
 
           {/* FORECAST */}
-          <div className="bg-[#111827] rounded-3xl p-5 border border-white/10 flex flex-col justify-between w-full min-w-0 gap-6">
+          <div className="bg-[#111827] rounded-3xl p-5 border border-white/10 flex flex-col justify-between w-full min-w-0 gap-6 transform-gpu">
             <div>
               <h3 className="font-bold mb-3 text-sm sm:text-base">Forecast</h3>
               <p className="text-white/50 text-xs sm:text-sm">
@@ -331,7 +329,7 @@ const AdminDashboardPage = () => {
 ======================= */
 
 const StatCard = ({ title, value, icon: Icon }) => (
-  <div className="bg-[#111827] rounded-3xl p-5 border border-white/10 w-full min-w-0">
+  <div className="bg-[#111827] rounded-3xl p-5 border border-white/10 w-full min-w-0 transform-gpu">
     <div className="flex justify-between items-center gap-3 min-w-0">
       <div className="min-w-0 flex-1">
         <p className="text-white/40 text-[11px] uppercase tracking-wider font-semibold truncate">
@@ -350,7 +348,7 @@ const StatCard = ({ title, value, icon: Icon }) => (
 );
 
 const RankingCard = ({ title, data, field, screenKey, isMobile }) => (
-  <div className="bg-[#111827] rounded-3xl p-4 sm:p-5 border border-white/10 w-full min-w-0 flex flex-col justify-between overflow-hidden">
+  <div className="bg-[#111827] rounded-3xl p-4 sm:p-5 border border-white/10 w-full min-w-0 flex flex-col justify-between overflow-hidden transform-gpu">
     <div className="min-w-0 w-full">
       <h3 className="font-bold mb-3 text-sm sm:text-base truncate text-white/90">
         {title}
@@ -390,7 +388,6 @@ const RankingCard = ({ title, data, field, screenKey, isMobile }) => (
             fill="#a855f7"
             radius={[4, 4, 0, 0]}
             maxBarSize={24}
-            /* Desativa a animação das barras no mobile para salvar a GPU do celular */
             isAnimationActive={!isMobile}
           />
         </BarChart>

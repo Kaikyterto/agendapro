@@ -50,7 +50,6 @@ const AdminProductsPage = () => {
   const [previewUrl, setPreviewUrl] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
 
-  // Gerencia o ciclo de vida do preview de imagem para evitar vazamento de memória no mobile
   useEffect(() => {
     if (!imageFile) {
       setPreviewUrl("");
@@ -291,7 +290,8 @@ const AdminProductsPage = () => {
         </div>
 
         {/* SEARCH */}
-        <div className="flex items-center gap-3 mb-8 bg-[#111827] border border-violet-500/10 rounded-3xl px-4 sm:px-5 h-14 sm:h-16 backdrop-blur-xl shadow-lg">
+        {/* Removeu-se o backdrop-blur daqui para evitar conflito de renderização no input */}
+        <div className="flex items-center gap-3 mb-8 bg-[#111827] border border-violet-500/10 rounded-3xl px-4 sm:px-5 h-14 sm:h-16 shadow-lg">
           <Search size={18} className="text-violet-300 shrink-0" />
 
           <input
@@ -404,13 +404,13 @@ const AdminProductsPage = () => {
           </div>
         )}
 
-        {/* MODAL RESPONSIVO */}
+        {/* MODAL RESPONSIVO REFORMULADO (ANTI-GLITCH MOBILE) */}
         {openModal && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
-            <div className="w-full max-w-2xl my-auto rounded-[24px] sm:rounded-[32px] border border-violet-500/20 bg-[#0f172a] p-5 sm:p-6 shadow-2xl shadow-violet-500/10 max-h-[90vh] overflow-y-auto custom-scrollbar">
-              <div className="flex items-start justify-between gap-4 mb-6 {`sticky top-0 bg-[#0f172a] pb-2 z-10`}">
+          <div className="fixed inset-0 bg-black/90 sm:bg-black/70 sm:backdrop-blur-md flex items-center justify-center z-50 p-3 overflow-y-auto transform-gpu">
+            <div className="w-full max-w-2xl rounded-[20px] sm:rounded-[32px] border border-violet-500/20 bg-[#0f172a] p-4 sm:p-6 shadow-2xl shadow-black/80 my-auto transform-gpu will-change-transform">
+              <div className="flex items-start justify-between gap-4 mb-6 bg-[#0f172a] pb-2">
                 <div>
-                  <h2 className="text-2xl sm:text-3xl font-black">
+                  <h2 className="text-xl sm:text-3xl font-black text-white">
                     {editingProduct ? "Editar Produto" : "Novo Produto"}
                   </h2>
                   <p className="text-white/40 text-xs sm:text-sm mt-1">
@@ -421,16 +421,16 @@ const AdminProductsPage = () => {
                 <button
                   type="button"
                   onClick={handleCloseModal}
-                  className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all shrink-0"
+                  className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all shrink-0 text-white"
                 >
                   <X size={18} />
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-5">
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="md:col-span-2">
-                    <label className="text-xs sm:text-sm text-white/60 mb-2 block font-medium">
+                    <label className="text-xs sm:text-sm text-white/60 mb-1.5 block font-medium">
                       Nome
                     </label>
                     <input
@@ -442,7 +442,7 @@ const AdminProductsPage = () => {
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className="text-xs sm:text-sm text-white/60 mb-2 block font-medium">
+                    <label className="text-xs sm:text-sm text-white/60 mb-1.5 block font-medium">
                       Descrição
                     </label>
                     <textarea
@@ -450,13 +450,13 @@ const AdminProductsPage = () => {
                       onChange={(e) =>
                         handleChange("description", e.target.value)
                       }
-                      rows={4}
-                      className="w-full rounded-xl sm:rounded-2xl bg-[#111827] border border-white/10 px-4 py-3 sm:py-4 outline-none resize-none focus:border-violet-400 transition-all text-sm text-white"
+                      rows={3}
+                      className="w-full rounded-xl sm:rounded-2xl bg-[#111827] border border-white/10 px-4 py-3 outline-none resize-none focus:border-violet-400 transition-all text-sm text-white"
                     />
                   </div>
 
                   <div>
-                    <label className="text-xs sm:text-sm text-white/60 mb-2 block font-medium">
+                    <label className="text-xs sm:text-sm text-white/60 mb-1.5 block font-medium">
                       Valor
                     </label>
                     <input
@@ -471,7 +471,7 @@ const AdminProductsPage = () => {
                   </div>
 
                   <div>
-                    <label className="text-xs sm:text-sm text-white/60 mb-2 block font-medium">
+                    <label className="text-xs sm:text-sm text-white/60 mb-1.5 block font-medium">
                       Imagem do Produto
                     </label>
                     <input
@@ -489,7 +489,7 @@ const AdminProductsPage = () => {
                 </div>
 
                 {(previewUrl || form.image_url) && (
-                  <div className="rounded-2xl overflow-hidden border border-violet-500/20 max-h-48 w-full relative aspect-video bg-black/20">
+                  <div className="rounded-xl overflow-hidden border border-violet-500/20 max-h-40 w-full relative aspect-video bg-black/20 transform-gpu">
                     <img
                       src={previewUrl || form.image_url}
                       alt="Preview"
@@ -513,13 +513,13 @@ const AdminProductsPage = () => {
                 </div>
 
                 {error && (
-                  <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-xs sm:text-sm">
+                  <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-xs">
                     {error}
                   </div>
                 )}
 
                 {success && (
-                  <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs sm:text-sm">
+                  <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs">
                     {success}
                   </div>
                 )}
