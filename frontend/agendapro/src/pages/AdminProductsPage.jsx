@@ -47,7 +47,21 @@ const AdminProductsPage = () => {
   const [success, setSuccess] = useState("");
 
   const [imageFile, setImageFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
+
+  // Gerencia o ciclo de vida do preview de imagem para evitar vazamento de memória no mobile
+  useEffect(() => {
+    if (!imageFile) {
+      setPreviewUrl("");
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(imageFile);
+    setPreviewUrl(objectUrl);
+
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [imageFile]);
 
   const loadData = async () => {
     try {
@@ -172,7 +186,7 @@ const AdminProductsPage = () => {
 
       if (editingProduct) {
         await updateProduct(editingProduct.id, payload);
-        setSuccess("Produto atualizado com sucesso!");
+        setSuccess("Produto actualizado com sucesso!");
       } else {
         await createProduct(payload);
         setSuccess("Produto criado com sucesso!");
@@ -292,6 +306,9 @@ const AdminProductsPage = () => {
                   <img
                     src={product.image_url}
                     alt={product.name}
+                    loading="lazy"
+                    decoding="async"
+                    crossOrigin="anonymous"
                     className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                   />
                 ) : (
@@ -459,15 +476,13 @@ const AdminProductsPage = () => {
                   </div>
                 </div>
 
-                {(imageFile || form.image_url) && (
+                {(previewUrl || form.image_url) && (
                   <div className="rounded-2xl overflow-hidden border border-violet-500/20 max-h-48 w-full relative aspect-video bg-black/20">
                     <img
-                      src={
-                        imageFile
-                          ? URL.createObjectURL(imageFile)
-                          : form.image_url
-                      }
+                      src={previewUrl || form.image_url}
                       alt="Preview"
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover"
                     />
                   </div>
@@ -522,7 +537,6 @@ const AdminProductsPage = () => {
   );
 };
 
-// COMPONENTE DASHCARD DECLARADO NO MESMO ESCOPO PARA EVITAR ERROS DE COMPILAÇÃO
 const DashboardCard = ({ title, value, icon }) => {
   return (
     <div className="rounded-[24px] sm:rounded-[28px] border border-violet-500/10 bg-[#111827] p-4 sm:p-5 shadow-xl shadow-black/20 w-full min-w-0 flex flex-col justify-between">

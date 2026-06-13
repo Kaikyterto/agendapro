@@ -43,6 +43,24 @@ const AdminDashboardPage = () => {
   const [forecast, setForecast] = useState({});
   const [insights, setInsights] = useState([]);
 
+  // Estado para controlar responsividade dos eixos do Recharts sem quebrar o SSR/Hydration
+  const [isMobile, setIsMobile] = useState(false);
+  const [screenKey, setScreenKey] = useState(0);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 640);
+      // Altera a key para forçar o Recharts a recalcular o container no mobile sem bugar
+      setScreenKey((prev) => prev + 1);
+    };
+
+    if (typeof window !== "undefined") {
+      handleResize();
+      window.addEventListener("resize", handleResize);
+    }
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   useEffect(() => {
     const load = async () => {
       try {
@@ -145,11 +163,20 @@ const AdminDashboardPage = () => {
               Receita últimos 30 dias
             </h3>
 
-            <div className="h-60 sm:h-72 w-full">
-              <ResponsiveContainer width="100%" height="100%">
+            <div className="h-60 sm:h-72 w-full min-w-0">
+              <ResponsiveContainer
+                width="100%"
+                height="100%"
+                key={`revenue-${screenKey}`}
+              >
                 <AreaChart
                   data={revenueChart}
-                  margin={{ left: -25, right: 5, bottom: 0, top: 10 }}
+                  margin={{
+                    left: isMobile ? -35 : -25,
+                    right: 5,
+                    bottom: 0,
+                    top: 10,
+                  }}
                 >
                   <defs>
                     <linearGradient id="violetFill" x1="0" y1="0" x2="0" y2="1">
@@ -163,7 +190,6 @@ const AdminDashboardPage = () => {
                     vertical={false}
                   />
 
-                  {/* Remove o eixo X em celulares pequenos para ganhar espaço limpo */}
                   <XAxis
                     dataKey="date"
                     stroke="rgba(255,255,255,0.3)"
@@ -171,7 +197,7 @@ const AdminDashboardPage = () => {
                     axisLine={false}
                     fontSize={10}
                     dy={10}
-                    hide={window.innerWidth < 640}
+                    hide={isMobile}
                   />
                   <YAxis
                     stroke="rgba(255,255,255,0.3)"
@@ -223,16 +249,19 @@ const AdminDashboardPage = () => {
             title="Top Serviços"
             data={topServices}
             field="appointments"
+            screenKey={screenKey}
           />
           <RankingCard
             title="Top Produtos"
             data={topProducts}
             field="quantity"
+            screenKey={screenKey}
           />
           <RankingCard
             title="Top Profissionais"
             data={topWorkers}
             field="appointments"
+            screenKey={screenKey}
           />
         </div>
 
@@ -314,9 +343,9 @@ const StatCard = ({ title, value, icon: Icon }) => (
   </div>
 );
 
-const RankingCard = ({ title, data, field }) => (
+const RankingCard = ({ title, data, field, screenKey }) => (
   <div className="bg-[#111827] rounded-3xl p-4 sm:p-5 border border-white/10 w-full min-w-0 flex flex-col justify-between overflow-hidden">
-    <div>
+    <div className="min-w-0 w-full">
       <h3 className="font-bold mb-3 text-sm sm:text-base truncate text-white/90">
         {title}
       </h3>
@@ -339,12 +368,16 @@ const RankingCard = ({ title, data, field }) => (
       </div>
     </div>
 
-    {/* CONTAINER DO RECHARTS CORRIGIDO COM TAMANHO MAXIMO CONTROLADO */}
-    <div className="h-28 mt-4 w-full overflow-hidden">
-      <ResponsiveContainer width="100%" height="100%">
+    {/* CONTAINER GRÁFICO OTIMIZADO PARA MOBILE */}
+    <div className="h-28 mt-4 w-full min-w-0 overflow-hidden">
+      <ResponsiveContainer
+        width="100%"
+        height="100%"
+        key={`ranking-${title}-${screenKey}`}
+      >
         <BarChart
           data={data}
-          margin={{ left: -40, right: 0, bottom: 0, top: 5 }}
+          margin={{ left: -45, right: 0, bottom: 0, top: 5 }}
         >
           <CartesianGrid stroke="rgba(255,255,255,0.03)" vertical={false} />
           <Bar
