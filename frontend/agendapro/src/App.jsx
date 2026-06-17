@@ -16,6 +16,7 @@ import AdminWorkersPage from "./pages/AdminWorkersPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
 import AdminSettingsPage from "./pages/AdminSettingsPage";
 import AdminServicesPage from "./pages/AdminServicesPage";
+import AdminDesignPage from "./pages/AdminDesignPage";
 
 export default function App() {
   return (
@@ -32,13 +33,10 @@ export default function App() {
       <Route path="/admin/:slug" element={<AdminHomePage />} />
       <Route path="/admin/:slug/agendamentos" element={<AdminBookingPage />} />
       <Route path="/admin/:slug/produtos" element={<AdminProductsPage />} />
-      <Route
-        path="/admin/:slug/servicos"
-        element={<AdminServicesPage />}
-      />{" "}
-      {/* 👈 NOVO */}
+      <Route path="/admin/:slug/servicos" element={<AdminServicesPage />} />
       <Route path="/admin/:slug/funcionarios" element={<AdminWorkersPage />} />
       <Route path="/admin/:slug/vendas" element={<AdminDashboardPage />} />
+      <Route path="/admin/:slug/design" element={<AdminDesignPage />} />
       <Route
         path="/admin/:slug/configuracoes"
         element={<AdminSettingsPage />}
