@@ -6,6 +6,7 @@ import { apiFetch } from "./api";
 export function getDesignSettings() {
   return apiFetch("/design", {
     method: "GET",
+    auth: true,
   });
 }
 
@@ -15,6 +16,7 @@ export function getDesignSettings() {
 export function updateDesignSettings(data) {
   return apiFetch("/design", {
     method: "PATCH",
+    auth: true,
 
     headers: {
       "Content-Type": "application/json",
