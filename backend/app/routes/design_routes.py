@@ -1,7 +1,7 @@
 from flask import Blueprint
 from flask_jwt_extended import jwt_required
 
-from app.controllers.company_design_controller import CompanyDesignController
+from app.controllers.design_controller import DesignController
 
 
 design_bp = Blueprint(
@@ -19,7 +19,7 @@ design_bp = Blueprint(
 )
 @jwt_required()
 def get_design():
-    return CompanyDesignController.get_design()
+    return DesignController.get_design()
 
 
 @design_bp.route(
@@ -28,4 +28,4 @@ def get_design():
 )
 @jwt_required()
 def update_design():
-    return CompanyDesignController.update_design()
+    return DesignController.update_design()
