@@ -60,10 +60,10 @@ class DesignController:
             # =====================================================
             # VALIDAÇÕES DAS CORES
             # =====================================================
-            if primary_color and not re.match(CompanyDesignController.HEX_COLOR_REGEX, primary_color):
+            if primary_color and not re.match(DesignController.HEX_COLOR_REGEX, primary_color):
                 return jsonify({"error": "Cor primária inválida. Use o formato hexadecimal (ex: #3b82f6)"}), 400
 
-            if secondary_color and not re.match(CompanyDesignController.HEX_COLOR_REGEX, secondary_color):
+            if secondary_color and not re.match(DesignController.HEX_COLOR_REGEX, secondary_color):
                 return jsonify({"error": "Cor secundária inválida. Use o formato hexadecimal (ex: #64748b)"}), 400
 
             # =====================================================
