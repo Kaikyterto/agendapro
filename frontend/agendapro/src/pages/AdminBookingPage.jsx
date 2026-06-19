@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 
 import {
@@ -29,56 +29,54 @@ const AdminBookingPage = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [workerFilter, setWorkerFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("");
-  const [orderDirection, setOrderDirection] = useState("desc"); // desc = mais recentes, asc = mais antigos
+  const [orderDirection, setOrderDirection] = useState("desc");
 
   const [actionLoading, setActionLoading] = useState(null);
 
-  // =========================================================
-  // LOAD APPOINTMENTS (Suporta atualizações silenciosas de segundo plano)
-  // =========================================================
-  const loadAppointments = async (isBackground = false) => {
-    try {
-      // Só exibe o loading de tela cheia se não for atualização em background
-      if (!isBackground) setLoading(true);
+  // Envolver loadAppointments em useCallback para evitar loops no useEffect
+  const loadAppointments = useCallback(
+    async (isBackground = false) => {
+      if (!slug) return;
+      try {
+        if (!isBackground) setLoading(true);
 
-      const data = await apiFetch(
-        `/appointments?slug=${encodeURIComponent(slug)}`,
-        {
-          method: "GET",
-          auth: true,
-        }
-      );
+        const data = await apiFetch(
+          `/appointments?slug=${encodeURIComponent(slug)}`,
+          {
+            method: "GET",
+            auth: true,
+          }
+        );
 
-      setAppointments(Array.isArray(data) ? data : []);
-      setError(""); // Limpa possíveis erros se a conexão voltar
-    } catch (err) {
-      console.error(err);
-      setError("Erro ao carregar agendamentos");
-      setAppointments([]);
-    } finally {
-      if (!isBackground) setLoading(false);
-    }
-  };
+        // Garante uma nova referência de array estruturada
+        setAppointments(Array.isArray(data) ? [...data] : []);
+        setError("");
+      } catch (err) {
+        console.error(err);
+        setError("Erro ao carregar agendamentos");
+        setAppointments([]);
+      } finally {
+        if (!isBackground) setLoading(false);
+      }
+    },
+    [slug]
+  );
 
-  // POLLING AUTOMÁTICO: Atualiza sempre a cada 15 segundos
+  // POLLING AUTOMÁTICO Corrigido
   useEffect(() => {
     if (!slug) return;
 
-    // Carregamento inicial (com spinner)
+    // Carregamento inicial
     loadAppointments(false);
 
-    // Cria o intervalo para atualizar em segundo plano de 15 em 15s
     const interval = setInterval(() => {
       loadAppointments(true);
     }, 15000);
 
-    // Limpa o intervalo se o usuário sair da página
     return () => clearInterval(interval);
-  }, [slug]);
+  }, [slug, loadAppointments]);
 
-  // =========================================================
   // ACTIONS
-  // =========================================================
   const handleFinish = async (id) => {
     try {
       setActionLoading(id);
@@ -89,14 +87,7 @@ const AdminBookingPage = () => {
       });
 
       setAppointments((prev) =>
-        prev.map((a) =>
-          a.id === id
-            ? {
-                ...a,
-                status: "finished",
-              }
-            : a
-        )
+        prev.map((a) => (a.id === id ? { ...a, status: "finished" } : a))
       );
     } catch (err) {
       console.error(err);
@@ -130,9 +121,7 @@ const AdminBookingPage = () => {
     }
   };
 
-  // =========================================================
   // EXTRACT WORKERS
-  // =========================================================
   const workersList = useMemo(() => {
     const map = new Map();
     appointments.forEach((a) => {
@@ -143,39 +132,37 @@ const AdminBookingPage = () => {
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
   }, [appointments]);
 
-  // =========================================================
-  // FILTER & SORT
-  // =========================================================
+  // FILTER & SORT (Garante isolamento completo do array de estado original)
   const filtered = useMemo(() => {
-    return [...appointments]
-      .filter((a) => {
-        const matchesSearch = a.customer_name
-          ?.toLowerCase()
-          .includes(search.toLowerCase());
+    const filteredArray = appointments.filter((a) => {
+      const matchesSearch = a.customer_name
+        ?.toLowerCase()
+        .includes(search.toLowerCase());
 
-        const matchesStatus =
-          statusFilter === "all" ? true : a.status === statusFilter;
+      const matchesStatus =
+        statusFilter === "all" ? true : a.status === statusFilter;
 
-        const matchesWorker =
-          workerFilter === "all" ? true : String(a.worker?.id) === workerFilter;
+      const matchesWorker =
+        workerFilter === "all" ? true : String(a.worker?.id) === workerFilter;
 
-        let matchesDate = true;
-        if (dateFilter && a.start) {
-          const appointmentDate = new Date(a.start).toISOString().split("T")[0];
-          matchesDate = appointmentDate === dateFilter;
-        }
+      let matchesDate = true;
+      if (dateFilter && a.start) {
+        const appointmentDate = new Date(a.start).toISOString().split("T")[0];
+        matchesDate = appointmentDate === dateFilter;
+      }
 
-        return matchesSearch && matchesStatus && matchesWorker && matchesDate;
-      })
-      .sort((a, b) => {
-        if (!a.start) return 1;
-        if (!b.start) return -1;
+      return matchesSearch && matchesStatus && matchesWorker && matchesDate;
+    });
 
-        const dateA = new Date(a.start).getTime();
-        const dateB = new Date(b.start).getTime();
+    return filteredArray.sort((a, b) => {
+      if (!a.start) return 1;
+      if (!b.start) return -1;
 
-        return orderDirection === "desc" ? dateB - dateA : dateA - dateB;
-      });
+      const dateA = new Date(a.start).getTime();
+      const dateB = new Date(b.start).getTime();
+
+      return orderDirection === "desc" ? dateB - dateA : dateA - dateB;
+    });
   }, [
     appointments,
     search,
@@ -185,9 +172,7 @@ const AdminBookingPage = () => {
     orderDirection,
   ]);
 
-  // =========================================================
   // STATS
-  // =========================================================
   const stats = useMemo(() => {
     return {
       total: appointments.length,
