@@ -6,8 +6,8 @@ import {
   Eye,
   HelpCircle,
   RotateCcw,
-  Calendar, // Adicionado para bater com a HomePage
-  ShoppingBag, // Adicionado para bater com a HomePage
+  Calendar,
+  ShoppingBag,
 } from "lucide-react";
 
 import Button from "../components/Button";
@@ -15,6 +15,7 @@ import { uploadImage } from "../services/upload";
 import { getDesignSettings, updateDesignSettings } from "../services/design";
 
 const initialForm = {
+  name: "", // Mapeado dinamicamente para {company?.name} no preview
   about: "",
   primary_color: "#3b82f6",
   secondary_color: "#64748b",
@@ -54,6 +55,7 @@ const AdminDesignPage = () => {
 
       if (designData) {
         setForm({
+          name: designData.name || "", // Carrega o nome correto da empresa
           about: designData.about || "",
           primary_color: designData.primary_color || "#3b82f6",
           secondary_color: designData.secondary_color || "#64748b",
@@ -346,32 +348,29 @@ const AdminDesignPage = () => {
                 }}
               />
 
-              {/* NAV MINI MINIATURA (Usa o componente ou replica a Nav adaptada) */}
-              <div className="relative z-10 flex items-center justify-between px-4 py-3 border-b border-white/10 bg-[#07090d]/60 backdrop-blur-md">
-                <div className="flex items-center gap-2">
-                  {previewUrl || form.logo_url ? (
-                    <img
-                      src={previewUrl || form.logo_url}
-                      alt="Logo Preview"
-                      className="h-5 max-w-[80px] object-contain"
-                    />
-                  ) : (
-                    <span className="text-xs text-white/30 font-bold">
-                      Logo
-                    </span>
-                  )}
-                </div>
-                <div className="w-5 h-5 rounded-full bg-white/10" />
+              {/* NAV MINI MINIATURA (LOGO EXATAMENTE NO CENTRO) */}
+              <div className="relative z-10 flex items-center justify-center px-4 py-3 border-b border-white/10 bg-[#07090d]/60 backdrop-blur-md">
+                {previewUrl || form.logo_url ? (
+                  <img
+                    src={previewUrl || form.logo_url}
+                    alt="Logo Preview"
+                    className="h-5 max-w-[120px] object-contain"
+                  />
+                ) : (
+                  <span className="text-xs text-white/30 font-bold tracking-wider uppercase">
+                    Logo
+                  </span>
+                )}
               </div>
 
-              {/* CONTEÚDO DA HOME (LEFT SECTION REPLICADA EM MINIATURA) */}
+              {/* CONTEÚDO DA HOME (IGUAL À ESTRUTURA DO LEFT DA HOMEPAGE REAL) */}
               <div className="relative z-10 p-6 flex-1 flex flex-col justify-center text-center">
-                {/* Nome da Empresa */}
+                {/* Nome real da empresa dinâmico vindo da API */}
                 <h1 className="text-2xl font-black tracking-tighter leading-tight mb-2 text-white">
-                  Nome da Empresa
+                  {form.name || "Minha Empresa"}
                 </h1>
 
-                {/* About da Empresa */}
+                {/* Descrição institucional da empresa */}
                 <p className="text-xs text-white/60 mb-6 line-clamp-3 max-w-xs mx-auto">
                   {form.about ||
                     "Bem-vindo à nossa plataforma de agendamentos e produtos."}
