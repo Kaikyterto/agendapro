@@ -6,6 +6,8 @@ import {
   Eye,
   HelpCircle,
   RotateCcw,
+  Calendar, // Adicionado para bater com a HomePage
+  ShoppingBag, // Adicionado para bater com a HomePage
 } from "lucide-react";
 
 import Button from "../components/Button";
@@ -184,7 +186,7 @@ const AdminDesignPage = () => {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* SELETORES DE COR INTERATIVOS (ESFERA) */}
+              {/* SELETORES DE COR */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 {/* COR PRIMÁRIA */}
                 <div className="bg-[#0f172a] border border-white/5 p-4 rounded-2xl flex flex-col items-center">
@@ -192,7 +194,6 @@ const AdminDesignPage = () => {
                     Cor Primária
                   </label>
 
-                  {/* Container da Esfera de Cor */}
                   <div className="relative group cursor-pointer w-24 h-24 mb-4">
                     <div
                       className="absolute inset-0 rounded-full blur-md opacity-40 transition-opacity group-hover:opacity-70"
@@ -232,7 +233,6 @@ const AdminDesignPage = () => {
                     Cor Secundária
                   </label>
 
-                  {/* Container da Esfera de Cor */}
                   <div className="relative group cursor-pointer w-24 h-24 mb-4">
                     <div
                       className="absolute inset-0 rounded-full blur-md opacity-40 transition-opacity group-hover:opacity-70"
@@ -328,76 +328,82 @@ const AdminDesignPage = () => {
             </form>
           </div>
 
-          {/* PREVIEW INTERATIVO - MINI HOME PAGE REAL */}
+          {/* PREVIEW INTERATIVO - MINI HOME PAGE REESTRUTURADA */}
           <div className="lg:col-span-5 space-y-4 lg:sticky lg:top-8">
             <div className="flex items-center gap-2 px-1 text-white/60 text-xs font-bold uppercase tracking-wider">
               <Eye size={14} /> Pré-visualização em tempo real
             </div>
 
-            <div className="rounded-[28px] sm:rounded-[32px] bg-[#07090d] border border-white/10 overflow-hidden shadow-2xl scale-[0.92] origin-top">
-              {/* BACKGROUND IGUAL HOME */}
+            <div className="relative rounded-[28px] sm:rounded-[32px] bg-[#07090d] border border-white/10 overflow-hidden shadow-2xl scale-[0.92] origin-top min-h-[450px] flex flex-col justify-between">
+              {/* BACKGROUND FIEL À HOME REAL */}
               <div
                 className="absolute inset-0 opacity-30 pointer-events-none"
                 style={{
                   background: `
-          radial-gradient(circle at 20% 30%, ${form.primary_color} 0%, transparent 40%),
-          radial-gradient(circle at 80% 70%, ${form.secondary_color} 0%, transparent 40%)
-        `,
+                    radial-gradient(circle at 20% 30%, ${form.primary_color} 0%, transparent 40%),
+                    radial-gradient(circle at 80% 70%, ${form.secondary_color} 0%, transparent 40%)
+                  `,
                 }}
               />
 
-              {/* NAV MINI */}
-              <div className="relative z-10 flex items-center justify-between px-4 py-3 border-b border-white/10">
+              {/* NAV MINI MINIATURA (Usa o componente ou replica a Nav adaptada) */}
+              <div className="relative z-10 flex items-center justify-between px-4 py-3 border-b border-white/10 bg-[#07090d]/60 backdrop-blur-md">
                 <div className="flex items-center gap-2">
                   {previewUrl || form.logo_url ? (
                     <img
                       src={previewUrl || form.logo_url}
+                      alt="Logo Preview"
                       className="h-5 max-w-[80px] object-contain"
                     />
                   ) : (
-                    <span className="text-xs text-white/30">Logo</span>
+                    <span className="text-xs text-white/30 font-bold">
+                      Logo
+                    </span>
                   )}
                 </div>
-
-                <div className="w-6 h-6 rounded-full bg-white/10" />
+                <div className="w-5 h-5 rounded-full bg-white/10" />
               </div>
 
-              {/* CONTEÚDO HOME */}
-              <div className="relative z-10 p-4 space-y-4">
-                {/* TÍTULO */}
-                <h1 className="text-xl font-black text-white leading-tight">
-                  Sua Empresa
+              {/* CONTEÚDO DA HOME (LEFT SECTION REPLICADA EM MINIATURA) */}
+              <div className="relative z-10 p-6 flex-1 flex flex-col justify-center text-center">
+                {/* Nome da Empresa */}
+                <h1 className="text-2xl font-black tracking-tighter leading-tight mb-2 text-white">
+                  Nome da Empresa
                 </h1>
 
-                <h2 className="text-lg font-black text-white/90">
-                  {form.about || "Descrição da empresa aparece aqui"}
-                </h2>
+                {/* About da Empresa */}
+                <p className="text-xs text-white/60 mb-6 line-clamp-3 max-w-xs mx-auto">
+                  {form.about ||
+                    "Bem-vindo à nossa plataforma de agendamentos e produtos."}
+                </p>
 
-                {/* BOTÕES IGUAIS HOME */}
-                <div className="space-y-2">
+                {/* BOTÕES COM ESTRUTURA IGUAL À HOME PAGE */}
+                <div className="flex flex-col gap-2 w-full max-w-[200px] mx-auto">
                   <button
-                    className="w-full h-9 rounded-lg text-xs font-bold text-white"
+                    type="button"
+                    className="h-10 px-4 rounded-lg text-xs font-bold text-white flex items-center justify-center gap-1.5 transition-all shadow-md"
                     style={{ backgroundColor: form.primary_color }}
                   >
+                    <Calendar size={12} />
                     Agendar Serviço
                   </button>
 
                   <button
-                    className="w-full h-9 rounded-lg text-xs border"
-                    style={{
-                      color: form.secondary_color,
-                      borderColor: form.secondary_color,
-                      backgroundColor: `${form.secondary_color}15`,
-                    }}
+                    type="button"
+                    className="h-10 px-4 rounded-lg text-xs font-bold text-white flex items-center justify-center gap-1.5 border border-white/10 bg-white/5 transition-all"
                   >
+                    <ShoppingBag size={12} />
                     Ver Produtos
                   </button>
                 </div>
               </div>
-            </div>
 
-            <div className="text-[10px] text-white/30 flex items-center gap-1 px-1">
-              <HelpCircle size={10} /> Esta é uma miniatura da HomePage real
+              {/* FOOTER DO PREVIEW */}
+              <div className="relative z-10 p-2 text-center border-t border-white/5 bg-[#07090d]/40">
+                <div className="text-[10px] text-white/30 flex items-center justify-center gap-1">
+                  <HelpCircle size={10} /> Esta é uma miniatura da HomePage real
+                </div>
+              </div>
             </div>
           </div>
         </div>
