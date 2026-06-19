@@ -296,19 +296,6 @@ const CompanyBookingPage = () => {
 
       <Nav logo={company?.logo} />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8">
-        <button
-          onClick={() => window.history.back()}
-          className="group flex items-center gap-3 text-white/70 hover:text-white transition-all"
-        >
-          <div className="w-11 h-11 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl flex items-center justify-center transition-all group-hover:scale-105 group-hover:border-white/20">
-            <ArrowLeft size={18} />
-          </div>
-
-          <span className="font-medium">Voltar</span>
-        </button>
-      </div>
-
       <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-14 sm:py-20">
         <div className="max-w-5xl">
           <div
