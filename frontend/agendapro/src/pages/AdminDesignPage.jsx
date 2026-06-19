@@ -328,66 +328,76 @@ const AdminDesignPage = () => {
             </form>
           </div>
 
-          {/* PREVIEW INTERATIVO */}
+          {/* PREVIEW INTERATIVO - MINI HOME PAGE REAL */}
           <div className="lg:col-span-5 space-y-4 lg:sticky lg:top-8">
             <div className="flex items-center gap-2 px-1 text-white/60 text-xs font-bold uppercase tracking-wider">
               <Eye size={14} /> Pré-visualização em tempo real
             </div>
 
-            <div className="rounded-[28px] sm:rounded-[32px] bg-[#111827] border border-white/5 p-6 overflow-hidden relative shadow-2xl flex flex-col items-center justify-center min-h-[380px]">
-              <div className="w-full border-b border-white/5 pb-4 mb-6 flex items-center justify-between">
+            <div className="rounded-[28px] sm:rounded-[32px] bg-[#07090d] border border-white/10 overflow-hidden shadow-2xl scale-[0.92] origin-top">
+              {/* BACKGROUND IGUAL HOME */}
+              <div
+                className="absolute inset-0 opacity-30 pointer-events-none"
+                style={{
+                  background: `
+          radial-gradient(circle at 20% 30%, ${form.primary_color} 0%, transparent 40%),
+          radial-gradient(circle at 80% 70%, ${form.secondary_color} 0%, transparent 40%)
+        `,
+                }}
+              />
+
+              {/* NAV MINI */}
+              <div className="relative z-10 flex items-center justify-between px-4 py-3 border-b border-white/10">
                 <div className="flex items-center gap-2">
                   {previewUrl || form.logo_url ? (
                     <img
                       src={previewUrl || form.logo_url}
-                      alt="Logo Tenant"
-                      className="h-7 max-w-[120px] object-contain"
+                      className="h-5 max-w-[80px] object-contain"
                     />
                   ) : (
-                    <div className="flex items-center gap-1.5 text-white/30 text-xs font-bold">
-                      [Sua Logo Aqui]
-                    </div>
+                    <span className="text-xs text-white/30">Logo</span>
                   )}
                 </div>
-                <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10" />
+
+                <div className="w-6 h-6 rounded-full bg-white/10" />
               </div>
 
-              <div className="w-full bg-[#0f172a] rounded-2xl p-5 border border-white/5 shadow-inner">
-                <div className="w-1/3 h-2 bg-white/20 rounded mb-2" />
-                <div className="w-2/3 h-3 bg-white/10 rounded mb-6" />
+              {/* CONTEÚDO HOME */}
+              <div className="relative z-10 p-4 space-y-4">
+                {/* TÍTULO */}
+                <h1 className="text-xl font-black text-white leading-tight">
+                  Sua Empresa
+                </h1>
 
-                <p className="text-white/50 text-xs mb-6 break-words min-h-[32px]">
-                  {form.about.trim() ||
-                    "A descrição institucional do seu SaaS mudará instantaneamente aqui."}
-                </p>
+                <h2 className="text-lg font-black text-white/90">
+                  {form.about || "Descrição da empresa aparece aqui"}
+                </h2>
 
-                <div className="space-y-2.5">
+                {/* BOTÕES IGUAIS HOME */}
+                <div className="space-y-2">
                   <button
-                    type="button"
+                    className="w-full h-9 rounded-lg text-xs font-bold text-white"
                     style={{ backgroundColor: form.primary_color }}
-                    className="w-full h-11 rounded-xl text-white font-bold text-xs transition-opacity hover:opacity-90 shadow-md"
                   >
-                    Botão Primário Ativo
+                    Agendar Serviço
                   </button>
 
                   <button
-                    type="button"
+                    className="w-full h-9 rounded-lg text-xs border"
                     style={{
-                      backgroundColor: `${form.secondary_color}15`,
                       color: form.secondary_color,
-                      borderColor: `${form.secondary_color}30`,
+                      borderColor: form.secondary_color,
+                      backgroundColor: `${form.secondary_color}15`,
                     }}
-                    className="w-full h-11 rounded-xl font-bold text-xs border text-center"
                   >
-                    Botão Secundário / Bordas
+                    Ver Produtos
                   </button>
                 </div>
               </div>
+            </div>
 
-              <div className="mt-4 text-[10px] text-white/30 flex items-center gap-1">
-                <HelpCircle size={10} /> Ajuste nas esferas ao lado para testar
-                combinações.
-              </div>
+            <div className="text-[10px] text-white/30 flex items-center gap-1 px-1">
+              <HelpCircle size={10} /> Esta é uma miniatura da HomePage real
             </div>
           </div>
         </div>
