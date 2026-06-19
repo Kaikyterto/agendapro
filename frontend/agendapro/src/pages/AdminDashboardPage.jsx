@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import {
   TrendingUp,
   DollarSign,
@@ -61,11 +61,10 @@ const AdminDashboardPage = () => {
   }, []);
 
   // =========================================================
-  // FUNÇÃO DE CARREGAMENTO (Suporta atualização silenciosa)
+  // FUNÇÃO DE CARREGAMENTO (Memorizada para garantir o Polling estável)
   // =========================================================
-  const loadDashboardData = async (isBackground = false) => {
+  const loadDashboardData = useCallback(async (isBackground = false) => {
     try {
-      // Só ativa o spinner global se não for uma atualização em background
       if (!isBackground) setLoading(true);
 
       const [o, r, s, w, p, occ, f, i] = await Promise.all([
@@ -79,35 +78,36 @@ const AdminDashboardPage = () => {
         getInsights(),
       ]);
 
-      setOverview(o || {});
-      setRevenueChart(r || []);
-      setTopServices(s || []);
-      setTopWorkers(w || []);
-      setTopProducts(p || []);
-      setOccupancy(occ || {});
-      setForecast(f || {});
-      setInsights(i || []);
-      setError(""); // Limpa o erro caso a conexão reestabeleça
+      // Forçando novas referências de array/objeto para forçar a atualização do Recharts
+      setOverview(o ? { ...o } : {});
+      setRevenueChart(Array.isArray(r) ? [...r] : []);
+      setTopServices(Array.isArray(s) ? [...s] : []);
+      setTopWorkers(Array.isArray(w) ? [...w] : []);
+      setTopProducts(Array.isArray(p) ? [...p] : []);
+      setOccupancy(occ ? { ...occ } : {});
+      setForecast(f ? { ...f } : {});
+      setInsights(Array.isArray(i) ? [...i] : []);
+
+      setError("");
     } catch (err) {
       console.error(err);
       setError("Erro ao atualizar dados do dashboard");
     } finally {
       if (!isBackground) setLoading(false);
     }
-  };
+  }, []);
 
-  // POLLING AUTOMÁTICO: Atualiza a cada 30 segundos
+  // POLLING AUTOMÁTICO: Atualiza rigidamente a cada 30 segundos
   useEffect(() => {
-    // Carregamento inicial com tela de loading
+    // Chamada inicial
     loadDashboardData(false);
 
-    // Define o intervalo para atualizações silenciosas em background
     const interval = setInterval(() => {
       loadDashboardData(true);
-    }, 30000); // 30 segundos é um tempo excelente para métricas de BI
+    }, 30000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [loadDashboardData]);
 
   const occupancyPercent = useMemo(
     () => occupancy?.occupancy_rate || 0,
