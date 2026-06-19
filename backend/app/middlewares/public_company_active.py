@@ -19,17 +19,24 @@ def public_company_active(fn):
         if not company:
             return jsonify({"error": "Empresa não encontrada"}), 404
 
-        # Deve estar ativa
+        
         if company.status != "active":
             return jsonify({"error": "Empresa inativa"}), 403
 
-        # Não pode estar expirada
-        if (
-            company.expires_at is not None
-            and company.expires_at <= datetime.now(timezone.utc)
-        ):
-            return jsonify({"error": "Plano expirado"}), 403
+        
+        if company.expires_at is not None:
 
+            now = datetime.now(timezone.utc)
+            expires_at = company.expires_at
+
+            
+            if expires_at.tzinfo is None:
+                expires_at = expires_at.replace(tzinfo=timezone.utc)
+
+            if expires_at <= now:
+                return jsonify({"error": "Plano expirado"}), 403
+
+        
         kwargs["company"] = company
 
         return fn(*args, **kwargs)

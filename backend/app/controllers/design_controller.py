@@ -1,12 +1,11 @@
 import re
 from flask import request, jsonify
-from flask_jwt_extended import get_jwt
+from flask_jwt_extended import get_jwt_identity
 from app.database.db import db
 from app.models.company import Company  
 
 class DesignController:
 
-    #
     HEX_COLOR_REGEX = r"^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$"
 
     # =========================================================
@@ -15,9 +14,11 @@ class DesignController:
     @staticmethod
     def get_design():
         try:
-            # Pega o ID da empresa logada via JWT
-            company_id = get_jwt().get("company_id")
-            
+            company_id = get_jwt_identity()
+
+            if not company_id:
+                return jsonify({"error": "Token inválido ou ausente"}), 401
+
             company = Company.query.get(company_id)
             if not company:
                 return jsonify({"error": "Empresa não encontrada"}), 404
@@ -45,29 +46,31 @@ class DesignController:
         data = request.get_json() or {}
 
         try:
-            company_id = get_jwt().get("company_id")
-            
+            company_id = get_jwt_identity()
+
+            if not company_id:
+                return jsonify({"error": "Token inválido ou ausente"}), 401
+
             company = Company.query.get(company_id)
             if not company:
                 return jsonify({"error": "Empresa não encontrada"}), 404
 
-            # Captura os dados enviados (mantém o que já existe caso não seja enviado)
             primary_color = data.get("primary_color", company.primary_color)
             secondary_color = data.get("secondary_color", company.secondary_color)
             about = data.get("about", company.about)
-            logo_url = data.get("logo_url", company.logo_url)  # Se você salvar a URL string direto
+            logo_url = data.get("logo_url", company.logo_url)
 
             # =====================================================
             # VALIDAÇÕES DAS CORES
             # =====================================================
             if primary_color and not re.match(DesignController.HEX_COLOR_REGEX, primary_color):
-                return jsonify({"error": "Cor primária inválida. Use o formato hexadecimal (ex: #3b82f6)"}), 400
+                return jsonify({"error": "Cor primária inválida (ex: #3b82f6)"}), 400
 
             if secondary_color and not re.match(DesignController.HEX_COLOR_REGEX, secondary_color):
-                return jsonify({"error": "Cor secundária inválida. Use o formato hexadecimal (ex: #64748b)"}), 400
+                return jsonify({"error": "Cor secundária inválida (ex: #64748b)"}), 400
 
             # =====================================================
-            # ATUALIZAÇÃO DOS CAMPOS
+            # ATUALIZAÇÃO
             # =====================================================
             company.primary_color = primary_color
             company.secondary_color = secondary_color
