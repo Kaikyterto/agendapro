@@ -55,7 +55,7 @@ const AdminDesignPage = () => {
 
       if (designData) {
         setForm({
-          name: designData.name || "", // Carrega o nome correto da empresa
+          name: designData.name || "",
           about: designData.about || "",
           primary_color: designData.primary_color || "#3b82f6",
           secondary_color: designData.secondary_color || "#64748b",
@@ -330,25 +330,25 @@ const AdminDesignPage = () => {
             </form>
           </div>
 
-          {/* PREVIEW INTERATIVO - MINI HOME PAGE REESTRUTURADA */}
+          {/* PREVIEW INTERATIVO ATUALIZADO COMPATÍVEL COM O NOVO VISUAL DA HOME */}
           <div className="lg:col-span-5 space-y-4 lg:sticky lg:top-8">
             <div className="flex items-center gap-2 px-1 text-white/60 text-xs font-bold uppercase tracking-wider">
               <Eye size={14} /> Pré-visualização em tempo real
             </div>
 
-            <div className="relative rounded-[28px] sm:rounded-[32px] bg-[#07090d] border border-white/10 overflow-hidden shadow-2xl scale-[0.92] origin-top min-h-[450px] flex flex-col justify-between">
-              {/* BACKGROUND FIEL À HOME REAL */}
+            <div className="relative rounded-[28px] sm:rounded-[32px] bg-[#07090d] border border-white/10 overflow-hidden shadow-2xl scale-[0.92] origin-top min-h-[480px] flex flex-col justify-between">
+              {/* BACKGROUND AURORA FIEL À REALIDADE */}
               <div
-                className="absolute inset-0 opacity-30 pointer-events-none"
+                className="absolute inset-0 opacity-25 pointer-events-none mix-blend-screen"
                 style={{
                   background: `
-                    radial-gradient(circle at 20% 30%, ${form.primary_color} 0%, transparent 40%),
-                    radial-gradient(circle at 80% 70%, ${form.secondary_color} 0%, transparent 40%)
+                    radial-gradient(circle at 15% 25%, ${form.primary_color} 0%, transparent 45%),
+                    radial-gradient(circle at 85% 75%, ${form.secondary_color} 0%, transparent 45%)
                   `,
                 }}
               />
 
-              {/* NAV MINI MINIATURA (LOGO EXATAMENTE NO CENTRO) */}
+              {/* NAVBAR MINIATURA (IMAGEM CENTRALIZADA) */}
               <div className="relative z-10 flex items-center justify-center px-4 py-3 border-b border-white/10 bg-[#07090d]/60 backdrop-blur-md">
                 {previewUrl || form.logo_url ? (
                   <img
@@ -363,44 +363,76 @@ const AdminDesignPage = () => {
                 )}
               </div>
 
-              {/* CONTEÚDO DA HOME (IGUAL À ESTRUTURA DO LEFT DA HOMEPAGE REAL) */}
-              <div className="relative z-10 p-6 flex-1 flex flex-col justify-center text-center">
-                {/* Nome real da empresa dinâmico vindo da API */}
-                <h1 className="text-2xl font-black tracking-tighter leading-tight mb-2 text-white">
-                  {form.name || "Minha Empresa"}
-                </h1>
+              {/* GRID INTERNO REESTRUTURADO PARA SIMULAR AS DUAS COLUNAS DA HOME PAGE */}
+              <div className="relative z-10 p-5 flex-1 flex flex-col justify-center gap-6">
+                {/* 1. MOLDURA PREMIUM DE DESTAQUE PARA A LOGO (Simula a Right Column) */}
+                <div className="flex justify-center">
+                  <div className="relative w-full max-w-[150px] aspect-square flex items-center justify-center">
+                    {/* Brilho de fundo */}
+                    <div
+                      className="absolute inset-0 blur-2xl opacity-40 rounded-full"
+                      style={{ backgroundColor: form.primary_color }}
+                    />
+                    {/* Card de Vidro da Logo */}
+                    <div className="absolute inset-0 bg-gradient-to-b from-white/[0.08] to-transparent border border-white/[0.1] backdrop-blur-md rounded-2xl p-4 flex items-center justify-center shadow-lg">
+                      {previewUrl || form.logo_url ? (
+                        <img
+                          src={previewUrl || form.logo_url}
+                          alt="Logo Hero"
+                          className="max-w-full max-h-full object-contain filter drop-shadow-md"
+                        />
+                      ) : (
+                        <div
+                          className="w-12 h-12 rounded-xl flex items-center justify-center text-lg font-black text-white"
+                          style={{
+                            background: `linear-gradient(135deg, ${form.primary_color}, ${form.secondary_color})`,
+                          }}
+                        >
+                          {form.name ? form.name.charAt(0).toUpperCase() : "E"}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
 
-                {/* Descrição institucional da empresa */}
-                <p className="text-xs text-white/60 mb-6 line-clamp-3 max-w-xs mx-auto">
-                  {form.about ||
-                    "Bem-vindo à nossa plataforma de agendamentos e produtos."}
-                </p>
+                {/* 2. TEXTOS E BOTÕES (Simula a Left Column centralizada no preview) */}
+                <div className="text-center">
+                  <h1 className="text-xl font-black tracking-tight leading-tight mb-1 bg-gradient-to-b from-white to-white/80 bg-clip-text text-transparent">
+                    {form.name || "Minha Empresa"}
+                  </h1>
 
-                {/* BOTÕES COM ESTRUTURA IGUAL À HOME PAGE */}
-                <div className="flex flex-col gap-2 w-full max-w-[200px] mx-auto">
-                  <button
-                    type="button"
-                    className="h-10 px-4 rounded-lg text-xs font-bold text-white flex items-center justify-center gap-1.5 transition-all shadow-md"
-                    style={{ backgroundColor: form.primary_color }}
-                  >
-                    <Calendar size={12} />
-                    Agendar Serviço
-                  </button>
+                  <p className="text-[11px] text-white/50 mb-4 line-clamp-2 max-w-[240px] mx-auto leading-relaxed">
+                    {form.about ||
+                      "Bem-vindo à nossa plataforma de agendamentos e produtos."}
+                  </p>
 
-                  <button
-                    type="button"
-                    className="h-10 px-4 rounded-lg text-xs font-bold text-white flex items-center justify-center gap-1.5 border border-white/10 bg-white/5 transition-all"
-                  >
-                    <ShoppingBag size={12} />
-                    Ver Produtos
-                  </button>
+                  {/* Ações */}
+                  <div className="flex flex-col gap-2 w-full max-w-[180px] mx-auto">
+                    <button
+                      type="button"
+                      className="h-9 px-4 rounded-lg text-xs font-bold text-white flex items-center justify-center gap-1.5 transition-all shadow-md"
+                      style={{ backgroundColor: form.primary_color }}
+                    >
+                      <Calendar size={11} />
+                      Agendar Serviço
+                    </button>
+
+                    <button
+                      type="button"
+                      className="h-9 px-4 rounded-lg text-xs font-bold text-white flex items-center justify-center gap-1.5 border border-white/10 bg-white/5 backdrop-blur-sm"
+                    >
+                      <ShoppingBag size={11} />
+                      Ver Produtos
+                    </button>
+                  </div>
                 </div>
               </div>
 
               {/* FOOTER DO PREVIEW */}
               <div className="relative z-10 p-2 text-center border-t border-white/5 bg-[#07090d]/40">
                 <div className="text-[10px] text-white/30 flex items-center justify-center gap-1">
-                  <HelpCircle size={10} /> Esta é uma miniatura da HomePage real
+                  <HelpCircle size={10} /> Miniatura sincronizada com o novo
+                  layout hero
                 </div>
               </div>
             </div>
