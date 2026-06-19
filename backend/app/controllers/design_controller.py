@@ -1,8 +1,11 @@
 import re
 from flask import request, jsonify
 from flask_jwt_extended import get_jwt_identity
+
 from app.database.db import db
-from app.models.company import Company  
+from app.models.company import Company
+from app.models.user import User   
+
 
 class DesignController:
 
@@ -14,12 +17,16 @@ class DesignController:
     @staticmethod
     def get_design():
         try:
-            company_id = get_jwt_identity()
+            user_id = get_jwt_identity()
 
-            if not company_id:
+            if not user_id:
                 return jsonify({"error": "Token inválido ou ausente"}), 401
 
-            company = Company.query.get(company_id)
+            user = User.query.get(user_id)
+            if not user:
+                return jsonify({"error": "Usuário não encontrado"}), 404
+
+            company = Company.query.get(user.company_id)
             if not company:
                 return jsonify({"error": "Empresa não encontrada"}), 404
 
@@ -46,12 +53,16 @@ class DesignController:
         data = request.get_json() or {}
 
         try:
-            company_id = get_jwt_identity()
+            user_id = get_jwt_identity()
 
-            if not company_id:
+            if not user_id:
                 return jsonify({"error": "Token inválido ou ausente"}), 401
 
-            company = Company.query.get(company_id)
+            user = User.query.get(user_id)
+            if not user:
+                return jsonify({"error": "Usuário não encontrado"}), 404
+
+            company = Company.query.get(user.company_id)
             if not company:
                 return jsonify({"error": "Empresa não encontrada"}), 404
 
@@ -61,7 +72,7 @@ class DesignController:
             logo_url = data.get("logo_url", company.logo_url)
 
             # =====================================================
-            # VALIDAÇÕES DAS CORES
+            # VALIDAÇÕES
             # =====================================================
             if primary_color and not re.match(DesignController.HEX_COLOR_REGEX, primary_color):
                 return jsonify({"error": "Cor primária inválida (ex: #3b82f6)"}), 400
