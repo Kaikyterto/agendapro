@@ -46,6 +46,7 @@ const AdminDashboardPage = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [screenKey, setScreenKey] = useState(0);
 
+  // Controle de redimensionamento da tela
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 640);
@@ -59,39 +60,53 @@ const AdminDashboardPage = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // =========================================================
+  // FUNÇÃO DE CARREGAMENTO (Suporta atualização silenciosa)
+  // =========================================================
+  const loadDashboardData = async (isBackground = false) => {
+    try {
+      // Só ativa o spinner global se não for uma atualização em background
+      if (!isBackground) setLoading(true);
+
+      const [o, r, s, w, p, occ, f, i] = await Promise.all([
+        getDashboardOverview(),
+        getRevenueChart(),
+        getTopServices(),
+        getTopWorkers(),
+        getTopProducts(),
+        getOccupancy(),
+        getForecast(),
+        getInsights(),
+      ]);
+
+      setOverview(o || {});
+      setRevenueChart(r || []);
+      setTopServices(s || []);
+      setTopWorkers(w || []);
+      setTopProducts(p || []);
+      setOccupancy(occ || {});
+      setForecast(f || {});
+      setInsights(i || []);
+      setError(""); // Limpa o erro caso a conexão reestabeleça
+    } catch (err) {
+      console.error(err);
+      setError("Erro ao atualizar dados do dashboard");
+    } finally {
+      if (!isBackground) setLoading(false);
+    }
+  };
+
+  // POLLING AUTOMÁTICO: Atualiza a cada 30 segundos
   useEffect(() => {
-    const load = async () => {
-      try {
-        setLoading(true);
+    // Carregamento inicial com tela de loading
+    loadDashboardData(false);
 
-        const [o, r, s, w, p, occ, f, i] = await Promise.all([
-          getDashboardOverview(),
-          getRevenueChart(),
-          getTopServices(),
-          getTopWorkers(),
-          getTopProducts(),
-          getOccupancy(),
-          getForecast(),
-          getInsights(),
-        ]);
+    // Define o intervalo para atualizações silenciosas em background
+    const interval = setInterval(() => {
+      loadDashboardData(true);
+    }, 30000); // 30 segundos é um tempo excelente para métricas de BI
 
-        setOverview(o || {});
-        setRevenueChart(r || []);
-        setTopServices(s || []);
-        setTopWorkers(w || []);
-        setTopProducts(p || []);
-        setOccupancy(occ || {});
-        setForecast(f || {});
-        setInsights(i || []);
-      } catch (err) {
-        console.error(err);
-        setError("Erro ao carregar dashboard");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    load();
+    return () => clearInterval(interval);
   }, []);
 
   const occupancyPercent = useMemo(
@@ -116,7 +131,8 @@ const AdminDashboardPage = () => {
             Business Intelligence
           </h1>
           <p className="text-white/50 mt-1 text-xs sm:text-sm">
-            Métricas, previsões e insights do negócio.
+            Métricas, previsões e insights do negócio (atualizado em tempo
+            real).
           </p>
         </div>
 

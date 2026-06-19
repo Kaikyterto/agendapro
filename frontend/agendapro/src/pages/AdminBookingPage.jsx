@@ -12,7 +12,6 @@ import {
   CheckCircle2,
   XCircle,
   CalendarClock,
-  SlidersHorizontal,
 } from "lucide-react";
 
 import { apiFetch } from "../services/api";
@@ -35,12 +34,12 @@ const AdminBookingPage = () => {
   const [actionLoading, setActionLoading] = useState(null);
 
   // =========================================================
-  // LOAD APPOINTMENTS
+  // LOAD APPOINTMENTS (Suporta atualizações silenciosas de segundo plano)
   // =========================================================
-
-  const loadAppointments = async () => {
+  const loadAppointments = async (isBackground = false) => {
     try {
-      setLoading(true);
+      // Só exibe o loading de tela cheia se não for atualização em background
+      if (!isBackground) setLoading(true);
 
       const data = await apiFetch(
         `/appointments?slug=${encodeURIComponent(slug)}`,
@@ -51,25 +50,35 @@ const AdminBookingPage = () => {
       );
 
       setAppointments(Array.isArray(data) ? data : []);
+      setError(""); // Limpa possíveis erros se a conexão voltar
     } catch (err) {
       console.error(err);
       setError("Erro ao carregar agendamentos");
       setAppointments([]);
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
   };
 
+  // POLLING AUTOMÁTICO: Atualiza sempre a cada 15 segundos
   useEffect(() => {
-    if (slug) {
-      loadAppointments();
-    }
+    if (!slug) return;
+
+    // Carregamento inicial (com spinner)
+    loadAppointments(false);
+
+    // Cria o intervalo para atualizar em segundo plano de 15 em 15s
+    const interval = setInterval(() => {
+      loadAppointments(true);
+    }, 15000);
+
+    // Limpa o intervalo se o usuário sair da página
+    return () => clearInterval(interval);
   }, [slug]);
 
   // =========================================================
   // ACTIONS
   // =========================================================
-
   const handleFinish = async (id) => {
     try {
       setActionLoading(id);
@@ -122,7 +131,7 @@ const AdminBookingPage = () => {
   };
 
   // =========================================================
-  // EXTRACT WORKERS (Lista única de profissionais dos agendamentos)
+  // EXTRACT WORKERS
   // =========================================================
   const workersList = useMemo(() => {
     const map = new Map();
@@ -135,9 +144,8 @@ const AdminBookingPage = () => {
   }, [appointments]);
 
   // =========================================================
-  // FILTER & SORT (Padrão inicial por Data)
+  // FILTER & SORT
   // =========================================================
-
   const filtered = useMemo(() => {
     return [...appointments]
       .filter((a) => {
@@ -166,7 +174,6 @@ const AdminBookingPage = () => {
         const dateA = new Date(a.start).getTime();
         const dateB = new Date(b.start).getTime();
 
-        // Ordem cronológica por data
         return orderDirection === "desc" ? dateB - dateA : dateA - dateB;
       });
   }, [
@@ -181,7 +188,6 @@ const AdminBookingPage = () => {
   // =========================================================
   // STATS
   // =========================================================
-
   const stats = useMemo(() => {
     return {
       total: appointments.length,
@@ -214,7 +220,7 @@ const AdminBookingPage = () => {
                 Agendamentos
               </h1>
               <p className="text-white/50 mt-1 text-sm">
-                Gerencie os horários da sua empresa
+                Gerencie os horários da sua empresa (atualizado em tempo real)
               </p>
             </div>
           </div>
@@ -260,7 +266,6 @@ const AdminBookingPage = () => {
 
         {/* PAINEL DE FILTROS ORGANIZADO */}
         <div className="bg-[#111827] border border-white/5 rounded-3xl p-4 sm:p-5 shadow-xl space-y-4">
-          {/* Barra de Busca Principal */}
           <div className="flex items-center gap-3 bg-black/20 border border-white/5 rounded-2xl px-4 h-13">
             <Search size={18} className="text-violet-300 shrink-0" />
             <input
@@ -271,14 +276,13 @@ const AdminBookingPage = () => {
             />
           </div>
 
-          {/* Subfiltros Explicativos */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Status */}
             <div className="flex flex-col gap-1.5">
               <label className="text-[10px] uppercase tracking-wider text-white/40 font-bold px-1">
                 Filtrar por Status
               </label>
-              <div className="bg-black/20 border border-white/10 rounded-xl px-3 h-11 flex items-center transition-all focus-within:border-violet-500/50">
+              <div className="bg-black/20 border border-white/10 rounded-xl px-3 h-11 flex items-center">
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
@@ -305,7 +309,7 @@ const AdminBookingPage = () => {
               <label className="text-[10px] uppercase tracking-wider text-white/40 font-bold px-1">
                 Filtrar por Profissional
               </label>
-              <div className="bg-black/20 border border-white/10 rounded-xl px-3 h-11 flex items-center transition-all focus-within:border-violet-500/50">
+              <div className="bg-black/20 border border-white/10 rounded-xl px-3 h-11 flex items-center">
                 <select
                   value={workerFilter}
                   onChange={(e) => setWorkerFilter(e.target.value)}
@@ -328,7 +332,7 @@ const AdminBookingPage = () => {
               <label className="text-[10px] uppercase tracking-wider text-white/40 font-bold px-1">
                 Data do Agendamento
               </label>
-              <div className="bg-black/20 border border-white/10 rounded-xl px-3 h-11 flex items-center transition-all focus-within:border-violet-500/50">
+              <div className="bg-black/20 border border-white/10 rounded-xl px-3 h-11 flex items-center">
                 <input
                   type="date"
                   value={dateFilter}
@@ -338,12 +342,12 @@ const AdminBookingPage = () => {
               </div>
             </div>
 
-            {/* Ordenação por Data */}
+            {/* Ordenação */}
             <div className="flex flex-col gap-1.5">
               <label className="text-[10px] uppercase tracking-wider text-white/40 font-bold px-1">
                 Ordem Cronológica
               </label>
-              <div className="bg-black/20 border border-white/10 rounded-xl px-3 h-11 flex items-center transition-all focus-within:border-violet-500/50">
+              <div className="bg-black/20 border border-white/10 rounded-xl px-3 h-11 flex items-center">
                 <select
                   value={orderDirection}
                   onChange={(e) => setOrderDirection(e.target.value)}
@@ -380,7 +384,6 @@ const AdminBookingPage = () => {
                 <div className="w-11 h-11 rounded-2xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
                   <User size={18} className="text-violet-300" />
                 </div>
-
                 <div className="min-w-0">
                   <p className="font-semibold truncate">{a.customer_name}</p>
                   <p className="text-xs text-white/40 truncate">{a.phone}</p>
@@ -390,7 +393,6 @@ const AdminBookingPage = () => {
               <div className="text-white/70 truncate">
                 {a.service?.name || "Sem serviço"}
               </div>
-
               <div className="text-white/60 font-medium truncate">
                 {a.worker?.name || "Não definido"}
               </div>
@@ -451,7 +453,6 @@ const AdminBookingPage = () => {
                   <div className="w-11 h-11 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
                     <User size={18} className="text-violet-300" />
                   </div>
-
                   <div className="min-w-0">
                     <h3 className="font-bold text-base truncate">
                       {a.customer_name}
@@ -459,7 +460,6 @@ const AdminBookingPage = () => {
                     <p className="text-xs text-white/40 truncate">{a.phone}</p>
                   </div>
                 </div>
-
                 <div className="shrink-0">
                   <StatusBadge status={a.status} />
                 </div>
@@ -472,14 +472,12 @@ const AdminBookingPage = () => {
                   </span>
                   {a.service?.name || "Sem serviço"}
                 </p>
-
                 <p className="text-white/60 text-sm truncate">
                   <span className="text-white/40 text-xs font-semibold uppercase block mb-0.5">
                     Profissional
                   </span>
                   {a.worker?.name || "Não definido"}
                 </p>
-
                 <div className="text-white/50 text-sm pt-1 border-t border-white/5 mt-1">
                   <span className="text-white/40 text-xs font-semibold uppercase block mb-1">
                     Horário
@@ -552,7 +550,6 @@ const StatCard = ({ title, value, icon: Icon, color }) => {
             {value}
           </h3>
         </div>
-
         <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-black/20 border border-white/10 flex items-center justify-center shrink-0">
           <Icon size={22} />
         </div>
@@ -567,7 +564,6 @@ const StatusBadge = ({ status }) => {
     finished: "Finalizado",
     cancelled: "Cancelado",
   };
-
   const styles = {
     pending: "bg-yellow-500/10 text-yellow-300 border border-yellow-500/20",
     finished: "bg-emerald-500/10 text-emerald-300 border border-emerald-500/20",

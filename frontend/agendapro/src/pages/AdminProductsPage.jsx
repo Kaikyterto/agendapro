@@ -50,6 +50,7 @@ const AdminProductsPage = () => {
   const [previewUrl, setPreviewUrl] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
 
+  // Preview local da imagem selecionada
   useEffect(() => {
     if (!imageFile) {
       setPreviewUrl("");
@@ -62,9 +63,12 @@ const AdminProductsPage = () => {
     return () => URL.revokeObjectURL(objectUrl);
   }, [imageFile]);
 
-  const loadData = async () => {
+  // =========================================================
+  // FUNÇÃO DE CARREGAMENTO (Suporta atualização silenciosa)
+  // =========================================================
+  const loadData = async (isBackground = false) => {
     try {
-      setLoading(true);
+      if (!isBackground) setLoading(true);
 
       const [productsData, dashboardData] = await Promise.all([
         getProducts(),
@@ -81,16 +85,26 @@ const AdminProductsPage = () => {
 
       setProducts(normalizedProducts);
       setDashboard(dashboardData || null);
+      setError(""); // Limpa o erro em caso de reconexão bem-sucedida
     } catch (err) {
       console.error(err);
       setError("Erro ao carregar produtos");
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
   };
 
+  // POLLING AUTOMÁTICO: Atualiza a lista e as métricas a cada 30 segundos
   useEffect(() => {
-    loadData();
+    // Carregamento de tela cheia inicial
+    loadData(false);
+
+    // Configura o pooling silencioso em background
+    const interval = setInterval(() => {
+      loadData(true);
+    }, 30000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const filteredProducts = useMemo(() => {
@@ -193,7 +207,8 @@ const AdminProductsPage = () => {
         setSuccess("Produto criado com sucesso!");
       }
 
-      await loadData();
+      // Força uma atualização imediata pós-salvamento
+      await loadData(true);
 
       setTimeout(() => {
         handleCloseModal();
@@ -213,6 +228,8 @@ const AdminProductsPage = () => {
     try {
       await deleteProduct(id);
       setProducts((prev) => prev.filter((product) => product.id !== id));
+      // Opcional: Atualiza o painel de métricas após deleção silenciosamente
+      loadData(true);
     } catch (err) {
       console.error(err);
       alert(err?.response?.data?.error || "Erro ao remover produto");
@@ -242,7 +259,7 @@ const AdminProductsPage = () => {
                 Produtos
               </h1>
               <p className="text-white/50 text-xs sm:text-sm mt-1 truncate">
-                Gerencie os produtos da sua empresa
+                Gerencie os produtos da sua empresa (atualizado automaticamente)
               </p>
             </div>
           </div>
@@ -290,7 +307,6 @@ const AdminProductsPage = () => {
         </div>
 
         {/* SEARCH */}
-        {/* Removeu-se o backdrop-blur daqui para evitar conflito de renderização no input */}
         <div className="flex items-center gap-3 mb-8 bg-[#111827] border border-violet-500/10 rounded-3xl px-4 sm:px-5 h-14 sm:h-16 shadow-lg">
           <Search size={18} className="text-violet-300 shrink-0" />
 
@@ -404,7 +420,7 @@ const AdminProductsPage = () => {
           </div>
         )}
 
-        {/* MODAL RESPONSIVO REFORMULADO (ANTI-GLITCH MOBILE) */}
+        {/* MODAL RESPONSIVO */}
         {openModal && (
           <div className="fixed inset-0 bg-black/90 sm:bg-black/70 sm:backdrop-blur-md flex items-center justify-center z-50 p-3 overflow-y-auto transform-gpu">
             <div className="w-full max-w-2xl rounded-[20px] sm:rounded-[32px] border border-violet-500/20 bg-[#0f172a] p-4 sm:p-6 shadow-2xl shadow-black/80 my-auto transform-gpu will-change-transform">
@@ -507,7 +523,7 @@ const AdminProductsPage = () => {
                   <input
                     type="checkbox"
                     checked={form.active}
-                    onChange={(e) => handleChange("active", e.target.checked)}
+                    onChange={(e) => handleChange("active", e.checked)}
                     className="w-5 h-5 accent-violet-500 cursor-pointer"
                   />
                 </div>
