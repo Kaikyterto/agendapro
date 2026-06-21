@@ -32,7 +32,7 @@ class MercadoPagoController:
         claims = get_jwt()
         company_id = claims.get("company_id")
 
-        slug = request.args.get("slug")  # 👈 RECEBE DO FRONT
+        slug = request.args.get("slug")
 
         if not slug:
             return jsonify({"error": "Slug não enviado"}), 400

@@ -147,6 +147,7 @@ export default function CompanyProductsPage() {
 
       const payload = {
         company_id: company.id,
+        amount: total, // <--- ADICIONADO AQUI PARA CORRIGIR O ERRO
         items: cart.map((item) => ({
           product_id: item.id,
           quantity: item.quantity || 1,
