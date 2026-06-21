@@ -30,10 +30,11 @@ class ProductsController:
             response = []
 
             for product in products:
-
-                sales = Sale.query.filter_by(
-                    company_id=company_id,
-                    product_id=product.id
+                # Realiza um JOIN com SalesRecord para filtrar apenas vendas com status 'paid'
+                sales = Sale.query.join(SalesRecord).filter(
+                    Sale.company_id == company_id,
+                    Sale.product_id == product.id,
+                    SalesRecord.status == "paid"
                 ).all()
 
                 total_sales = len(sales)
@@ -51,19 +52,14 @@ class ProductsController:
                     "id": product.id,
                     "name": product.name,
                     "description": product.description,
-
-                    # 🔥 CORRIGIDO
                     "value": float(product.value or 0),
-
                     "image_url": product.image_url,
                     "active": product.active,
-
                     "sales": {
                         "total_sales": total_sales,
                         "total_quantity": total_quantity,
                         "total_revenue": total_revenue
                     },
-
                     "created_at": (
                         product.created_at.isoformat()
                         if product.created_at else None
@@ -96,10 +92,7 @@ class ProductsController:
 
             name = data.get("name")
             description = data.get("description")
-
-            # 🔥 CORRIGIDO
             value = data.get("value")
-
             image_url = data.get("image_url")
 
             if not name:
@@ -116,10 +109,7 @@ class ProductsController:
                 company_id=company_id,
                 name=name,
                 description=description,
-
-                # 🔥 CORRIGIDO
                 value=value,
-
                 image_url=image_url,
                 active=True
             )
@@ -129,15 +119,11 @@ class ProductsController:
 
             return jsonify({
                 "message": "Produto criado com sucesso",
-
                 "product": {
                     "id": product.id,
                     "name": product.name,
                     "description": product.description,
-
-                    # 🔥 CORRIGIDO
                     "value": float(product.value or 0),
-
                     "image_url": product.image_url,
                     "active": product.active
                 }
@@ -145,7 +131,6 @@ class ProductsController:
 
         except Exception as e:
             db.session.rollback()
-
             return jsonify({
                 "error": "Erro ao criar produto",
                 "details": str(e)
@@ -177,26 +162,10 @@ class ProductsController:
 
             data = request.get_json()
 
-            product.name = data.get(
-                "name",
-                product.name
-            )
-
-            product.description = data.get(
-                "description",
-                product.description
-            )
-
-            # 🔥 CORRIGIDO
-            product.value = data.get(
-                "value",
-                product.value
-            )
-
-            product.image_url = data.get(
-                "image_url",
-                product.image_url
-            )
+            product.name = data.get("name", product.name)
+            product.description = data.get("description", product.description)
+            product.value = data.get("value", product.value)
+            product.image_url = data.get("image_url", product.image_url)
 
             if "active" in data:
                 product.active = data["active"]
@@ -205,7 +174,6 @@ class ProductsController:
 
             return jsonify({
                 "message": "Produto atualizado com sucesso",
-
                 "product": {
                     "id": product.id,
                     "name": product.name,
@@ -218,7 +186,6 @@ class ProductsController:
 
         except Exception as e:
             db.session.rollback()
-
             return jsonify({
                 "error": "Erro ao atualizar produto",
                 "details": str(e)
@@ -254,13 +221,9 @@ class ProductsController:
 
             if has_sales:
                 product.active = False
-
                 db.session.commit()
-
                 return jsonify({
-                    "message": (
-                        "Produto possui vendas e foi desativado"
-                    )
+                    "message": "Produto possui vendas e foi desativado"
                 }), 200
 
             db.session.delete(product)
@@ -272,7 +235,6 @@ class ProductsController:
 
         except Exception as e:
             db.session.rollback()
-
             return jsonify({
                 "error": "Erro ao remover produto",
                 "details": str(e)
@@ -292,12 +254,16 @@ class ProductsController:
                     "error": "Empresa não identificada"
                 }), 401
 
+            # Filtra apenas os registros de vendas que possuem status 'paid'
             records = SalesRecord.query.filter_by(
-                company_id=company_id
+                company_id=company_id,
+                status="paid"
             ).all()
 
-            sales = Sale.query.filter_by(
-                company_id=company_id
+            # Filtra os itens vendidos vinculados a uma transação com status 'paid'
+            sales = Sale.query.join(SalesRecord).filter(
+                Sale.company_id == company_id,
+                SalesRecord.status == "paid"
             ).all()
 
             revenue = sum(
@@ -321,10 +287,7 @@ class ProductsController:
                 "revenue": revenue,
                 "sales_count": total_sales,
                 "products_sold": total_products_sold,
-                "average_ticket": round(
-                    average_ticket,
-                    2
-                )
+                "average_ticket": round(average_ticket, 2)
             }), 200
 
         except Exception as e:
