@@ -34,35 +34,53 @@ class DashboardController:
             else:
                 previous_month = datetime(now.year, now.month - 1, 1)
 
-            # Faturamento atual unificado por SalesRecord
-            current_revenue = (
-                db.session.query(
-                    func.coalesce(func.sum(SalesRecord.value), 0)
-                )
-                .filter(
-                    SalesRecord.company_id == company_id,
-                    SalesRecord.status == "paid",
-                    SalesRecord.sold_at >= start_month
-                )
-                .scalar()
-            )
+            # --- Mês Atual ---
+            # 1. Receita de Vendas/Produtos
+            current_sales = db.session.query(
+                func.coalesce(func.sum(SalesRecord.value), 0)
+            ).filter(
+                SalesRecord.company_id == company_id,
+                SalesRecord.status == "paid",
+                SalesRecord.sold_at >= start_month
+            ).scalar()
 
-            # Faturamento do mês anterior unificado por SalesRecord
-            previous_revenue = (
-                db.session.query(
-                    func.coalesce(func.sum(SalesRecord.value), 0)
-                )
-                .filter(
-                    SalesRecord.company_id == company_id,
-                    SalesRecord.status == "paid",
-                    SalesRecord.sold_at >= previous_month,
-                    SalesRecord.sold_at < start_month
-                )
-                .scalar()
-            )
+            # 2. Receita de Serviços (Agendamentos Concluídos)
+            current_services = db.session.query(
+                func.coalesce(func.sum(Service.price), 0)
+            ).join(
+                Schedule, Schedule.service_id == Service.id
+            ).filter(
+                Schedule.company_id == company_id,
+                Schedule.status == "finished",
+                Schedule.start_time >= start_month
+            ).scalar()
 
-            monthly_revenue = float(current_revenue or 0)
-            previous_revenue = float(previous_revenue or 0)
+            monthly_revenue = float(current_sales or 0) + float(current_services or 0)
+
+            # --- Mês Anterior ---
+            # 1. Receita de Vendas/Produtos
+            prev_sales = db.session.query(
+                func.coalesce(func.sum(SalesRecord.value), 0)
+            ).filter(
+                SalesRecord.company_id == company_id,
+                SalesRecord.status == "paid",
+                SalesRecord.sold_at >= previous_month,
+                SalesRecord.sold_at < start_month
+            ).scalar()
+
+            # 2. Receita de Serviços (Agendamentos Concluídos)
+            prev_services = db.session.query(
+                func.coalesce(func.sum(Service.price), 0)
+            ).join(
+                Schedule, Schedule.service_id == Service.id
+            ).filter(
+                Schedule.company_id == company_id,
+                Schedule.status == "finished",
+                Schedule.start_time >= previous_month,
+                Schedule.start_time < start_month
+            ).scalar()
+
+            previous_revenue = float(prev_sales or 0) + float(prev_services or 0)
 
             revenue_growth = 0
             if previous_revenue > 0:
@@ -123,27 +141,37 @@ class DashboardController:
 
             revenue_map = {}
 
-            # Histórico dos últimos 30 dias baseado estritamente em transações pagas
-            sales_rows = (
-                db.session.query(
-                    func.date(cast(SalesRecord.sold_at, Date)).label("day"),
-                    func.coalesce(func.sum(SalesRecord.value), 0)
-                )
-                .filter(
-                    SalesRecord.company_id == company_id,
-                    SalesRecord.status == "paid",
-                    SalesRecord.sold_at >= start_date
-                )
-                .group_by(func.date(cast(SalesRecord.sold_at, Date)))
-                .all()
-            )
+            # Histórico de Vendas/Produtos dos últimos 30 dias
+            sales_rows = db.session.query(
+                func.date(cast(SalesRecord.sold_at, Date)).label("day"),
+                func.coalesce(func.sum(SalesRecord.value), 0)
+            ).filter(
+                SalesRecord.company_id == company_id,
+                SalesRecord.status == "paid",
+                SalesRecord.sold_at >= start_date
+            ).group_by(func.date(cast(SalesRecord.sold_at, Date))).all()
 
             for day, value in sales_rows:
                 if day:
-                    key = str(day)
-                    revenue_map[key] = float(value or 0)
+                    revenue_map[str(day)] = revenue_map.get(str(day), 0.0) + float(value or 0)
 
-            # Construção do resultado linear de 30 dias (incluindo dias zerados)
+            # Histórico de Serviços dos últimos 30 dias
+            services_rows = db.session.query(
+                func.date(cast(Schedule.start_time, Date)).label("day"),
+                func.coalesce(func.sum(Service.price), 0)
+            ).join(
+                Service, Schedule.service_id == Service.id
+            ).filter(
+                Schedule.company_id == company_id,
+                Schedule.status == "finished",
+                Schedule.start_time >= start_date
+            ).group_by(func.date(cast(Schedule.start_time, Date))).all()
+
+            for day, value in services_rows:
+                if day:
+                    revenue_map[str(day)] = revenue_map.get(str(day), 0.0) + float(value or 0)
+
+            # Construção do resultado linear de 30 dias
             result = []
             for i in range(30):
                 d = today - timedelta(days=29 - i)
@@ -151,7 +179,7 @@ class DashboardController:
 
                 result.append({
                     "date": d.strftime("%d/%m"),
-                    "value": round(revenue_map.get(key, 0), 2)
+                    "value": round(revenue_map.get(key, 0.0), 2)
                 })
 
             return jsonify(result), 200
@@ -352,7 +380,7 @@ class DashboardController:
             }), 500
 
     # =========================================================
-    # FORECAST (CORRIGIDO)
+    # FORECAST
     # =========================================================
 
     @staticmethod
@@ -367,27 +395,37 @@ class DashboardController:
 
             revenue_map = {}
 
-            # Consulta focada unicamente nos registros consolidados de vendas/faturamento
-            sales_rows = (
-                db.session.query(
-                    func.date(cast(SalesRecord.sold_at, Date)).label("day"),
-                    func.coalesce(func.sum(SalesRecord.value), 0)
-                )
-                .filter(
-                    SalesRecord.company_id == company_id,
-                    SalesRecord.status == "paid",
-                    SalesRecord.sold_at >= start_date
-                )
-                .group_by(func.date(cast(SalesRecord.sold_at, Date)))
-                .all()
-            )
+            # Histórico 180 dias: Vendas/Produtos
+            sales_rows = db.session.query(
+                func.date(cast(SalesRecord.sold_at, Date)).label("day"),
+                func.coalesce(func.sum(SalesRecord.value), 0)
+            ).filter(
+                SalesRecord.company_id == company_id,
+                SalesRecord.status == "paid",
+                SalesRecord.sold_at >= start_date
+            ).group_by(func.date(cast(SalesRecord.sold_at, Date))).all()
 
             for day, value in sales_rows:
                 if day:
-                    key = str(day)
-                    revenue_map[key] = float(value or 0)
+                    revenue_map[str(day)] = revenue_map.get(str(day), 0.0) + float(value or 0)
 
-            # Preenchimento contínuo do histórico para evitar gaps temporais no modelo
+            # Histórico 180 dias: Serviços
+            services_rows = db.session.query(
+                func.date(cast(Schedule.start_time, Date)).label("day"),
+                func.coalesce(func.sum(Service.price), 0)
+            ).join(
+                Service, Schedule.service_id == Service.id
+            ).filter(
+                Schedule.company_id == company_id,
+                Schedule.status == "finished",
+                Schedule.start_time >= start_date
+            ).group_by(func.date(cast(Schedule.start_time, Date))).all()
+
+            for day, value in services_rows:
+                if day:
+                    revenue_map[str(day)] = revenue_map.get(str(day), 0.0) + float(value or 0)
+
+            # Preenchimento contínuo do histórico combinando ambas as receitas
             rows = []
             current_day = start_date.date()
 
@@ -395,7 +433,7 @@ class DashboardController:
                 key = current_day.strftime("%Y-%m-%d")
                 rows.append({
                     "ds": current_day,
-                    "y": revenue_map.get(key, 0)
+                    "y": revenue_map.get(key, 0.0)
                 })
                 current_day += timedelta(days=1)
 
@@ -404,7 +442,6 @@ class DashboardController:
 
             df = pd.DataFrame(rows)
 
-            # Inicialização estável do Prophet com intervalo de confiança configurado para 95%
             model = Prophet(
                 yearly_seasonality=False,
                 weekly_seasonality=True,
@@ -413,11 +450,9 @@ class DashboardController:
             )
             model.fit(df)
 
-            # Geração do período estrito dos próximos 30 dias sem poluir com o histórico antigo
             future = model.make_future_dataframe(periods=30, include_history=False)
             forecast = model.predict(future)
 
-            # Limitação inferior de segurança para evitar previsões de faturamento negativo
             forecast['yhat'] = forecast['yhat'].clip(lower=0)
             forecast['yhat_lower'] = forecast['yhat_lower'].clip(lower=0)
             forecast['yhat_upper'] = forecast['yhat_upper'].clip(lower=0)
@@ -426,7 +461,6 @@ class DashboardController:
             min_expected = round(float(forecast["yhat_lower"].sum()), 2)
             max_expected = round(float(forecast["yhat_upper"].sum()), 2)
 
-            # Cálculo de confiança baseado na amplitude do intervalo de incerteza (spread)
             if predicted_revenue > 0:
                 error_margin = (max_expected - min_expected) / predicted_revenue
                 confidence_score = max(10.0, min(99.0, round((1 - (error_margin / 2)) * 100, 2)))
