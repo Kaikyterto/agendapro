@@ -145,7 +145,7 @@ const AdminDashboardPage = () => {
         {/* CARDS METRICAS */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           <StatCard
-            title="Receita"
+            title="Receita (últimos 30 dias)"
             value={`R$ ${Number(overview.monthly_revenue || 0).toLocaleString(
               "pt-BR",
               { minimumFractionDigits: 2, maximumFractionDigits: 2 }
@@ -153,12 +153,12 @@ const AdminDashboardPage = () => {
             icon={DollarSign}
           />
           <StatCard
-            title="Crescimento"
+            title="Crescimento (últimos 30 dias)"
             value={`${overview.revenue_growth || 0}%`}
             icon={TrendingUp}
           />
           <StatCard
-            title="Agendamentos"
+            title="Agendamentos (histórico total)"
             value={overview.appointments || 0}
             icon={CalendarDays}
           />
@@ -249,7 +249,7 @@ const AdminDashboardPage = () => {
           {/* OCUPAÇÃO */}
           <div className="bg-[#111827] rounded-3xl p-5 sm:p-6 border border-white/10 flex flex-col justify-center w-full min-w-0 transform-gpu">
             <h3 className="font-bold text-sm sm:text-base text-white/50 mb-1">
-              Ocupação
+              Ocupação (Hoje)
             </h3>
             <div className="text-4xl sm:text-5xl font-black text-violet-300 tracking-tight truncate">
               {occupancyPercent}%
@@ -326,13 +326,6 @@ const AdminDashboardPage = () => {
                 )}
               </h2>
             </div>
-
-            <p className="text-white/40 text-xs sm:text-sm bg-black/20 p-3 rounded-xl border border-white/5 w-fit">
-              Confiança:{" "}
-              <span className="text-emerald-400 font-bold">
-                {forecast.confidence || 0}%
-              </span>
-            </p>
           </div>
         </div>
       </div>
