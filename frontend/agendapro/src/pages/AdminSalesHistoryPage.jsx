@@ -26,7 +26,7 @@ const statusLabel = {
   canceled: "Cancelado",
 };
 
-export default function SalesHistoryPage() {
+export default function AdminSalesHistoryPage() {
   const [sales, setSales] = useState([]);
   const [selectedSale, setSelectedSale] = useState(null);
 
