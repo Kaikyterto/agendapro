@@ -57,3 +57,19 @@ export function deleteSale(saleId) {
     method: "DELETE",
   });
 }
+
+// =========================================================
+// ADMIN - SALES HISTORY
+// =========================================================
+
+export function getSalesHistory(companyId) {
+  return apiFetch(`/sales/history?company_id=${companyId}`);
+}
+
+// =========================================================
+// ADMIN - SALE HISTORY DETAILS
+// =========================================================
+
+export function getSaleHistoryById(saleId) {
+  return apiFetch(`/sales/history/${saleId}`);
+}

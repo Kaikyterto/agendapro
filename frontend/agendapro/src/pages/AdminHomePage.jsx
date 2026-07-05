@@ -10,6 +10,7 @@ import {
   BarChart3,
   Settings,
   Briefcase,
+  ReceiptText,
 } from "lucide-react";
 
 const AdminHomePage = () => {
@@ -18,10 +19,10 @@ const AdminHomePage = () => {
 
   const cards = [
     {
-      title: "Agendamentos",
-      description: "Gerencie horários, clientes e serviços agendados.",
-      icon: CalendarDays,
-      path: `/admin/${slug}/agendamentos`,
+      title: "Histórico de vendas",
+      description: "Gerencie seu hisórico de vendas de produtos",
+      icon: ReceiptText,
+      path: `/admin/${slug}/historico`,
     },
 
     {

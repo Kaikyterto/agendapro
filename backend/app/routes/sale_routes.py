@@ -49,7 +49,29 @@ def delete_sale(sale_id):
 
 
 # =========================================================
-# CHECKOUT (PUBLICO - CLIENTE FINAL)
+# HISTÓRICO DE VENDAS
+# =========================================================
+
+@sales_bp.route(
+    "/sales/history",
+    methods=["GET"]
+)
+@jwt_required()
+def get_sales_history():
+    return SaleController.get_sales_history()
+
+
+@sales_bp.route(
+    "/sales/history/<int:sale_id>",
+    methods=["GET"]
+)
+@jwt_required()
+def get_sale_history(sale_id):
+    return SaleController.get_sale(sale_id)
+
+
+# =========================================================
+# CHECKOUT (PÚBLICO - CLIENTE FINAL)
 # =========================================================
 
 @sales_bp.route(
