@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 
 import Button from "../components/Button";
-import { getSalesHistory, getSaleHistoryById } from "../services/sales";
+import { getSalesHistory, getSaleHistoryById } from "../services/saleService";
 
 const statusColor = {
   paid: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
