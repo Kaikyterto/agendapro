@@ -17,7 +17,7 @@ import AdminDashboardPage from "./pages/AdminDashboardPage";
 import AdminSettingsPage from "./pages/AdminSettingsPage";
 import AdminServicesPage from "./pages/AdminServicesPage";
 import AdminDesignPage from "./pages/AdminDesignPage";
-import AdminSalesHistoryPage from "../pages/AdminSalesHistoryPage";
+import AdminSalesHistoryPage from "./pages/AdminSalesHistoryPage";
 
 export default function App() {
   return (
