@@ -77,5 +77,8 @@ export function getSalesHistory(companyId) {
 // =========================================================
 
 export function getSaleHistoryById(saleId) {
-  return apiFetch(`/sales/history/${saleId}`);
+  return apiFetch(`/sales/${saleId}`, {
+    method: "GET",
+    auth: true,
+  });
 }
