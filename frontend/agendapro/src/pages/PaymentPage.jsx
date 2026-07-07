@@ -78,7 +78,7 @@ const PaymentPage = () => {
     // Loop a cada 5 segundos
     const interval = setInterval(async () => {
       try {
-        const response = await apiFetch(`/payment/status/${company.id}`);
+        const response = await apiFetch(`/payments/status/${company.id}`);
 
         if (response && response.active) {
           clearInterval(interval);
