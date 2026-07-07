@@ -174,7 +174,7 @@ const AdminServicesPage = () => {
         name: form.name.trim(),
         description: form.description.trim(),
         duration: Number(form.duration),
-        value: Number(form.value),
+        price: Number(form.value),
         image_url: imageUrl || null,
       };
 
