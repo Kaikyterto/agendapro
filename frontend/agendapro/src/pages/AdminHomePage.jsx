@@ -19,6 +19,12 @@ const AdminHomePage = () => {
 
   const cards = [
     {
+      title: "Agendamentos",
+      description: "Controle seus horários e serviços agendados",
+      icon: ReceiptText,
+      path: `/admin/${slug}/agendamentos`,
+    },
+    {
       title: "Histórico de vendas",
       description: "Gerencie seu hisórico de vendas de produtos",
       icon: ReceiptText,
