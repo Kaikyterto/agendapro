@@ -16,3 +16,23 @@ payment_bp.route(
 )(
     PaymentController.create_platform_pix_payment
 )
+
+# =========================================================
+# CONSULTAR PAGAMENTO
+# =========================================================
+payment_bp.route(
+    "/payments/<string:payment_id>",
+    methods=["GET"]
+)(
+    PaymentController.get_platform_payment
+)
+
+# =========================================================
+# STATUS DA ASSINATURA
+# =========================================================
+payment_bp.route(
+    "/payments/status/<int:company_id>",
+    methods=["GET"]
+)(
+    PaymentController.payment_status
+)
