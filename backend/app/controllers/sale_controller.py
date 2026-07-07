@@ -16,7 +16,7 @@ class SaleController:
         try:
             data = request.get_json()
 
-            company_id = data.get("@AgendaPro:company")
+            company_id = data.get("company_id")
             items = data.get("items", [])
 
             customer_name = data.get("customer_name")

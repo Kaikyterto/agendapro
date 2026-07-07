@@ -8,9 +8,21 @@ sales_bp = Blueprint(
     __name__
 )
 
-# =========================================================
-# VENDAS (ADMIN / INTERNO)
-# =========================================================
+@sales_bp.route(
+    "/sales/checkout",
+    methods=["POST"]
+)
+def checkout_sale():
+    return SaleController.create_sale()
+
+
+@sales_bp.route(
+    "/sales/webhook/mercadopago",
+    methods=["POST"]
+)
+def mercado_pago_webhook():
+    return SaleController.mercado_pago_webhook()
+
 
 @sales_bp.route(
     "/sales",
@@ -19,6 +31,15 @@ sales_bp = Blueprint(
 @jwt_required()
 def list_sales():
     return SaleController.list_sales()
+
+
+@sales_bp.route(
+    "/sales/history",
+    methods=["GET"]
+)
+@jwt_required()
+def get_sales_history():
+    return SaleController.get_sales_history()
 
 
 @sales_bp.route(
@@ -46,49 +67,3 @@ def update_sale(sale_id):
 @jwt_required()
 def delete_sale(sale_id):
     return SaleController.delete_sale(sale_id)
-
-
-# =========================================================
-# HISTÓRICO DE VENDAS
-# =========================================================
-
-@sales_bp.route(
-    "/sales/history",
-    methods=["GET"]
-)
-@jwt_required()
-def get_sales_history():
-    return SaleController.get_sales_history()
-
-
-@sales_bp.route(
-    "/sales/history/<int:sale_id>",
-    methods=["GET"]
-)
-@jwt_required()
-def get_sale_history(sale_id):
-    return SaleController.get_sale(sale_id)
-
-
-# =========================================================
-# CHECKOUT (PÚBLICO - CLIENTE FINAL)
-# =========================================================
-
-@sales_bp.route(
-    "/sales/checkout",
-    methods=["POST"]
-)
-def checkout_sale():
-    return SaleController.create_sale()
-
-
-# =========================================================
-# WEBHOOK MERCADO PAGO
-# =========================================================
-
-@sales_bp.route(
-    "/sales/webhook/mercadopago",
-    methods=["POST"]
-)
-def mercado_pago_webhook():
-    return SaleController.mercado_pago_webhook()
