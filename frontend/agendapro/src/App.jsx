@@ -23,11 +23,12 @@ export default function App() {
   return (
     <Routes>
       {/* ============================================= */}
-      {/* AUTH */}
+      {/* AUTH & INSTITUTIONAL (ROTAS ESTÁTICAS PRIMEIRO) */}
       {/* ============================================= */}
       <Route path="/" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/payment" element={<PaymentPage />} />
+
       {/* ============================================= */}
       {/* ADMIN (MULTI-TENANT COM SLUG) */}
       {/* ============================================= */}
@@ -46,12 +47,10 @@ export default function App() {
         path="/admin/:slug/configuracoes"
         element={<AdminSettingsPage />}
       />
-      {/* ============================================= */}
-      {/* PUBLIC COMPANY */}
-      {/* ============================================= */}
-      <Route path="/:slug" element={<HomePage />} />
-      <Route path="/:slug/produtos" element={<CompanyProductsPage />} />
-      <Route path="/:slug/agendar" element={<CompanyBookingPage />} />
+
+      <Route path="/c/:slug" element={<HomePage />} />
+      <Route path="/c/:slug/produtos" element={<CompanyProductsPage />} />
+      <Route path="/c/:slug/agendar" element={<CompanyBookingPage />} />
     </Routes>
   );
 }
