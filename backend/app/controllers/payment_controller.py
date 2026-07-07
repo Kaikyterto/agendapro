@@ -1,4 +1,5 @@
-from flask import jsonify
+from flask import jsonify, request
+from datetime import datetime, timedelta
 
 from app.models.company import Company
 from app.database.db import db
@@ -15,8 +16,6 @@ class PaymentController:
     def create_platform_pix_payment():
 
         try:
-
-            from flask import request
 
             data = request.get_json()
 
@@ -76,7 +75,6 @@ class PaymentController:
 
         except Exception as e:
 
-
             print(
                 "ERRO CONSULTANDO PAGAMENTO:",
                 e
@@ -112,16 +110,44 @@ class PaymentController:
 
 
 
-            # já ativada
+            # =====================================================
+            # EMPRESA JÁ ATIVA
+            # garante que as datas existam
+            # =====================================================
             if company.status == "active":
 
+
+                if not company.expires_at:
+
+
+                    now = datetime.utcnow()
+
+
+                    company.next_billing_at = (
+                        now + timedelta(days=30)
+                    )
+
+                    company.expires_at = (
+                        now + timedelta(days=30)
+                    )
+
+
+                    db.session.commit()
+
+
+
                 return jsonify({
-                    "active": True
+                    "active": True,
+                    "expires_at": company.expires_at,
+                    "next_billing_at": company.next_billing_at
                 }), 200
 
 
 
-            # ainda não gerou pagamento
+
+            # =====================================================
+            # AINDA NÃO CRIOU PAGAMENTO
+            # =====================================================
             if not company.mercado_pago_payment_id:
 
                 return jsonify({
@@ -131,10 +157,12 @@ class PaymentController:
 
 
 
+
             print(
                 "CONSULTANDO PAGAMENTO:",
                 company.mercado_pago_payment_id
             )
+
 
 
             payment = (
@@ -145,6 +173,7 @@ class PaymentController:
             )
 
 
+
             print(
                 "RETORNO MERCADO PAGO:",
                 payment
@@ -152,6 +181,11 @@ class PaymentController:
 
 
 
+
+            # =====================================================
+            # PAGAMENTO APROVADO
+            # ativa assinatura e cria datas
+            # =====================================================
             if (
                 payment
                 and
@@ -159,22 +193,44 @@ class PaymentController:
             ):
 
 
+                now = datetime.utcnow()
+
+
                 company.status = "active"
+
+
+                company.next_billing_at = (
+                    now + timedelta(days=30)
+                )
+
+
+                company.expires_at = (
+                    now + timedelta(days=30)
+                )
+
 
                 db.session.commit()
 
 
+
                 return jsonify({
-                    "active": True
+                    "active": True,
+                    "expires_at": company.expires_at,
+                    "next_billing_at": company.next_billing_at
                 }), 200
+
 
 
 
             return jsonify({
                 "active": False,
-                "status": payment.get("status")
-                if payment else None
+                "status": (
+                    payment.get("status")
+                    if payment
+                    else None
+                )
             }), 200
+
 
 
 
