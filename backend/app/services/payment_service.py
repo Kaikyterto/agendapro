@@ -378,3 +378,60 @@ class PaymentService:
                 )
 
         }
+    
+    # =========================================================
+    # CONSULTAR PAGAMENTO DA PLATAFORMA
+    # =========================================================
+    @staticmethod
+    def get_platform_payment(payment_id):
+
+        sdk = (
+            PaymentService
+            ._get_platform_sdk()
+        )
+
+
+        response = (
+            sdk.payment()
+            .get(payment_id)
+        )
+
+
+        print("==============================")
+        print("RESPOSTA CONSULTA MERCADO PAGO")
+        print(response)
+        print("==============================")
+
+
+        payment = response.get(
+            "response"
+        )
+
+
+        if not payment:
+
+            raise Exception(
+                "Pagamento não encontrado"
+            )
+
+
+        return {
+
+            "payment_id":
+                payment.get("id"),
+
+
+            "status":
+                payment.get("status"),
+
+
+            "status_detail":
+                payment.get("status_detail"),
+
+
+            "external_reference":
+                payment.get(
+                    "external_reference"
+                )
+
+        }

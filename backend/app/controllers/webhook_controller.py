@@ -1,14 +1,15 @@
 from flask import request, jsonify
-from datetime import datetime
+from datetime import datetime, UTC, timedelta
+import os
 import mercadopago
 
 from app.models.company import Company
 from app.models.sales_record import SalesRecord
-from app.models.mercado_pago_account import MercadoPagoAccount
 from app.database.db import db
 
 
 class WebhookController:
+
 
     @staticmethod
     def mercado_pago():
@@ -17,182 +18,290 @@ class WebhookController:
 
             data = request.get_json()
 
+
             if not data:
+
                 return jsonify({
                     "msg": "Sem dados"
                 }), 400
 
+
+
             # =====================================================
-            # SUPORTA WEBHOOK V1 E FEED V2
+            # IDENTIFICA PAGAMENTO
             # =====================================================
+
             payment_id = None
 
+
             if data.get("type") == "payment":
-                payment_id = data.get("data", {}).get("id")
+
+                payment_id = (
+                    data
+                    .get("data", {})
+                    .get("id")
+                )
+
 
             elif data.get("topic") == "payment":
-                payment_id = data.get("resource")
+
+                payment_id = data.get(
+                    "resource"
+                )
+
 
             if not payment_id:
+
                 return jsonify({
                     "msg": "Evento ignorado"
                 }), 200
 
-            # =====================================================
-            # IDENTIFICA A CONTA MP QUE RECEBEU O EVENTO
-            # =====================================================
-            mp_user_id = data.get("user_id")
 
-            if not mp_user_id:
+
+            print("==============================")
+            print("WEBHOOK RECEBIDO")
+            print(data)
+            print("==============================")
+
+
+
+            # =====================================================
+            # USA TOKEN DA PLATAFORMA
+            # =====================================================
+
+            access_token = os.getenv(
+                "MERCADO_PAGO_ACCESS_TOKEN"
+            )
+
+
+            if not access_token:
+
                 return jsonify({
-                    "msg": "user_id não informado"
-                }), 400
+                    "msg": "Token Mercado Pago não configurado"
+                }), 500
 
-            mp_account = MercadoPagoAccount.query.filter_by(
-                mp_user_id=int(mp_user_id),
-                connected=True
-            ).first()
 
-            if not mp_account:
-                return jsonify({
-                    "msg": "Conta Mercado Pago não encontrada"
-                }), 404
 
-            # =====================================================
-            # CONSULTA PAGAMENTO NA CONTA CORRETA
-            # =====================================================
             sdk = mercadopago.SDK(
-                mp_account.access_token
+                access_token
             )
 
-            payment_response = sdk.payment().get(
-                payment_id
+
+
+            # =====================================================
+            # CONSULTA PAGAMENTO NO MERCADO PAGO
+            # =====================================================
+
+            payment_response = (
+                sdk.payment()
+                .get(payment_id)
             )
+
 
             payment = payment_response.get(
                 "response",
                 {}
             )
 
-            status = payment.get("status")
+
+            print("==============================")
+            print("PAGAMENTO CONSULTADO")
+            print(payment)
+            print("==============================")
+
+
+
+            status = payment.get(
+                "status"
+            )
+
+
             external_reference = payment.get(
                 "external_reference"
             )
 
+
+
             if not external_reference:
+
                 return jsonify({
-                    "msg": "Sem referência"
-                }), 400
+                    "msg": "Sem referência externa"
+                }), 200
+
+
 
             # =====================================================
             # PAGAMENTO APROVADO
             # =====================================================
-            if status == "approved":
 
-                # =========================================
-                # ASSINATURA DA PLATAFORMA
-                # =========================================
-                if external_reference.startswith(
-                    "company_"
+            if status != "approved":
+
+                return jsonify({
+                    "msg": "Pagamento ainda não aprovado",
+                    "status": status
+                }), 200
+
+
+
+            # =====================================================
+            # ASSINATURA AGENDA PRO
+            # =====================================================
+
+            if external_reference.startswith(
+                "company_"
+            ):
+
+
+                company_id = (
+                    external_reference
+                    .replace(
+                        "company_",
+                        ""
+                    )
+                )
+
+
+                company = db.session.get(
+                    Company,
+                    int(company_id)
+                )
+
+
+                if not company:
+
+                    return jsonify({
+                        "msg": "Empresa não encontrada"
+                    }), 404
+
+
+
+                now = datetime.now(
+                    UTC
+                )
+
+
+                company.status = "active"
+
+
+                company.mercado_pago_payment_id = str(
+                    payment_id
+                )
+
+
+
+                if (
+                    company.expires_at
+                    and
+                    company.expires_at > now
                 ):
 
-                    company_id = (
-                        external_reference
-                        .replace("company_", "")
+                    company.expires_at = (
+                        company.expires_at
+                        +
+                        timedelta(days=30)
                     )
 
-                    company = db.session.get(
-                        Company,
-                        int(company_id)
+                else:
+
+                    company.expires_at = (
+                        now
+                        +
+                        timedelta(days=30)
                     )
 
-                    if not company:
-                        return jsonify({
-                            "msg": "Empresa não encontrada"
-                        }), 404
 
-                    from datetime import UTC, datetime, timedelta
 
-                    now = datetime.now(UTC)
+                company.next_billing_at = (
+                    company.expires_at
+                )
 
-                    company.status = "active"
-                    company.mercado_pago_payment_id = str(
+
+
+                db.session.commit()
+
+
+
+                return jsonify({
+                    "msg": "Empresa ativada"
+                }), 200
+
+
+
+
+            # =====================================================
+            # VENDA DE EMPRESA
+            # =====================================================
+
+            if external_reference.startswith(
+                "sale_"
+            ):
+
+
+                sale_id = (
+                    external_reference
+                    .replace(
+                        "sale_",
+                        ""
+                    )
+                    .split("_")[0]
+                )
+
+
+                order = db.session.get(
+                    SalesRecord,
+                    int(sale_id)
+                )
+
+
+                if not order:
+
+                    return jsonify({
+                        "msg": "Pedido não encontrado"
+                    }), 404
+
+
+
+                if order.status != "paid":
+
+
+                    order.status = "paid"
+
+
+                    order.payment_id = str(
                         payment_id
                     )
 
-                    # Renovação
-                    if (
-                        company.expires_at and
-                        company.expires_at > now
-                    ):
-                        company.expires_at = (
-                            company.expires_at +
-                            timedelta(days=30)
-                        )
-                    else:
-                        company.expires_at = (
-                            now +
-                            timedelta(days=30)
-                        )
 
-                    company.next_billing_at = (
-                        company.expires_at
-                    )
+                    order.sold_at = datetime.utcnow()
+
 
                     db.session.commit()
 
-                    return jsonify({
-                        "msg": "Empresa ativada"
-                    }), 200
 
-                # =========================================
-                # VENDA
-                # =========================================
-                if external_reference.startswith(
-                    "sale_"
-                ):
 
-                    sale_id = (
-                        external_reference
-                        .replace("sale_", "")
-                        .split("_")[0]
-                    )
+                return jsonify({
+                    "msg": "Pedido pago"
+                }), 200
 
-                    order = db.session.get(
-                        SalesRecord,
-                        int(sale_id)
-                    )
 
-                    if not order:
-                        return jsonify({
-                            "msg": "Pedido não encontrado"
-                        }), 404
-
-                    # Evita processamento duplicado
-                    if order.status != "paid":
-
-                        order.status = "paid"
-                        order.payment_id = str(
-                            payment_id
-                        )
-
-                        order.sold_at = (
-                            datetime.utcnow()
-                        )
-
-                        db.session.commit()
-
-                    return jsonify({
-                        "msg": "Pedido pago"
-                    }), 200
 
             return jsonify({
-                "msg": "Pagamento não aprovado"
+                "msg": "Referência não reconhecida"
             }), 200
+
+
 
         except Exception as e:
 
+
             db.session.rollback()
+
+
+            print(
+                "ERRO WEBHOOK:",
+                e
+            )
+
 
             return jsonify({
                 "error": str(e)
