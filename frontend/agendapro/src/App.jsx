@@ -48,9 +48,9 @@ export default function App() {
         element={<AdminSettingsPage />}
       />
 
-      <Route path="/c/:slug" element={<HomePage />} />
-      <Route path="/c/:slug/produtos" element={<CompanyProductsPage />} />
-      <Route path="/c/:slug/agendar" element={<CompanyBookingPage />} />
+      <Route path="/:slug" element={<HomePage />} />
+      <Route path="/:slug/produtos" element={<CompanyProductsPage />} />
+      <Route path="/:slug/agendar" element={<CompanyBookingPage />} />
     </Routes>
   );
 }
