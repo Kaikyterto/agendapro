@@ -63,7 +63,13 @@ export function deleteSale(saleId) {
 // =========================================================
 
 export function getSalesHistory(companyId) {
-  return apiFetch(`/sales/history?company_id=${companyId}`);
+  return apiFetch("/sales/history", {
+    method: "GET",
+    auth: true,
+    params: {
+      company_id: companyId,
+    },
+  });
 }
 
 // =========================================================
