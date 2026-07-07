@@ -35,7 +35,7 @@ export default function AdminSalesHistoryPage() {
 
   const [search, setSearch] = useState("");
 
-  const companyId = localStorage.getItem("company_id");
+  const companyId = localStorage.getItem("@AgendaPro:company");
 
   useEffect(() => {
     loadSales();
