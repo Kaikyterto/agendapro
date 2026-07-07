@@ -98,7 +98,7 @@ class AuthController:
                 },
 
                 "payment": payment
-            }), 403
+            }), 200
 
         # =====================================================
         # TOKEN JWT
@@ -219,7 +219,7 @@ class AuthController:
                 })
             )
 
-            new_company.mercago_pago_payment_id = str(
+            new_company.mercado_pago_payment_id = str(
                 payment["payment_id"]
             )
 

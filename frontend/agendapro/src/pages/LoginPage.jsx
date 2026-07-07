@@ -74,12 +74,10 @@ const LoginPage = () => {
 
   return (
     <div className="min-h-screen bg-[#0b0d11] relative flex items-center justify-center p-4 font-sans text-slate-200 overflow-hidden">
-      {/* GLOWS DE FUNDO IGUAIS AO REGISTER */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-900/10 blur-[120px] rounded-full pointer-events-none" />
 
       <div className="w-full max-w-[400px] relative">
-        {/* HEADER */}
         <div className="text-center mb-10">
           <h1 className="text-3xl font-black text-white tracking-tight">
             Agenda<span className="text-blue-500">Pro</span>
@@ -89,7 +87,6 @@ const LoginPage = () => {
           </p>
         </div>
 
-        {/* CARD */}
         <div className="bg-[#16191f]/80 backdrop-blur-xl border border-white/[0.08] p-8 rounded-3xl shadow-2xl">
           {successMessage && (
             <div className="mb-5 bg-green-500/10 border border-green-500/20 text-green-400 px-4 py-3 rounded-xl text-sm">
@@ -98,7 +95,6 @@ const LoginPage = () => {
           )}
 
           <form className="space-y-5" onSubmit={handleLogin}>
-            {/* EMAIL */}
             <div>
               <label className="text-sm text-slate-400 mb-2 block">
                 E-mail
@@ -118,7 +114,6 @@ const LoginPage = () => {
               </div>
             </div>
 
-            {/* PASSWORD */}
             <div>
               <label className="text-sm text-slate-400 mb-2 block">Senha</label>
               <div className="relative">
@@ -142,7 +137,6 @@ const LoginPage = () => {
               </p>
             )}
 
-            {/* SUBMIT */}
             <button
               type="submit"
               disabled={isLoading}
