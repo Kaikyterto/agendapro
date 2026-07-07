@@ -22,9 +22,6 @@ const PaymentPage = () => {
     }
   }, [payment, company, navigate]);
 
-  // ========================================================
-  // COPIAR PIX
-  // ========================================================
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(payment.pix_code);
