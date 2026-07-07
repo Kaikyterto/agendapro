@@ -39,21 +39,17 @@ const PaymentPage = () => {
   };
 
   // ========================================================
-  // VERIFICA STATUS PAGAMENTO
+  // VERIFICA STATUS PAGAMENTO (VERSÃO RESILIENTE A ERROS)
   // ========================================================
   useEffect(() => {
     if (!company?.id) return;
 
-    // Executa a primeira checagem imediatamente ao abrir a tela
     const checkStatus = async () => {
       try {
         const response = await apiFetch(`/payment/status/${company.id}`);
-        console.log("Status do pagamento:", response);
 
-        if (response?.active) {
+        if (response && response.active) {
           clearInterval(interval);
-
-          // Limpa os estados de pendência do localStorage antes de voltar
           localStorage.removeItem("@AgendaPro:payment_pending");
           localStorage.removeItem("@AgendaPro:payment");
 
@@ -65,23 +61,27 @@ const PaymentPage = () => {
           });
         }
       } catch (error) {
-        console.error("Erro ao verificar pagamento:", error);
+        // Se o backend der 403, capturamos o erro aqui silenciosamente
+        // para não quebrar a execução do resto do layout
+        console.warn(
+          "Aguardando liberação da rota de pagamento no backend...",
+          error
+        );
       } finally {
         setCheckingPayment(false);
       }
     };
 
-    // Roda imediatamente
+    // Roda a primeira vez
     checkStatus();
 
-    // Cria o loop a cada 5 segundos
+    // Loop a cada 5 segundos
     const interval = setInterval(async () => {
       try {
         const response = await apiFetch(`/payment/status/${company.id}`);
 
-        if (response?.active) {
+        if (response && response.active) {
           clearInterval(interval);
-
           localStorage.removeItem("@AgendaPro:payment_pending");
           localStorage.removeItem("@AgendaPro:payment");
 
@@ -93,7 +93,8 @@ const PaymentPage = () => {
           });
         }
       } catch (error) {
-        console.error("Erro no intervalo de verificação:", error);
+        // Impede que o erro trave o setInterval
+        console.log("Checando novamente em 5 segundos...");
       }
     }, 5000);
 
