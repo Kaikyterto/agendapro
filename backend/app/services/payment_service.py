@@ -7,14 +7,14 @@ from dotenv import load_dotenv
 from app.models.company import Company
 from app.database.db import db
 
-from app.models.mercado_pago_account import (
-    MercadoPagoAccount
-)
+from app.models.mercado_pago_account import MercadoPagoAccount
+
 
 load_dotenv()
 
 
 class PaymentService:
+
 
     # =========================================================
     # SDK DA PLATAFORMA
@@ -57,14 +57,17 @@ class PaymentService:
                 "Empresa não possui Mercado Pago conectado"
             )
 
+
         if not mp_account.access_token:
             raise Exception(
                 "Access Token da empresa não encontrado"
             )
 
+
         return mercadopago.SDK(
             mp_account.access_token
         )
+
 
 
     # =========================================================
@@ -77,44 +80,22 @@ class PaymentService:
             "company_id"
         )
 
+
         if not company_id:
             raise Exception(
                 "company_id é obrigatório"
             )
 
-        company = Company.query.get(
+
+        company = db.session.get(
+            Company,
             company_id
         )
+
 
         if not company:
             raise Exception(
                 "Empresa não encontrada"
-            )
-
-
-        # =========================================
-        # PREÇO DEFINIDO PELO BACKEND
-        # =========================================
-
-        plans = {
-
-            "basic": 29.90,
-
-            "pro": 49.90,
-
-            "premium": 99.90
-
-        }
-
-
-        amount = plans.get(
-            company.plan
-        )
-
-
-        if not amount:
-            raise Exception(
-                "Plano inválido"
             )
 
 
@@ -127,7 +108,7 @@ class PaymentService:
         payment_data = {
 
             "transaction_amount":
-                float(amount),
+                29.90,
 
 
             "description":
@@ -140,10 +121,6 @@ class PaymentService:
 
             "external_reference":
                 f"company_{company.id}",
-
-
-            "notification_url":
-                "https://agendapro-z63z.onrender.com/webhook/mercadopago",
 
 
             "payer": {
@@ -171,7 +148,8 @@ class PaymentService:
 
 
         payment = response.get(
-            "response"
+            "response",
+            {}
         )
 
 
@@ -186,19 +164,14 @@ class PaymentService:
         )
 
 
-        # =========================================
-        # GUARDA PAGAMENTO NA EMPRESA
-        # =========================================
-
         company.mercado_pago_payment_id = (
-            payment_id
+            str(payment_id)
         )
 
         db.session.commit()
 
 
         transaction_data = (
-
             payment
             .get(
                 "point_of_interaction",
@@ -208,7 +181,6 @@ class PaymentService:
                 "transaction_data",
                 {}
             )
-
         )
 
 
@@ -241,22 +213,29 @@ class PaymentService:
 
         }
 
+
+
     # =========================================================
     # VENDA DA EMPRESA
     # =========================================================
     @staticmethod
     def create_company_pix_payment(data):
 
+
         required_fields = [
+
             "company_id",
             "sale_record_id",
             "amount",
             "customer_name"
+
         ]
+
 
         for field in required_fields:
 
             if not data.get(field):
+
                 raise Exception(
                     f"{field} é obrigatório"
                 )
@@ -272,15 +251,18 @@ class PaymentService:
 
         payment_data = {
 
-            "transaction_amount": float(
-                data["amount"]
-            ),
+
+            "transaction_amount":
+                float(
+                    data["amount"]
+                ),
 
 
-            "description": data.get(
-                "description",
-                "Assinatura AgendaPro"
-            ),
+            "description":
+                data.get(
+                    "description",
+                    "Compra AgendaPro"
+                ),
 
 
             "payment_method_id":
@@ -288,7 +270,7 @@ class PaymentService:
 
 
             "external_reference":
-                f"company_{data['company_id']}",
+                f"sale_{data['sale_record_id']}",
 
 
             "notification_url":
@@ -331,7 +313,6 @@ class PaymentService:
 
 
         transaction_data = (
-
             payment
             .get(
                 "point_of_interaction",
@@ -341,7 +322,6 @@ class PaymentService:
                 "transaction_data",
                 {}
             )
-
         )
 
 
@@ -352,11 +332,15 @@ class PaymentService:
 
 
             "payment_id":
-                payment.get("id"),
+                payment.get(
+                    "id"
+                ),
 
 
             "status":
-                payment.get("status"),
+                payment.get(
+                    "status"
+                ),
 
 
             "pix_code":
@@ -371,12 +355,15 @@ class PaymentService:
                 )
 
         }
-    
+
+
+
     # =========================================================
     # CONSULTAR PAGAMENTO DA PLATAFORMA
     # =========================================================
     @staticmethod
     def get_platform_payment(payment_id):
+
 
         sdk = (
             PaymentService
@@ -391,13 +378,15 @@ class PaymentService:
 
 
         print("==============================")
-        print("RESPOSTA CONSULTA MERCADO PAGO")
+        print("CONSULTANDO PAGAMENTO:")
+        print(payment_id)
         print(response)
         print("==============================")
 
 
         payment = response.get(
-            "response"
+            "response",
+            {}
         )
 
 
@@ -411,15 +400,21 @@ class PaymentService:
         return {
 
             "payment_id":
-                payment.get("id"),
+                payment.get(
+                    "id"
+                ),
 
 
             "status":
-                payment.get("status"),
+                payment.get(
+                    "status"
+                ),
 
 
             "status_detail":
-                payment.get("status_detail"),
+                payment.get(
+                    "status_detail"
+                ),
 
 
             "external_reference":
@@ -428,5 +423,3 @@ class PaymentService:
                 )
 
         }
-
-        
