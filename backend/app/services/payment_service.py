@@ -4,6 +4,9 @@ import mercadopago
 
 from dotenv import load_dotenv
 
+from app.models.company import Company
+from app.database.db import db
+
 from app.models.mercado_pago_account import (
     MercadoPagoAccount
 )
@@ -31,6 +34,7 @@ class PaymentService:
         return mercadopago.SDK(
             access_token
         )
+
 
     # =========================================================
     # SDK DA EMPRESA
@@ -61,72 +65,145 @@ class PaymentService:
         return mercadopago.SDK(
             mp_account.access_token
         )
+
+
     # =========================================================
     # ASSINATURA DA PLATAFORMA
     # =========================================================
     @staticmethod
     def create_platform_pix_payment(data):
 
-        required_fields = [
-            "company_id",
-            "amount",
-            "customer_name"
-        ]
+        company_id = data.get(
+            "company_id"
+        )
 
-        for field in required_fields:
 
-            if not data.get(field):
-                raise Exception(
-                    f"{field} é obrigatório"
-                )
+        if not company_id:
+            raise Exception(
+                "company_id é obrigatório"
+            )
+
+
+        company = Company.query.get(
+            company_id
+        )
+
+
+        if not company:
+            raise Exception(
+                "Empresa não encontrada"
+            )
+
+
+        # =========================================
+        # PREÇO DEFINIDO PELO BACKEND
+        # =========================================
+
+        plans = {
+
+            "basic": 29.90,
+
+            "pro": 49.90,
+
+            "premium": 99.90
+
+        }
+
+
+        amount = plans.get(
+            company.plan
+        )
+
+
+        if not amount:
+            raise Exception(
+                "Plano inválido"
+            )
+
+
 
         sdk = (
             PaymentService
             ._get_platform_sdk()
         )
 
+
+
         payment_data = {
-            "transaction_amount": float(
-                data["amount"]
-            ),
 
-            "description": data.get(
-                "description",
-                "Assinatura AgendaPro"
-            ),
+            "transaction_amount":
+                float(amount),
 
-            "payment_method_id": "pix",
+
+            "description":
+                "Assinatura AgendaPro",
+
+
+            "payment_method_id":
+                "pix",
+
 
             "external_reference":
-                f"company_{data['company_id']}",
+                f"company_{company.id}",
+
 
             "payer": {
+
                 "first_name":
-                    data["customer_name"],
+                    company.name,
+
 
                 "email":
-                    data.get(
+                    getattr(
+                        company,
                         "email",
                         "cliente@agendapro.com"
                     )
             }
+
         }
+
+
 
         response = (
             sdk.payment()
             .create(payment_data)
         )
 
+
+
         payment = response.get(
             "response"
         )
+
+
 
         if not payment:
             raise Exception(
                 "Erro ao gerar PIX"
             )
 
+
+
+        payment_id = payment.get(
+            "id"
+        )
+
+
+        # =========================================
+        # GUARDA PAGAMENTO NA EMPRESA
+        # =========================================
+
+        company.mercado_pago_payment_id = (
+            payment_id
+        )
+
+        db.session.commit()
+
+
+
         transaction_data = (
+
             payment
             .get(
                 "point_of_interaction",
@@ -136,28 +213,40 @@ class PaymentService:
                 "transaction_data",
                 {}
             )
+
         )
 
+
+
         return {
+
             "message":
                 "PIX gerado com sucesso",
 
+
             "payment_id":
-                payment.get("id"),
+                payment_id,
+
 
             "status":
-                payment.get("status"),
+                payment.get(
+                    "status"
+                ),
+
 
             "pix_code":
                 transaction_data.get(
                     "qr_code"
                 ),
 
+
             "qr_code_base64":
                 transaction_data.get(
                     "qr_code_base64"
                 )
+
         }
+
 
     # =========================================================
     # VENDA DA EMPRESA
@@ -179,6 +268,7 @@ class PaymentService:
                     f"{field} é obrigatório"
                 )
 
+
         sdk = (
             PaymentService
             ._get_company_sdk(
@@ -186,71 +276,69 @@ class PaymentService:
             )
         )
 
+
         payment_data = {
+
             "transaction_amount": float(
                 data["amount"]
             ),
+
 
             "description": data.get(
                 "description",
                 "Assinatura AgendaPro"
             ),
 
-            "payment_method_id": "pix",
+
+            "payment_method_id":
+                "pix",
+
 
             "external_reference":
                 f"company_{data['company_id']}",
 
+
             "notification_url":
                 "https://agendapro-z63z.onrender.com/webhook/mercadopago",
 
+
             "payer": {
+
                 "first_name":
                     data["customer_name"],
+
 
                 "email":
                     data.get(
                         "email",
                         "cliente@agendapro.com"
                     )
+
             }
+
         }
+
 
         response = (
             sdk.payment()
             .create(payment_data)
         )
 
-        print("===================================")
-        print("MERCADO PAGO RESPONSE")
-        print(response)
-        print("===================================")
-
-        status_code = response.get("status")
-
-        if status_code not in [200, 201]:
-            raise Exception(
-                f"Mercado Pago retornou erro: {response}"
-            )
 
         payment = response.get(
             "response",
             {}
         )
 
+
         if not payment:
             raise Exception(
-                f"Resposta inválida Mercado Pago: {response}"
+                "Erro ao gerar PIX"
             )
 
-        payment_id = payment.get("id")
-
-        if not payment_id:
-            raise Exception(
-                f"PIX não foi criado. Resposta: {response}"
-            )
 
         transaction_data = (
+
             payment
             .get(
                 "point_of_interaction",
@@ -260,168 +348,33 @@ class PaymentService:
                 "transaction_data",
                 {}
             )
+
         )
 
-        pix_code = (
-            transaction_data.get(
-                "qr_code"
-            )
-        )
-
-        qr_code_base64 = (
-            transaction_data.get(
-                "qr_code_base64"
-            )
-        )
-
-        if not pix_code:
-            raise Exception(
-                f"QR Code PIX não retornado pelo Mercado Pago. Resposta: {response}"
-            )
 
         return {
+
             "message":
                 "PIX gerado com sucesso",
 
-            "payment_id":
-                payment_id,
 
-            "status":
-                payment.get("status"),
-
-            "external_reference":
-                payment.get(
-                    "external_reference"
-                ),
-
-            "pix_code":
-                pix_code,
-
-            "qr_code_base64":
-                qr_code_base64
-        }
-
-    # =========================================================
-    # CONSULTAR PAGAMENTO DA PLATAFORMA
-    # =========================================================
-    @staticmethod
-    def get_platform_payment(payment_id):
-
-        sdk = (
-            PaymentService
-            ._get_platform_sdk()
-        )
-
-        response = (
-            sdk.payment()
-            .get(payment_id)
-        )
-
-        payment = response.get(
-            "response"
-        )
-
-        if not payment:
-            raise Exception(
-                "Pagamento não encontrado"
-            )
-
-        transaction_data = (
-            payment
-            .get(
-                "point_of_interaction",
-                {}
-            )
-            .get(
-                "transaction_data",
-                {}
-            )
-        )
-
-        return {
             "payment_id":
                 payment.get("id"),
 
+
             "status":
                 payment.get("status"),
 
-            "external_reference":
-                payment.get(
-                    "external_reference"
-                ),
 
             "pix_code":
                 transaction_data.get(
                     "qr_code"
                 ),
 
-            "qr_code_base64":
-                transaction_data.get(
-                    "qr_code_base64"
-                )
-        }
-
-    # =========================================================
-    # CONSULTAR PAGAMENTO DA EMPRESA
-    # =========================================================
-    @staticmethod
-    def get_company_payment(
-        company_id,
-        payment_id
-    ):
-
-        sdk = (
-            PaymentService
-            ._get_company_sdk(
-                company_id
-            )
-        )
-
-        response = (
-            sdk.payment()
-            .get(payment_id)
-        )
-
-        payment = response.get(
-            "response"
-        )
-
-        if not payment:
-            raise Exception(
-                "Pagamento não encontrado"
-            )
-
-        transaction_data = (
-            payment
-            .get(
-                "point_of_interaction",
-                {}
-            )
-            .get(
-                "transaction_data",
-                {}
-            )
-        )
-
-        return {
-            "payment_id":
-                payment.get("id"),
-
-            "status":
-                payment.get("status"),
-
-            "external_reference":
-                payment.get(
-                    "external_reference"
-                ),
-
-            "pix_code":
-                transaction_data.get(
-                    "qr_code"
-                ),
 
             "qr_code_base64":
                 transaction_data.get(
                     "qr_code_base64"
                 )
+
         }
