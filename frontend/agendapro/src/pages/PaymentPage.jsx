@@ -46,7 +46,7 @@ const PaymentPage = () => {
 
     const checkStatus = async () => {
       try {
-        const response = await apiFetch(`/payment/status/${company.id}`);
+        const response = await apiFetch(`/payments/status/${company.id}`);
 
         if (response && response.active) {
           clearInterval(interval);
