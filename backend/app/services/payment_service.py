@@ -77,17 +77,14 @@ class PaymentService:
             "company_id"
         )
 
-
         if not company_id:
             raise Exception(
                 "company_id é obrigatório"
             )
 
-
         company = Company.query.get(
             company_id
         )
-
 
         if not company:
             raise Exception(
@@ -121,12 +118,10 @@ class PaymentService:
             )
 
 
-
         sdk = (
             PaymentService
             ._get_platform_sdk()
         )
-
 
 
         payment_data = {
@@ -147,6 +142,10 @@ class PaymentService:
                 f"company_{company.id}",
 
 
+            "notification_url":
+                "https://agendapro-z63z.onrender.com/webhook/mercadopago",
+
+
             "payer": {
 
                 "first_name":
@@ -159,10 +158,10 @@ class PaymentService:
                         "email",
                         "cliente@agendapro.com"
                     )
+
             }
 
         }
-
 
 
         response = (
@@ -171,18 +170,15 @@ class PaymentService:
         )
 
 
-
         payment = response.get(
             "response"
         )
-
 
 
         if not payment:
             raise Exception(
                 "Erro ao gerar PIX"
             )
-
 
 
         payment_id = payment.get(
@@ -201,7 +197,6 @@ class PaymentService:
         db.session.commit()
 
 
-
         transaction_data = (
 
             payment
@@ -215,7 +210,6 @@ class PaymentService:
             )
 
         )
-
 
 
         return {
@@ -246,7 +240,6 @@ class PaymentService:
                 )
 
         }
-
 
     # =========================================================
     # VENDA DA EMPRESA
@@ -435,3 +428,5 @@ class PaymentService:
                 )
 
         }
+
+        
