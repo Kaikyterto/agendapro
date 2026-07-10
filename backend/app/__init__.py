@@ -141,4 +141,10 @@ def create_app():
 
     app.register_blueprint(upload_bp)
 
-    return app
+    # =====================================================
+    # HEALTH
+    # =====================================================
+
+    from app.routes.health_routes import health_bp
+
+    app.register_blueprint(health_bp, url_prefix="/api")
