@@ -308,17 +308,3 @@ class WebhookController:
             }), 400
         
 
-    @staticmethod
-    def get_sale_status(sale_id):
-        try:
-            sale = db.session.get(SalesRecord, sale_id)
-
-            if not sale:
-                return jsonify({"error": "Pedido não encontrado"}), 404
-
-            return jsonify({
-                "status": sale.status
-            }), 200
-
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
