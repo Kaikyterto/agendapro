@@ -106,7 +106,7 @@ const LoginPage = () => {
                 />
                 <input
                   type="email"
-                  placeholder="nome@empresa.com"
+                  placeholder="nome@gmail.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full bg-[#0f1115] border border-white/[0.05] rounded-xl pl-12 pr-4 py-3 text-white outline-none focus:border-blue-500 transition-all"
