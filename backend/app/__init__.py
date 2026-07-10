@@ -148,3 +148,5 @@ def create_app():
     from app.routes.health_routes import health_bp
 
     app.register_blueprint(health_bp, url_prefix="/api")
+
+    return app
