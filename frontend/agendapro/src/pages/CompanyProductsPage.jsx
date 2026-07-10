@@ -7,7 +7,7 @@ import {
   getCompanyProducts,
 } from "../services/companyService";
 
-import { createSale } from "../services/saleService";
+import { createSale, getSaleStatus } from "../services/saleService";
 import Nav from "../components/Nav";
 
 export default function CompanyProductsPage() {
@@ -29,6 +29,7 @@ export default function CompanyProductsPage() {
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [pixData, setPixData] = useState(null);
   const [showPixModal, setShowPixModal] = useState(false);
+  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
 
   // =========================
   // LOAD DATA
@@ -64,6 +65,32 @@ export default function CompanyProductsPage() {
 
     loadData();
   }, [slug]);
+
+  useEffect(() => {
+    if (!showPixModal || !pixData?.orderId) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await getSaleStatus(pixData.orderId);
+
+        if (res.status === "paid") {
+          clearInterval(interval);
+
+          setPaymentConfirmed(true);
+          setShowPixModal(false);
+
+          setCart([]);
+          setCustomerName("");
+          setCustomerPhone("");
+          setPixData(null);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [showPixModal, pixData]);
 
   // =========================
   // CART LOGIC
@@ -400,6 +427,29 @@ export default function CompanyProductsPage() {
                 {checkoutLoading ? "Processando..." : "Comprar"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {paymentConfirmed && (
+        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-[1001] p-4">
+          <div className="bg-[#0d0f14] w-full max-w-sm rounded-2xl p-6 border border-white/10 text-center">
+            <div className="text-5xl mb-3">✅</div>
+
+            <h2 className="text-xl font-bold">Pagamento confirmado!</h2>
+
+            <p className="text-white/60 mt-3 text-sm">
+              Recebemos seu pagamento com sucesso.
+              <br />
+              Seu pedido foi confirmado e enviado para a empresa.
+            </p>
+
+            <button
+              onClick={() => setPaymentConfirmed(false)}
+              className="w-full mt-6 h-11 rounded-xl bg-[var(--primary)] font-bold"
+            >
+              Fechar
+            </button>
           </div>
         </div>
       )}

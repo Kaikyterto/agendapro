@@ -50,6 +50,13 @@ def get_sales_history():
 def get_sale(sale_id):
     return SaleController.get_sale(sale_id)
 
+@sales_bp.route(
+    "/sales/<int:sale_id>/status",
+    methods=["GET"]
+)
+def get_sale_status(sale_id):
+    return SaleController.get_sale_status(sale_id)
+
 
 @sales_bp.route(
     "/sales/<int:sale_id>",

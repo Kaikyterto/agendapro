@@ -17,6 +17,16 @@ export function createSale(data) {
 }
 
 // =========================================================
+// PUBLIC - CONSULTAR STATUS DO PEDIDO
+// =========================================================
+
+export function getSaleStatus(saleId) {
+  return apiFetch(`/sales/${saleId}/status`, {
+    method: "GET",
+  });
+}
+
+// =========================================================
 // ADMIN - LIST SALES
 // =========================================================
 
