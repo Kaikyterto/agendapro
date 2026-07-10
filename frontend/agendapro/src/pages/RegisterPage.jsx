@@ -103,7 +103,7 @@ const RegisterPage = () => {
         {/* ============================================== */}
         <div className="flex flex-col items-center mb-10">
           <h1 className="text-3xl font-black text-white tracking-tight text-center">
-            Assine <span className="text-blue-500">já</span>
+            Assine por apenas<span className="text-blue-500">29,90</span>
           </h1>
 
           <p className="text-slate-500 text-sm mt-2 text-center max-w-sm leading-relaxed">

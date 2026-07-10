@@ -155,7 +155,7 @@ const LoginPage = () => {
               className="w-full border border-white/[0.08] hover:border-blue-500/40 hover:bg-blue-500/10 text-white font-semibold py-3 rounded-xl transition-all flex items-center justify-center gap-2"
             >
               <UserPlus size={18} />
-              Criar conta
+              Assine já
             </button>
           </div>
         </div>
