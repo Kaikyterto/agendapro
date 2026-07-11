@@ -79,7 +79,7 @@ public_bp.route(
 )
 
 # =====================================================
-# SALES CHECKOUT (NOVO - IMPORTANTE)
+# SALES CHECKOUT 
 # =====================================================
 
 public_bp.route(

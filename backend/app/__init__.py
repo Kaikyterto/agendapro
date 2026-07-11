@@ -5,12 +5,23 @@ from flask_migrate import Migrate
 from flask_cors import CORS
 from dotenv import load_dotenv
 
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
 from app.database.db import db
 from app.models.company import Company
 
 import os
 
 migrate = Migrate()
+
+# =====================================================
+# RATE LIMIT GLOBAL
+# =====================================================
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=["120 per minute"],
+)
 
 
 def create_app():
@@ -51,6 +62,18 @@ def create_app():
     migrate.init_app(app, db)
     JWTManager(app)
 
+    # Inicializa o Rate Limiter
+    limiter.init_app(app)
+
+    # =====================================================
+    # RESPOSTA QUANDO EXCEDER O LIMITE
+    # =====================================================
+    @app.errorhandler(429)
+    def ratelimit_handler(e):
+        return jsonify({
+            "message": "Muitas requisições. Tente novamente em instantes."
+        }), 429
+
     # =====================================================
     # MIDDLEWARE (APENAS SAAS STATUS CHECK)
     # =====================================================
@@ -77,12 +100,6 @@ def create_app():
 
         if any(path.startswith(p) for p in public_paths):
             return
-
-        # =============================================
-        # IMPORTANTE:
-        # NÃO VALIDAR JWT AQUI
-        # Isso deve ser feito nas rotas com @jwt_required
-        # =============================================
 
         return
 
@@ -136,17 +153,13 @@ def create_app():
     # =====================================================
     # UPLOAD
     # =====================================================
-
     from app.routes.upload_routes import upload_bp
-
     app.register_blueprint(upload_bp)
 
     # =====================================================
     # HEALTH
     # =====================================================
-
     from app.routes.health_routes import health_bp
-
     app.register_blueprint(health_bp, url_prefix="/api")
 
     return app
