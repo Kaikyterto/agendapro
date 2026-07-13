@@ -31,9 +31,8 @@ export default function CompanyProductsPage() {
   const [showPixModal, setShowPixModal] = useState(false);
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
 
-  // =========================
-  // LOAD DATA
-  // =========================
+  const [expandedDescriptions, setExpandedDescriptions] = useState({});
+
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -92,9 +91,6 @@ export default function CompanyProductsPage() {
     return () => clearInterval(interval);
   }, [showPixModal, pixData]);
 
-  // =========================
-  // CART LOGIC
-  // =========================
   const addToCart = (product) => {
     setCart((prev) => {
       const exists = prev.find((p) => p.id === product.id);
@@ -138,9 +134,6 @@ export default function CompanyProductsPage() {
     );
   }, [cart]);
 
-  // =========================
-  // OPEN CHECKOUT MODAL
-  // =========================
   const openCheckout = () => {
     if (!cart.length) {
       setError("Carrinho vazio");
@@ -152,9 +145,13 @@ export default function CompanyProductsPage() {
     setShowCustomerModal(true);
   };
 
-  // =========================
-  // CHECKOUT
-  // =========================
+  const toggleDescription = (id) => {
+    setExpandedDescriptions((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
+
   const handleCheckout = async () => {
     try {
       if (!company?.id) {
@@ -224,20 +221,17 @@ export default function CompanyProductsPage() {
 
   return (
     <div className="min-h-screen bg-[#07090d] text-white transform-gpu">
-      {/* TOAST NOTIFICATION */}
       {toast && (
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-neutral-900 border border-white/10 px-4 py-2 rounded-xl text-xs font-semibold z-[9999] shadow-2xl">
           {toast}
         </div>
       )}
 
-      {/* BACKGROUND - REMOVIDO BLUR RADICAL MOBILE PARA IMPEDIR ARTEFATOS */}
       <div className="fixed inset-0 pointer-events-none hidden sm:block">
         <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] rounded-full bg-[var(--primary)] opacity-10 blur-[120px]" />
         <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] rounded-full bg-[var(--accent)] opacity-5 blur-[120px]" />
       </div>
 
-      {/* NAV */}
       <Nav
         logo={company?.logo}
         showCart
@@ -245,9 +239,7 @@ export default function CompanyProductsPage() {
         onCartClick={() => setIsCartOpen(true)}
       />
 
-      {/* PRODUCTS MAIN */}
       <main className="relative z-10 max-w-7xl mx-auto px-3 py-6">
-        {/* GRID DE PRODUTOS COMPACTO */}
         <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2.5">
           {products.map((product) => (
             <div
@@ -264,11 +256,33 @@ export default function CompanyProductsPage() {
                 />
               </div>
 
-              {/* CARD BODY REDUZIDO */}
-              <div className="p-2 flex flex-col flex-1 justify-between gap-1.5">
+              <div className="p-2 flex flex-col flex-1">
                 <h3 className="font-semibold text-[11px] sm:text-xs line-clamp-2 leading-tight text-white/90 min-h-[28px] sm:min-h-[32px] break-words">
                   {product.name}
                 </h3>
+
+                {product.description && (
+                  <div className="mt-1 mb-2">
+                    <p
+                      className={`text-[10px] sm:text-[11px] text-white/60 leading-relaxed break-words transition-all duration-300 ${
+                        expandedDescriptions[product.id] ? "" : "line-clamp-3"
+                      }`}
+                    >
+                      {product.description}
+                    </p>
+
+                    {product.description.length > 100 && (
+                      <button
+                        onClick={() => toggleDescription(product.id)}
+                        className="mt-1 text-[10px] font-semibold text-[var(--primary)] hover:underline"
+                      >
+                        {expandedDescriptions[product.id]
+                          ? "Ler menos"
+                          : "Ler mais"}
+                      </button>
+                    )}
+                  </div>
+                )}
 
                 <div className="flex flex-col gap-1.5 mt-auto">
                   <span className="text-[11px] sm:text-xs font-bold text-[var(--primary)] truncate">
@@ -290,15 +304,8 @@ export default function CompanyProductsPage() {
             </div>
           ))}
         </div>
-
-        {products.length === 0 && (
-          <div className="text-center py-20 text-white/30 text-xs">
-            Nenhum produto disponível no momento.
-          </div>
-        )}
       </main>
 
-      {/* CART SIDEBAR */}
       {isCartOpen && (
         <div className="fixed inset-0 z-50 flex justify-end transform-gpu">
           <div
@@ -388,7 +395,6 @@ export default function CompanyProductsPage() {
         </div>
       )}
 
-      {/* MODAL CHECKOUT */}
       {showCustomerModal && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[999] p-4 transform-gpu">
           <div className="bg-[#0d0f14] p-5 rounded-2xl w-full max-w-sm border border-white/10 shadow-2xl">
@@ -454,7 +460,6 @@ export default function CompanyProductsPage() {
         </div>
       )}
 
-      {/* MODAL PIX */}
       {showPixModal && pixData && (
         <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-[1000] p-4 transform-gpu">
           <div className="bg-[#0d0f14] w-full max-w-sm rounded-2xl p-5 border border-white/10 text-center shadow-2xl">
