@@ -83,14 +83,14 @@ const LoginPage = () => {
         <div className="text-center mb-10 flex flex-col items-center">
           <img
             src={AppLogo}
-            alt="AgendaPro Logo"
-            className="w-[120px] h-[120px] mb-8"
+            alt="Kromis Logo"
+            className="w-[140px] h-[100px] drop-shadow-[0_0_15px_rgba(59,130,246,0.5)]"
           />
           <h1 className="text-2xl font-black text-white tracking-tight">
-            Agenda<span className="text-blue-500">Pro</span>
+            Kro<span className="text-blue-500">mis</span>
           </h1>
           <p className="text-slate-500 text-sm mt-2">
-            Gestão inteligente para seus horários
+            Gestão inteligente para seu negócio.
           </p>
         </div>
 
