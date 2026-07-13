@@ -45,7 +45,7 @@ def create_app():
         resources={
             r"/*": {
                 "origins": [
-                    "https://agendapro-v1.vercel.app",
+                    "https://kromis.vercel.app",
                     "http://localhost:5173",
                 ]
             }
