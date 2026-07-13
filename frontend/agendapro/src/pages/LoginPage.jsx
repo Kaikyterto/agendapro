@@ -3,6 +3,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowRight, UserPlus, Mail, Lock } from "lucide-react";
 import { loginService } from "../services/auth";
 
+import AppLogo from "../assets/logo-kromis-transparente.png";
+
 const LoginPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -78,8 +80,13 @@ const LoginPage = () => {
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-900/10 blur-[120px] rounded-full pointer-events-none" />
 
       <div className="w-full max-w-[400px] relative">
-        <div className="text-center mb-10">
-          <h1 className="text-3xl font-black text-white tracking-tight">
+        <div className="text-center mb-10 flex flex-col items-center">
+          <img
+            src={AppLogo}
+            alt="AgendaPro Logo"
+            className="w-[120px] h-[120px] mb-8"
+          />
+          <h1 className="text-2xl font-black text-white tracking-tight">
             Agenda<span className="text-blue-500">Pro</span>
           </h1>
           <p className="text-slate-500 text-sm mt-2">
