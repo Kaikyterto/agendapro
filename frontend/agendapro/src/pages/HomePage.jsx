@@ -138,7 +138,10 @@ const HomePage = () => {
               <Button
                 icon={Calendar}
                 className="h-14 sm:h-16 px-8 text-base sm:text-lg font-bold transition-transform hover:scale-[1.02] active:scale-[0.98]"
-                style={{ backgroundColor: "var(--primary)" }}
+                style={{
+                  backgroundColor: "var(--primary)",
+                  color: "var(--text)",
+                }}
                 onClick={() => navigate(`/${slug}/agendar`)}
               >
                 Agendar Serviço
@@ -148,6 +151,10 @@ const HomePage = () => {
                 icon={ShoppingBag}
                 className="h-14 sm:h-16 px-8 text-base sm:text-lg font-bold border border-white/10 bg-white/5 backdrop-blur-md transition-transform hover:bg-white/10 hover:scale-[1.02] active:scale-[0.98]"
                 onClick={() => navigate(`/${slug}/produtos`)}
+                style={{
+                  backgroundColor: "var(--primary)",
+                  color: "var(--text)",
+                }}
               >
                 Ver Produtos
               </Button>
