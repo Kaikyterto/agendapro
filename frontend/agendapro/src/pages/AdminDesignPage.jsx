@@ -56,15 +56,27 @@ const AdminDesignPage = () => {
       const designData = await getDesignSettings();
 
       if (designData) {
+        // AJUSTE AQUI: Mapeando corretamente caso a API retorne 'background' ou 'background_color'
         setForm({
           name: designData.name || "",
           about: designData.about || "",
-          primary_color: designData.primary_color || "#3b82f6",
-          secondary_color: designData.secondary_color || "#64748b",
-
-          background_color: designData.background || "#07090d",
-          text_color: designData.text || "#ffffff",
-          logo_url: designData.logo_url || "",
+          primary_color:
+            designData.colors?.primary || designData.primary_color || "#3b82f6",
+          secondary_color:
+            designData.colors?.secondary ||
+            designData.secondary_color ||
+            "#64748b",
+          background_color:
+            designData.colors?.background ||
+            designData.background_color ||
+            designData.background ||
+            "#07090d",
+          text_color:
+            designData.colors?.text ||
+            designData.text_color ||
+            designData.text ||
+            "#ffffff",
+          logo_url: designData.logo_url || designData.logo || "",
         });
       }
     } catch (err) {
@@ -120,17 +132,21 @@ const AdminDesignPage = () => {
         }
       }
 
+      // AJUSTE AQUI: Formatando o payload combinando com a estrutura que a HomePage consome
       const payload = {
+        name: form.name.trim(),
         about: form.about.trim(),
-        primary_color: form.primary_color,
-        secondary_color: form.secondary_color,
-        background_color: form.background_color,
-        text_color: form.text_color,
         logo_url: logoUrl || null,
+        colors: {
+          primary: form.primary_color,
+          secondary: form.secondary_color,
+          background: form.background_color,
+          text: form.text_color,
+        },
       };
 
       await updateDesignSettings(payload);
-      setSuccess("Identidade visual atualizada com sucesso!");
+      setSuccess("Identidade visual actualizada com sucesso!");
 
       setForm((prev) => ({ ...prev, logo_url: logoUrl }));
       setImageFile(null);
@@ -172,6 +188,7 @@ const AdminDesignPage = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* CONFIGURATION FORM */}
           <div className="lg:col-span-7 bg-[#111827] border border-violet-500/10 rounded-[28px] sm:rounded-[32px] p-5 sm:p-6 shadow-xl">
             <div className="mb-6 flex items-center justify-between">
               <div>
@@ -195,15 +212,30 @@ const AdminDesignPage = () => {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
+              {/* NOME E SOBRE */}
+              <div className="grid grid-cols-1 gap-4">
+                <div>
+                  <label className="text-xs sm:text-sm text-white/60 mb-1.5 block font-medium">
+                    Nome da Empresa
+                  </label>
+                  <input
+                    type="text"
+                    value={form.name}
+                    onChange={(e) => handleChange("name", e.target.value)}
+                    placeholder="Ex: Minha Barbearia"
+                    className="w-full rounded-xl bg-[#0f172a] border border-white/10 px-4 h-12 outline-none focus:border-violet-400 transition-all text-sm text-white"
+                  />
+                </div>
+              </div>
+
               {/* SELETORES DE COR */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div className="grid grid-cols-2 gap-4">
                 {/* COR PRIMÁRIA */}
                 <div className="bg-[#0f172a] border border-white/5 p-4 rounded-2xl flex flex-col items-center">
                   <label className="text-xs text-white/60 mb-3 font-semibold uppercase tracking-wider self-start">
                     Cor Primária
                   </label>
-
-                  <div className="relative group cursor-pointer w-24 h-24 mb-4">
+                  <div className="relative group cursor-pointer w-20 h-20 mb-3">
                     <div
                       className="absolute inset-0 rounded-full blur-md opacity-40 transition-opacity group-hover:opacity-70"
                       style={{ backgroundColor: form.primary_color }}
@@ -224,7 +256,6 @@ const AdminDesignPage = () => {
                       />
                     </label>
                   </div>
-
                   <input
                     type="text"
                     maxLength={7}
@@ -232,16 +263,16 @@ const AdminDesignPage = () => {
                     onChange={(e) =>
                       handleChange("primary_color", e.target.value)
                     }
-                    className="w-full text-center h-10 bg-[#111827] border border-white/10 rounded-xl px-3 outline-none text-xs text-white font-mono focus:border-violet-400"
+                    className="w-full text-center h-9 bg-[#111827] border border-white/10 rounded-xl px-2 outline-none text-xs text-white font-mono focus:border-violet-400"
                   />
                 </div>
 
+                {/* COR ACCENT / SECUNDÁRIA */}
                 <div className="bg-[#0f172a] border border-white/5 p-4 rounded-2xl flex flex-col items-center">
                   <label className="text-xs text-white/60 mb-3 font-semibold uppercase tracking-wider self-start">
-                    Cor Secundária
+                    Cor Accent
                   </label>
-
-                  <div className="relative group cursor-pointer w-24 h-24 mb-4">
+                  <div className="relative group cursor-pointer w-20 h-20 mb-3">
                     <div
                       className="absolute inset-0 rounded-full blur-md opacity-40 transition-opacity group-hover:opacity-70"
                       style={{ backgroundColor: form.secondary_color }}
@@ -262,7 +293,6 @@ const AdminDesignPage = () => {
                       />
                     </label>
                   </div>
-
                   <input
                     type="text"
                     maxLength={7}
@@ -270,16 +300,16 @@ const AdminDesignPage = () => {
                     onChange={(e) =>
                       handleChange("secondary_color", e.target.value)
                     }
-                    className="w-full text-center h-10 bg-[#111827] border border-white/10 rounded-xl px-3 outline-none text-xs text-white font-mono focus:border-violet-400"
+                    className="w-full text-center h-9 bg-[#111827] border border-white/10 rounded-xl px-2 outline-none text-xs text-white font-mono focus:border-violet-400"
                   />
                 </div>
 
+                {/* COR DE FUNDO */}
                 <div className="bg-[#0f172a] border border-white/5 p-4 rounded-2xl flex flex-col items-center">
                   <label className="text-xs text-white/60 mb-3 font-semibold uppercase tracking-wider self-start">
                     Cor de Fundo
                   </label>
-
-                  <div className="relative group cursor-pointer w-24 h-24 mb-4">
+                  <div className="relative group cursor-pointer w-20 h-20 mb-3">
                     <div
                       className="absolute inset-0 rounded-full blur-md opacity-40 transition-opacity group-hover:opacity-70"
                       style={{ backgroundColor: form.background_color }}
@@ -300,7 +330,6 @@ const AdminDesignPage = () => {
                       />
                     </label>
                   </div>
-
                   <input
                     type="text"
                     maxLength={7}
@@ -308,16 +337,16 @@ const AdminDesignPage = () => {
                     onChange={(e) =>
                       handleChange("background_color", e.target.value)
                     }
-                    className="w-full text-center h-10 bg-[#111827] border border-white/10 rounded-xl px-3 outline-none text-xs text-white font-mono focus:border-violet-400"
+                    className="w-full text-center h-9 bg-[#111827] border border-white/10 rounded-xl px-2 outline-none text-xs text-white font-mono focus:border-violet-400"
                   />
                 </div>
 
+                {/* COR DO TEXTO */}
                 <div className="bg-[#0f172a] border border-white/5 p-4 rounded-2xl flex flex-col items-center">
                   <label className="text-xs text-white/60 mb-3 font-semibold uppercase tracking-wider self-start">
-                    Cor das Letras
+                    Cor do Texto
                   </label>
-
-                  <div className="relative group cursor-pointer w-24 h-24 mb-4">
+                  <div className="relative group cursor-pointer w-20 h-20 mb-3">
                     <div
                       className="absolute inset-0 rounded-full blur-md opacity-40 transition-opacity group-hover:opacity-70"
                       style={{ backgroundColor: form.text_color }}
@@ -338,13 +367,12 @@ const AdminDesignPage = () => {
                       />
                     </label>
                   </div>
-
                   <input
                     type="text"
                     maxLength={7}
                     value={form.text_color}
                     onChange={(e) => handleChange("text_color", e.target.value)}
-                    className="w-full text-center h-10 bg-[#111827] border border-white/10 rounded-xl px-3 outline-none text-xs text-white font-mono focus:border-violet-400"
+                    className="w-full text-center h-9 bg-[#111827] border border-white/10 rounded-xl px-2 outline-none text-xs text-white font-mono focus:border-violet-400"
                   />
                 </div>
               </div>
@@ -406,18 +434,21 @@ const AdminDesignPage = () => {
             </form>
           </div>
 
+          {/* REAL-TIME PREVIEW CRUCIAL CORRECTION */}
           <div className="lg:col-span-5 space-y-4 lg:sticky lg:top-8">
             <div className="flex items-center gap-2 px-1 text-white/60 text-xs font-bold uppercase tracking-wider">
               <Eye size={14} /> Pré-visualização em tempo real
             </div>
 
+            {/* Mimetiza com precisão o container principal da HomePage */}
             <div
-              className="relative rounded-[28px] sm:rounded-[32px] border border-white/10 overflow-hidden shadow-2xl scale-[0.92] origin-top min-h-[480px] flex flex-col justify-between transition-colors duration-300"
+              className="relative rounded-[32px] border border-white/10 overflow-hidden shadow-2xl scale-[0.95] origin-top min-h-[520px] flex flex-col justify-between transition-colors duration-300"
               style={{
                 backgroundColor: form.background_color,
                 color: form.text_color,
               }}
             >
+              {/* Glow Dinâmico Traseiro (Igual ao HomePage) */}
               <div
                 className="absolute inset-0 opacity-25 pointer-events-none mix-blend-screen"
                 style={{
@@ -428,44 +459,47 @@ const AdminDesignPage = () => {
                 }}
               />
 
+              {/* BARRA DE NAVEGAÇÃO / NAV SIMULADA */}
               <div
-                className="relative z-10 flex items-center justify-center px-4 py-3 border-b border-white/10 backdrop-blur-md"
-                style={{ backgroundColor: `${form.background_color}99` }} // Opacidade aplicada à cor selecionada
+                className="relative z-10 flex items-center justify-between px-5 py-4 border-b border-white/10 backdrop-blur-md"
+                style={{ backgroundColor: `${form.background_color}99` }}
               >
                 {previewUrl || form.logo_url ? (
                   <img
                     src={previewUrl || form.logo_url}
                     alt="Logo Preview"
-                    className="h-5 max-w-[120px] object-contain"
+                    className="h-5 max-w-[100px] object-contain"
                   />
                 ) : (
-                  <span
-                    className="text-xs font-bold tracking-wider uppercase opacity-40"
-                    style={{ color: form.text_color }}
-                  >
-                    Logo
+                  <span className="text-[11px] font-black tracking-wider uppercase opacity-60">
+                    {form.name ? form.name.substring(0, 8) : "LOGO"}
                   </span>
                 )}
+                <div className="w-5 h-5 rounded-md bg-white/10" />
               </div>
 
-              <div className="relative z-10 p-5 flex-1 flex flex-col justify-center gap-6">
-                <div className="flex justify-center">
-                  <div className="relative w-full max-w-[150px] aspect-square flex items-center justify-center">
+              {/* GRID ASSIMÉTRICO (Layout simulado da HomePage em versão miniatura) */}
+              <div className="relative z-10 p-6 flex-1 flex flex-col justify-center gap-6">
+                {/* Lado Direito da HomePage (A Logo Centralizada com o Glassmorphic Premium) */}
+                <div className="flex justify-center order-1">
+                  <div className="relative w-full max-w-[140px] aspect-square flex items-center justify-center">
+                    {/* Brilho da logo */}
                     <div
-                      className="absolute inset-0 blur-2xl opacity-40 rounded-full"
+                      className="absolute inset-0 blur-2xl opacity-35 rounded-full transition-colors"
                       style={{ backgroundColor: form.primary_color }}
                     />
 
-                    <div className="absolute inset-0 bg-gradient-to-b from-white/[0.08] to-transparent border border-white/[0.1] backdrop-blur-md rounded-2xl p-4 flex items-center justify-center shadow-lg">
+                    {/* Moldura Premium Glassmorphic */}
+                    <div className="absolute inset-0 bg-gradient-to-b from-white/[0.07] to-transparent border border-white/[0.08] backdrop-blur-xl rounded-[24px] p-4 flex items-center justify-center shadow-xl">
                       {previewUrl || form.logo_url ? (
                         <img
                           src={previewUrl || form.logo_url}
                           alt="Logo Hero"
-                          className="max-w-full max-h-full object-contain filter drop-shadow-md"
+                          className="max-w-full max-h-full object-contain filter drop-shadow-[0_4px_12px_rgba(0,0,0,0.5)]"
                         />
                       ) : (
                         <div
-                          className="w-12 h-12 rounded-xl flex items-center justify-center text-lg font-black text-white"
+                          className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-black text-white shadow-md"
                           style={{
                             background: `linear-gradient(135deg, ${form.primary_color}, ${form.secondary_color})`,
                           }}
@@ -477,47 +511,47 @@ const AdminDesignPage = () => {
                   </div>
                 </div>
 
-                <div className="text-center">
-                  <h1 className="text-xl font-black tracking-tight leading-tight mb-1">
+                {/* Lado Esquerdo da HomePage (Textos Alinhados e Botões) */}
+                <div className="text-center order-2">
+                  <h1 className="text-2xl font-black tracking-tight leading-none mb-2 break-words">
                     {form.name || "Minha Empresa"}
                   </h1>
 
-                  <p
-                    className="text-[11px] mb-4 line-clamp-2 max-w-[240px] mx-auto leading-relaxed opacity-60"
-                    style={{ color: form.text_color }}
-                  >
+                  <p className="text-[12px] mb-5 line-clamp-3 max-w-[260px] mx-auto leading-relaxed opacity-70">
                     {form.about ||
                       "Bem-vindo à nossa plataforma de agendamentos e produtos."}
                   </p>
 
-                  <div className="flex flex-col gap-2 w-full max-w-[180px] mx-auto">
+                  {/* Ações / Botões Dinâmicos */}
+                  <div className="flex flex-col gap-2.5 w-full max-w-[200px] mx-auto">
                     <button
                       type="button"
-                      className="h-9 px-4 rounded-lg text-xs font-bold text-white flex items-center justify-center gap-1.5 transition-all shadow-md hover:opacity-90"
+                      className="h-10 px-4 rounded-xl text-xs font-bold text-white flex items-center justify-center gap-1.5 transition-transform active:scale-95 shadow-md"
                       style={{ backgroundColor: form.primary_color }}
                     >
-                      <Calendar size={11} />
+                      <Calendar size={13} />
                       Agendar Serviço
                     </button>
 
                     <button
                       type="button"
-                      className="h-9 px-4 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 border backdrop-blur-sm transition-all hover:bg-white/[0.05]"
+                      className="h-10 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border border-white/10 bg-white/5 backdrop-blur-md transition-all text-white"
                     >
-                      <ShoppingBag size={11} />
+                      <ShoppingBag size={13} />
                       Ver Produtos
                     </button>
                   </div>
                 </div>
               </div>
 
+              {/* FOOTER DO PREVIEW */}
               <div
                 className="relative z-10 p-2 text-center border-t border-white/5"
                 style={{ backgroundColor: `${form.background_color}66` }}
               >
                 <div className="text-[10px] flex items-center justify-center gap-1 opacity-40">
-                  <HelpCircle size={10} /> Miniatura sincronizada com o novo
-                  layout hero
+                  <HelpCircle size={10} /> Miniatura sincronizada com o tema
+                  real
                 </div>
               </div>
             </div>
