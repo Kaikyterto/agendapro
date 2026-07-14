@@ -1,12 +1,14 @@
 export function setupPWA(company = null) {
+  const baseURL = window.location.origin;
+
   const isKromis =
     company?.name?.toLowerCase() === "kromis" ||
     company?.slug?.toLowerCase() === "kromis" ||
     !company;
 
   const manifest = {
-    name: isKromis ? "Kromis" : company.name,
-    short_name: isKromis ? "Kromis" : company.name,
+    name: isKromis ? "Kromis" : company?.name || "Kromis",
+    short_name: isKromis ? "Kromis" : company?.name || "Kromis",
 
     start_url: isKromis
       ? `${baseURL}/kromis`
@@ -22,7 +24,9 @@ export function setupPWA(company = null) {
 
     icons: [
       {
-        src: isKromis ? "/kromis-logo.png" : company.logo,
+        src: isKromis
+          ? `${baseURL}/kromis-logo.png`
+          : company?.logo || `${baseURL}/kromis-logo.png`,
         sizes: "1024x1024",
         type: "image/png",
         purpose: "any maskable",
@@ -32,7 +36,9 @@ export function setupPWA(company = null) {
 
   const manifestJSON = JSON.stringify(manifest);
 
-  const blob = new Blob([manifestJSON], { type: "application/manifest+json" });
+  const blob = new Blob([manifestJSON], {
+    type: "application/manifest+json",
+  });
 
   const manifestURL = URL.createObjectURL(blob);
 
