@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowRight, UserPlus, Mail, Lock } from "lucide-react";
 import { loginService } from "../services/auth";
+import { setupPWA } from "../utils/pwa";
+import { useEffect, useState } from "react";
 import { usePWAInstall } from "../hooks/usePWAInstall";
 
 import AppLogo from "../assets/logo-kromis-transparente.png";
@@ -18,6 +20,10 @@ const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const { canInstall, installApp } = usePWAInstall();
+
+  useEffect(() => {
+    setupPWA();
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
