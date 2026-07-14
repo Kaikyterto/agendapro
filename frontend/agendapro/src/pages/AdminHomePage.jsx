@@ -18,17 +18,9 @@ const AdminHomePage = () => {
   const { slug } = useParams();
 
   useEffect(() => {
-    async function validateToken() {
-      try {
-        await apiFetch(`/settings`, {
-          auth: true,
-        });
-      } catch (err) {
-        console.error(err);
-      }
-    }
-
-    validateToken();
+    apiFetch("/settings", {
+      auth: true,
+    }).catch(() => {});
   }, []);
 
   const cards = [
