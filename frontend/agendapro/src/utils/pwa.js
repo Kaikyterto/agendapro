@@ -8,7 +8,11 @@ export function setupPWA(company = null) {
     name: isKromis ? "Kromis" : company.name,
     short_name: isKromis ? "Kromis" : company.name,
 
-    start_url: company?.slug ? `/${company.slug}` : "/",
+    start_url: isKromis
+      ? `${baseURL}/kromis`
+      : company?.slug
+      ? `${baseURL}/${company.slug}`
+      : `${baseURL}/`,
 
     display: "standalone",
 

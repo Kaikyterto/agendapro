@@ -10,7 +10,15 @@ import AppLogo from "../assets/logo-kromis-transparente.png";
 
 const LoginPage = () => {
   useEffect(() => {
-    setupPWA();
+    setupPWA({
+      name: "Kromis",
+      slug: "kromis",
+      colors: {
+        primary: "#000000",
+        secondary: "#ffffff",
+      },
+      logo: "/kromis-logo.png",
+    });
   }, []);
 
   const { canInstall, installApp } = usePWAInstall();
