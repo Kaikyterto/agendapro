@@ -152,7 +152,7 @@ const HomePage = () => {
                 className="h-14 sm:h-16 px-8 text-base sm:text-lg font-bold border border-white/10 bg-white/5 backdrop-blur-md transition-transform hover:bg-white/10 hover:scale-[1.02] active:scale-[0.98]"
                 onClick={() => navigate(`/${slug}/produtos`)}
                 style={{
-                  backgroundColor: "var(--primary)",
+                  backgroundColor: "var(--accent)",
                   color: "var(--text)",
                 }}
               >
