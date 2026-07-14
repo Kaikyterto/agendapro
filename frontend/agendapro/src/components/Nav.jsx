@@ -1,12 +1,14 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft, ShoppingCart } from "lucide-react";
 
-const Nav = ({ logo, showCart, cartCount = 0, onCartClick }) => {
+const Nav = ({ logo, showCart, cartCount = 0, onCartClick, style }) => {
   const navigate = useNavigate();
 
   return (
-    <header className="w-full flex items-center justify-between px-4 py-3 bg-[#07090d] border-b border-white/10">
-      {/* BACK */}
+    <header
+      className="w-full flex items-center justify-between px-4 py-3 border-b border-white/10"
+      style={style}
+    >
       <button
         onClick={() => navigate(-1)}
         className="p-2 rounded-lg hover:bg-white/10 transition"
@@ -14,7 +16,6 @@ const Nav = ({ logo, showCart, cartCount = 0, onCartClick }) => {
         <ArrowLeft size={20} className="text-white" />
       </button>
 
-      {/* LOGO */}
       <div className="flex items-center justify-center">
         {logo ? (
           <img src={logo} alt="logo" className="h-8 object-contain" />
@@ -23,7 +24,6 @@ const Nav = ({ logo, showCart, cartCount = 0, onCartClick }) => {
         )}
       </div>
 
-      {/* CART (CONTROLADO PELA PAGE) */}
       <div className="w-10 flex justify-end">
         {showCart && (
           <button
