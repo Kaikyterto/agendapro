@@ -18,9 +18,17 @@ const AdminHomePage = () => {
   const { slug } = useParams();
 
   useEffect(() => {
-    apiFetch("/settings", {
-      auth: true,
-    }).catch(() => {});
+    async function validateToken() {
+      try {
+        await apiFetch("/settings", {
+          auth: true,
+        });
+      } catch (error) {
+        console.log("Sessão inválida:", error);
+      }
+    }
+
+    validateToken();
   }, []);
 
   const cards = [
