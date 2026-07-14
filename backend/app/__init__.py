@@ -47,6 +47,7 @@ def create_app():
                 "origins": [
                     "https://kromis.vercel.app",
                     "http://localhost:5173",
+                    "https://kromis-develop.vercel.app",
                 ]
             }
         },
