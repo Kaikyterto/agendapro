@@ -1,5 +1,6 @@
 import React from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { getDesignSettings} from "../services/design";
 
 import {
   CalendarDays,
@@ -16,6 +17,8 @@ import {
 const AdminHomePage = () => {
   const navigate = useNavigate();
   const { slug } = useParams();
+
+  const designData = await getDesignSettings();
 
   const cards = [
     {
