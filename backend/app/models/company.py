@@ -18,11 +18,6 @@ class Company(db.Model):
         index=True
     )
 
-    # pending_payment
-    # active
-    # past_due
-    # cancelled
-    # expired
     status = db.Column(
         db.String(30),
         nullable=False,
@@ -40,19 +35,16 @@ class Company(db.Model):
         nullable=True
     )
 
-    # ID da assinatura recorrente no MP
     mercado_pago_subscription_id = db.Column(
         db.String(120),
         nullable=True
     )
 
-   
     next_billing_at = db.Column(
         db.DateTime,
         nullable=True
     )
 
-   
     expires_at = db.Column(
         db.DateTime,
         nullable=True
@@ -68,16 +60,31 @@ class Company(db.Model):
         nullable=True
     )
 
+    # Cor principal da empresa
     primary_color = db.Column(
         db.String(7),
         nullable=False,
         default="#3b82f6"
     )
 
+    # Cor secundária da empresa
     secondary_color = db.Column(
         db.String(7),
         nullable=False,
         default="#64748b"
+    )
+
+    
+    background_color = db.Column(
+        db.String(7),
+        nullable=False,
+        default="#07090d"
+    )
+
+    text_color = db.Column(
+        db.String(7),
+        nullable=False,
+        default="#FFFFFF"
     )
 
     created_at = db.Column(

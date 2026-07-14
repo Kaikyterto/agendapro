@@ -36,9 +36,20 @@ const HomePage = () => {
             "--primary",
             data.colors.primary
           );
+
           document.documentElement.style.setProperty(
             "--accent",
             data.colors.secondary
+          );
+
+          document.documentElement.style.setProperty(
+            "--background",
+            data.colors.background
+          );
+
+          document.documentElement.style.setProperty(
+            "--text",
+            data.colors.text
           );
         }
       } catch (err) {
@@ -57,7 +68,13 @@ const HomePage = () => {
   // =====================================================
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#07090d]">
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{
+          backgroundColor: "var(--background)",
+          color: "var(--text)",
+        }}
+      >
         <div className="w-12 h-12 rounded-full border-4 border-white/10 border-t-[var(--primary)] animate-spin" />
       </div>
     );
@@ -68,15 +85,26 @@ const HomePage = () => {
   // =====================================================
   if (!company) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-white bg-[#07090d]">
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{
+          backgroundColor: "var(--background)",
+          color: "var(--text)",
+        }}
+      >
         Empresa não encontrada
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen text-white bg-[#07090d] relative overflow-hidden flex flex-col">
-      {/* Background Aurora-like Gradients */}
+    <div
+      className="min-h-screen relative overflow-hidden flex flex-col"
+      style={{
+        backgroundColor: "var(--background)",
+        color: "var(--text)",
+      }}
+    >
       <div
         className="absolute inset-0 opacity-25 pointer-events-none mix-blend-screen"
         style={{
@@ -91,13 +119,17 @@ const HomePage = () => {
 
       <main className="relative z-10 max-w-7xl mx-auto px-6 flex-1 flex items-center w-full">
         <div className="grid lg:grid-cols-12 gap-12 lg:gap-16 items-center w-full py-12">
-          {/* LEFT COLUMN - TEXTS & ACTIONS (Ocupa 7 colunas no desktop) */}
           <div className="lg:col-span-7 text-center lg:text-left order-2 lg:order-1">
-            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-none mb-6 bg-gradient-to-b from-white to-white/80 bg-clip-text text-transparent">
+            <h1
+              className="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-none mb-6"
+              style={{
+                color: "var(--text)",
+              }}
+            >
               {company?.name}
             </h1>
 
-            <p className="text-base sm:text-lg lg:text-xl text-white/50 mb-10 max-w-xl leading-relaxed mx-auto lg:mx-0">
+            <p className="text-base sm:text-lg lg:text-xl mb-10 max-w-xl leading-relaxed mx-auto lg:mx-0 opacity-70">
               {company?.about ||
                 "Bem-vindo à nossa plataforma de agendamentos e produtos."}
             </p>
@@ -106,7 +138,10 @@ const HomePage = () => {
               <Button
                 icon={Calendar}
                 className="h-14 sm:h-16 px-8 text-base sm:text-lg font-bold transition-transform hover:scale-[1.02] active:scale-[0.98]"
-                style={{ backgroundColor: "var(--primary)" }}
+                style={{
+                  backgroundColor: "var(--primary)",
+                  color: "var(--text)",
+                }}
                 onClick={() => navigate(`/${slug}/agendar`)}
               >
                 Agendar Serviço
@@ -116,6 +151,10 @@ const HomePage = () => {
                 icon={ShoppingBag}
                 className="h-14 sm:h-16 px-8 text-base sm:text-lg font-bold border border-white/10 bg-white/5 backdrop-blur-md transition-transform hover:bg-white/10 hover:scale-[1.02] active:scale-[0.98]"
                 onClick={() => navigate(`/${slug}/produtos`)}
+                style={{
+                  backgroundColor: "var(--accent)",
+                  color: "var(--text)",
+                }}
               >
                 Ver Produtos
               </Button>

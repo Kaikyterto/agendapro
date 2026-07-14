@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { apiFetch } from "../services/api";
+import { getDesignSettings } from "../services/design";
 
 import {
   ShoppingBag,
@@ -20,16 +21,18 @@ const AdminHomePage = () => {
   useEffect(() => {
     async function validateToken() {
       try {
-        await apiFetch("/products", {
-          auth: true,
-        });
+        const data = await getDesignSettings();
+
+        console.log("Empresa validada:", data);
       } catch (error) {
         console.log("Sessão inválida:", error);
+
+        navigate("/");
       }
     }
 
     validateToken();
-  }, []);
+  }, [navigate]);
 
   const cards = [
     {
