@@ -1,4 +1,4 @@
-const API_URL = "https://agendapro-z63z.onrender.com";
+const API_URL = `${import.meta.env.VITE_BASE_URL}`;
 
 // =========================================================
 // PARSE RESPONSE
