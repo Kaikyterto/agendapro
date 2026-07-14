@@ -503,11 +503,6 @@ const AdminDesignPage = () => {
                     <button
                       type="button"
                       className="h-9 px-4 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 border backdrop-blur-sm transition-all hover:bg-white/[0.05]"
-                      style={{
-                        borderColor: `${form.text_color}1a`,
-                        color: form.text_color,
-                        backgroundColor: `${form.text_color}05`,
-                      }}
                     >
                       <ShoppingBag size={11} />
                       Ver Produtos
