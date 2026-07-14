@@ -8,7 +8,7 @@ export function setupPWA(company = null) {
     name: isKromis ? "Kromis" : company.name,
     short_name: isKromis ? "Kromis" : company.name,
 
-    start_url: "/",
+    start_url: company?.slug ? `/${company.slug}` : "/",
 
     display: "standalone",
 
@@ -26,9 +26,9 @@ export function setupPWA(company = null) {
     ],
   };
 
-  const blob = new Blob([JSON.stringify(manifest)], {
-    type: "application/json",
-  });
+  const manifestJSON = JSON.stringify(manifest);
+
+  const blob = new Blob([manifestJSON], { type: "application/manifest+json" });
 
   const manifestURL = URL.createObjectURL(blob);
 
@@ -41,4 +41,6 @@ export function setupPWA(company = null) {
   }
 
   link.href = manifestURL;
+
+  console.log("MANIFEST:", manifest);
 }
