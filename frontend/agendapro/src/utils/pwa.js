@@ -1,19 +1,20 @@
-export function setupPWA(company) {
+export function setupPWA(company = null) {
   const isKromis =
-    company.name?.toLowerCase() === "kromis" ||
-    company.slug?.toLowerCase() === "kromis";
+    company?.name?.toLowerCase() === "kromis" ||
+    company?.slug?.toLowerCase() === "kromis" ||
+    !company;
 
   const manifest = {
     name: isKromis ? "Kromis" : company.name,
     short_name: isKromis ? "Kromis" : company.name,
 
-    start_url: window.location.pathname,
+    start_url: "/",
 
     display: "standalone",
 
-    background_color: company.colors?.secondary || "#ffffff",
+    background_color: company?.colors?.secondary || "#ffffff",
 
-    theme_color: company.colors?.primary || "#000000",
+    theme_color: company?.colors?.primary || "#000000",
 
     icons: [
       {
