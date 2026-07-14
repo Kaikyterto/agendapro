@@ -15,7 +15,6 @@ export async function apiFetch(endpoint, options = {}) {
 
   const response = await fetch(url.toString(), {
     method: options.method || "GET",
-
     headers: {
       "Content-Type": "application/json",
       ...(options.auth && token
@@ -25,7 +24,6 @@ export async function apiFetch(endpoint, options = {}) {
         : {}),
       ...(options.headers || {}),
     },
-
     body: options.body,
   });
 
@@ -34,6 +32,23 @@ export async function apiFetch(endpoint, options = {}) {
   try {
     data = await response.json();
   } catch {}
+
+  // Token expirado ou inválido
+  if (response.status === 401) {
+    localStorage.removeItem("@AgendaPro:token");
+    localStorage.removeItem("@AgendaPro:user");
+
+    // Evita loop caso já esteja na tela de login
+    if (window.location.pathname !== "/login") {
+      window.location.replace("/login");
+    }
+
+    throw (
+      data || {
+        message: "Sessão expirada. Faça login novamente.",
+      }
+    );
+  }
 
   if (!response.ok) {
     throw (
