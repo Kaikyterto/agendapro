@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowRight, UserPlus, Mail, Lock } from "lucide-react";
 import { loginService } from "../services/auth";
+import { usePWAInstall } from "../hooks/usePWAInstall";
 
 import AppLogo from "../assets/logo-kromis-transparente.png";
 
@@ -16,6 +17,7 @@ const LoginPage = () => {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const { canInstall, installApp } = usePWAInstall();
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -86,12 +88,23 @@ const LoginPage = () => {
             alt="Kromis Logo"
             className="w-[140px] h-[100px] drop-shadow-[0_0_15px_rgba(59,130,246,0.5)]"
           />
+
           <h1 className="text-2xl font-black text-white tracking-tight">
             Kro<span className="text-blue-500">mis</span>
           </h1>
+
           <p className="text-slate-500 text-sm mt-2">
             Gestão inteligente para seu negócio.
           </p>
+
+          {canInstall && (
+            <button
+              onClick={installApp}
+              className="mt-5 bg-blue-600 hover:bg-blue-500 text-white font-bold px-5 py-2 rounded-xl transition-all"
+            >
+              📲 Instalar aplicativo
+            </button>
+          )}
         </div>
 
         <div className="bg-[#16191f]/80 backdrop-blur-xl border border-white/[0.08] p-8 rounded-3xl shadow-2xl">

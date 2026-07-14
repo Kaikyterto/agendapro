@@ -7,6 +7,7 @@ import Button from "../components/Button";
 import Nav from "../components/Nav";
 
 import { setupPWA } from "../utils/pwa";
+import { usePWAInstall } from "../hooks/usePWAInstall";
 
 const HomePage = () => {
   const { slug } = useParams();
@@ -14,6 +15,8 @@ const HomePage = () => {
 
   const [company, setCompany] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const { canInstall, installApp } = usePWAInstall();
 
   useEffect(() => {
     const loadCompany = async () => {
@@ -116,6 +119,18 @@ const HomePage = () => {
               >
                 Ver Produtos
               </Button>
+
+              {canInstall && (
+                <button
+                  onClick={installApp}
+                  className="mt-6 h-14 px-8 rounded-xl font-bold text-white transition-all hover:scale-[1.02]"
+                  style={{
+                    backgroundColor: "var(--primary)",
+                  }}
+                >
+                  📲 Instalar aplicativo
+                </button>
+              )}
             </div>
           </div>
 
