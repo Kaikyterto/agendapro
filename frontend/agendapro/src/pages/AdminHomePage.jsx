@@ -1,8 +1,17 @@
 import React, { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { apiFetch } from "../services/api"; // ajuste o caminho
+import { apiFetch } from "../services/api";
 
-// ...
+import {
+  ShoppingBag,
+  Palette,
+  ArrowRight,
+  Users,
+  BarChart3,
+  Settings,
+  Briefcase,
+  ReceiptText,
+} from "lucide-react";
 
 const AdminHomePage = () => {
   const navigate = useNavigate();
