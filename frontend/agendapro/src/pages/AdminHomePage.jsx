@@ -1,21 +1,26 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { apiFetch } from "../services/api"; // ajuste o caminho
 
-import {
-  CalendarDays,
-  ShoppingBag,
-  Palette,
-  ArrowRight,
-  Users,
-  BarChart3,
-  Settings,
-  Briefcase,
-  ReceiptText,
-} from "lucide-react";
+// ...
 
 const AdminHomePage = () => {
   const navigate = useNavigate();
   const { slug } = useParams();
+
+  useEffect(() => {
+    async function validateToken() {
+      try {
+        await apiFetch(`/settings`, {
+          auth: true,
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    validateToken();
+  }, []);
 
   const cards = [
     {
