@@ -15,10 +15,12 @@ import { uploadImage } from "../services/upload";
 import { getDesignSettings, updateDesignSettings } from "../services/design";
 
 const initialForm = {
-  name: "", // Mapeado dinamicamente para {company?.name} no preview
+  name: "",
   about: "",
   primary_color: "#3b82f6",
   secondary_color: "#64748b",
+  background_color: "#07090d",
+  text_color: "#ffffff",
   logo_url: "",
 };
 
@@ -59,6 +61,9 @@ const AdminDesignPage = () => {
           about: designData.about || "",
           primary_color: designData.primary_color || "#3b82f6",
           secondary_color: designData.secondary_color || "#64748b",
+
+          background_color: designData.background || "#07090d",
+          text_color: designData.text || "#ffffff",
           logo_url: designData.logo_url || "",
         });
       }
@@ -86,6 +91,8 @@ const AdminDesignPage = () => {
       ...prev,
       primary_color: "#3b82f6",
       secondary_color: "#64748b",
+      background_color: "#07090d",
+      text_color: "#ffffff",
     }));
   };
 
@@ -117,6 +124,8 @@ const AdminDesignPage = () => {
         about: form.about.trim(),
         primary_color: form.primary_color,
         secondary_color: form.secondary_color,
+        background_color: form.background_color,
+        text_color: form.text_color,
         logo_url: logoUrl || null,
       };
 
@@ -162,9 +171,7 @@ const AdminDesignPage = () => {
           </div>
         </div>
 
-        {/* LAYOUT GRID */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* COLUNA ESQUERDA - CONFIGURAÇÕES */}
           <div className="lg:col-span-7 bg-[#111827] border border-violet-500/10 rounded-[28px] sm:rounded-[32px] p-5 sm:p-6 shadow-xl">
             <div className="mb-6 flex items-center justify-between">
               <div>
@@ -229,7 +236,6 @@ const AdminDesignPage = () => {
                   />
                 </div>
 
-                {/* COR SECUNDÁRIA */}
                 <div className="bg-[#0f172a] border border-white/5 p-4 rounded-2xl flex flex-col items-center">
                   <label className="text-xs text-white/60 mb-3 font-semibold uppercase tracking-wider self-start">
                     Cor Secundária
@@ -267,9 +273,82 @@ const AdminDesignPage = () => {
                     className="w-full text-center h-10 bg-[#111827] border border-white/10 rounded-xl px-3 outline-none text-xs text-white font-mono focus:border-violet-400"
                   />
                 </div>
+
+                <div className="bg-[#0f172a] border border-white/5 p-4 rounded-2xl flex flex-col items-center">
+                  <label className="text-xs text-white/60 mb-3 font-semibold uppercase tracking-wider self-start">
+                    Cor de Fundo
+                  </label>
+
+                  <div className="relative group cursor-pointer w-24 h-24 mb-4">
+                    <div
+                      className="absolute inset-0 rounded-full blur-md opacity-40 transition-opacity group-hover:opacity-70"
+                      style={{ backgroundColor: form.background_color }}
+                    />
+                    <label
+                      className="relative block w-full h-full rounded-full border-2 border-white/20 overflow-hidden shadow-inner transform transition-transform active:scale-95"
+                      style={{
+                        background: `radial-gradient(circle, transparent 20%, rgba(0,0,0,0.4) 100%), ${form.background_color}`,
+                      }}
+                    >
+                      <input
+                        type="color"
+                        value={form.background_color}
+                        onChange={(e) =>
+                          handleChange("background_color", e.target.value)
+                        }
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer scale-150"
+                      />
+                    </label>
+                  </div>
+
+                  <input
+                    type="text"
+                    maxLength={7}
+                    value={form.background_color}
+                    onChange={(e) =>
+                      handleChange("background_color", e.target.value)
+                    }
+                    className="w-full text-center h-10 bg-[#111827] border border-white/10 rounded-xl px-3 outline-none text-xs text-white font-mono focus:border-violet-400"
+                  />
+                </div>
+
+                <div className="bg-[#0f172a] border border-white/5 p-4 rounded-2xl flex flex-col items-center">
+                  <label className="text-xs text-white/60 mb-3 font-semibold uppercase tracking-wider self-start">
+                    Cor das Letras
+                  </label>
+
+                  <div className="relative group cursor-pointer w-24 h-24 mb-4">
+                    <div
+                      className="absolute inset-0 rounded-full blur-md opacity-40 transition-opacity group-hover:opacity-70"
+                      style={{ backgroundColor: form.text_color }}
+                    />
+                    <label
+                      className="relative block w-full h-full rounded-full border-2 border-white/20 overflow-hidden shadow-inner transform transition-transform active:scale-95"
+                      style={{
+                        background: `radial-gradient(circle, transparent 20%, rgba(0,0,0,0.4) 100%), ${form.text_color}`,
+                      }}
+                    >
+                      <input
+                        type="color"
+                        value={form.text_color}
+                        onChange={(e) =>
+                          handleChange("text_color", e.target.value)
+                        }
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer scale-150"
+                      />
+                    </label>
+                  </div>
+
+                  <input
+                    type="text"
+                    maxLength={7}
+                    value={form.text_color}
+                    onChange={(e) => handleChange("text_color", e.target.value)}
+                    className="w-full text-center h-10 bg-[#111827] border border-white/10 rounded-xl px-3 outline-none text-xs text-white font-mono focus:border-violet-400"
+                  />
+                </div>
               </div>
 
-              {/* TEXTAREA SOBRE A EMPRESA */}
               <div>
                 <label className="text-xs sm:text-sm text-white/60 mb-1.5 block font-medium">
                   Sobre a Empresa (Institucional)
@@ -283,7 +362,6 @@ const AdminDesignPage = () => {
                 />
               </div>
 
-              {/* UPLOAD DA LOGO */}
               <div>
                 <label className="text-xs sm:text-sm text-white/60 mb-1.5 block font-medium">
                   Logotipo da Empresa
@@ -299,7 +377,6 @@ const AdminDesignPage = () => {
                 />
               </div>
 
-              {/* ALERTAS */}
               {error && (
                 <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-xs">
                   {error}
@@ -312,7 +389,6 @@ const AdminDesignPage = () => {
                 </div>
               )}
 
-              {/* SUBMIT BUTTON */}
               <Button
                 type="submit"
                 disabled={submitting || uploadingImage}
@@ -330,14 +406,18 @@ const AdminDesignPage = () => {
             </form>
           </div>
 
-          {/* PREVIEW INTERATIVO ATUALIZADO COMPATÍVEL COM O NOVO VISUAL DA HOME */}
           <div className="lg:col-span-5 space-y-4 lg:sticky lg:top-8">
             <div className="flex items-center gap-2 px-1 text-white/60 text-xs font-bold uppercase tracking-wider">
               <Eye size={14} /> Pré-visualização em tempo real
             </div>
 
-            <div className="relative rounded-[28px] sm:rounded-[32px] bg-[#07090d] border border-white/10 overflow-hidden shadow-2xl scale-[0.92] origin-top min-h-[480px] flex flex-col justify-between">
-              {/* BACKGROUND AURORA FIEL À REALIDADE */}
+            <div
+              className="relative rounded-[28px] sm:rounded-[32px] border border-white/10 overflow-hidden shadow-2xl scale-[0.92] origin-top min-h-[480px] flex flex-col justify-between transition-colors duration-300"
+              style={{
+                backgroundColor: form.background_color,
+                color: form.text_color,
+              }}
+            >
               <div
                 className="absolute inset-0 opacity-25 pointer-events-none mix-blend-screen"
                 style={{
@@ -348,8 +428,10 @@ const AdminDesignPage = () => {
                 }}
               />
 
-              {/* NAVBAR MINIATURA (IMAGEM CENTRALIZADA) */}
-              <div className="relative z-10 flex items-center justify-center px-4 py-3 border-b border-white/10 bg-[#07090d]/60 backdrop-blur-md">
+              <div
+                className="relative z-10 flex items-center justify-center px-4 py-3 border-b border-white/10 backdrop-blur-md"
+                style={{ backgroundColor: `${form.background_color}99` }} // Opacidade aplicada à cor selecionada
+              >
                 {previewUrl || form.logo_url ? (
                   <img
                     src={previewUrl || form.logo_url}
@@ -357,23 +439,23 @@ const AdminDesignPage = () => {
                     className="h-5 max-w-[120px] object-contain"
                   />
                 ) : (
-                  <span className="text-xs text-white/30 font-bold tracking-wider uppercase">
+                  <span
+                    className="text-xs font-bold tracking-wider uppercase opacity-40"
+                    style={{ color: form.text_color }}
+                  >
                     Logo
                   </span>
                 )}
               </div>
 
-              {/* GRID INTERNO REESTRUTURADO PARA SIMULAR AS DUAS COLUNAS DA HOME PAGE */}
               <div className="relative z-10 p-5 flex-1 flex flex-col justify-center gap-6">
-                {/* 1. MOLDURA PREMIUM DE DESTAQUE PARA A LOGO (Simula a Right Column) */}
                 <div className="flex justify-center">
                   <div className="relative w-full max-w-[150px] aspect-square flex items-center justify-center">
-                    {/* Brilho de fundo */}
                     <div
                       className="absolute inset-0 blur-2xl opacity-40 rounded-full"
                       style={{ backgroundColor: form.primary_color }}
                     />
-                    {/* Card de Vidro da Logo */}
+
                     <div className="absolute inset-0 bg-gradient-to-b from-white/[0.08] to-transparent border border-white/[0.1] backdrop-blur-md rounded-2xl p-4 flex items-center justify-center shadow-lg">
                       {previewUrl || form.logo_url ? (
                         <img
@@ -395,22 +477,23 @@ const AdminDesignPage = () => {
                   </div>
                 </div>
 
-                {/* 2. TEXTOS E BOTÕES (Simula a Left Column centralizada no preview) */}
                 <div className="text-center">
-                  <h1 className="text-xl font-black tracking-tight leading-tight mb-1 bg-gradient-to-b from-white to-white/80 bg-clip-text text-transparent">
+                  <h1 className="text-xl font-black tracking-tight leading-tight mb-1">
                     {form.name || "Minha Empresa"}
                   </h1>
 
-                  <p className="text-[11px] text-white/50 mb-4 line-clamp-2 max-w-[240px] mx-auto leading-relaxed">
+                  <p
+                    className="text-[11px] mb-4 line-clamp-2 max-w-[240px] mx-auto leading-relaxed opacity-60"
+                    style={{ color: form.text_color }}
+                  >
                     {form.about ||
                       "Bem-vindo à nossa plataforma de agendamentos e produtos."}
                   </p>
 
-                  {/* Ações */}
                   <div className="flex flex-col gap-2 w-full max-w-[180px] mx-auto">
                     <button
                       type="button"
-                      className="h-9 px-4 rounded-lg text-xs font-bold text-white flex items-center justify-center gap-1.5 transition-all shadow-md"
+                      className="h-9 px-4 rounded-lg text-xs font-bold text-white flex items-center justify-center gap-1.5 transition-all shadow-md hover:opacity-90"
                       style={{ backgroundColor: form.primary_color }}
                     >
                       <Calendar size={11} />
@@ -419,7 +502,12 @@ const AdminDesignPage = () => {
 
                     <button
                       type="button"
-                      className="h-9 px-4 rounded-lg text-xs font-bold text-white flex items-center justify-center gap-1.5 border border-white/10 bg-white/5 backdrop-blur-sm"
+                      className="h-9 px-4 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 border backdrop-blur-sm transition-all hover:bg-white/[0.05]"
+                      style={{
+                        borderColor: `${form.text_color}1a`,
+                        color: form.text_color,
+                        backgroundColor: `${form.text_color}05`,
+                      }}
                     >
                       <ShoppingBag size={11} />
                       Ver Produtos
@@ -428,9 +516,11 @@ const AdminDesignPage = () => {
                 </div>
               </div>
 
-              {/* FOOTER DO PREVIEW */}
-              <div className="relative z-10 p-2 text-center border-t border-white/5 bg-[#07090d]/40">
-                <div className="text-[10px] text-white/30 flex items-center justify-center gap-1">
+              <div
+                className="relative z-10 p-2 text-center border-t border-white/5"
+                style={{ backgroundColor: `${form.background_color}66` }}
+              >
+                <div className="text-[10px] flex items-center justify-center gap-1 opacity-40">
                   <HelpCircle size={10} /> Miniatura sincronizada com o novo
                   layout hero
                 </div>

@@ -201,7 +201,9 @@ class PublicController:
             "about": company.about,
             "colors": {
                 "primary": company.primary_color,
-                "secondary": company.secondary_color
+                "secondary": company.secondary_color,
+                "background": company.background_color,
+                "text": company.text_color
             }
         }), 200
 
