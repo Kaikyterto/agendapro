@@ -39,8 +39,8 @@ export async function apiFetch(endpoint, options = {}) {
     localStorage.removeItem("@AgendaPro:user");
 
     // Evita loop caso já esteja na tela de login
-    if (window.location.pathname !== "/login") {
-      window.location.replace("/login");
+    if (window.location.pathname !== "/") {
+      window.location.replace("/");
     }
 
     throw (
