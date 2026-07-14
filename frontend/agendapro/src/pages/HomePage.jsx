@@ -123,12 +123,12 @@ const HomePage = () => {
               {canInstall && (
                 <button
                   onClick={installApp}
-                  className="mt-6 h-14 px-8 rounded-xl font-bold text-white transition-all hover:scale-[1.02]"
+                  className="mt-12 h-14 px-8 rounded-xl font-bold text-white transition-all hover:scale-[1.02]"
                   style={{
                     backgroundColor: "var(--primary)",
                   }}
                 >
-                  📲 Instalar aplicativo
+                  Instalar aplicativo
                 </button>
               )}
             </div>
