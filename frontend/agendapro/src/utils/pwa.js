@@ -1,24 +1,16 @@
 export function setupPWA(company = null) {
   const baseURL = window.location.origin;
-
   const path = window.location.pathname;
 
-  const slug = path.split("/").filter(Boolean)[0];
-
-  const isKromis = !slug;
-
-  const currentURL = `${baseURL}${path}`;
+  // Se estiver na raiz "/", usa o Kromis
+  const isKromis = path === "/" || path === "";
 
   const manifest = {
     name: isKromis ? "Kromis" : company?.name || "Kromis",
-
     short_name: isKromis ? "Kromis" : company?.name || "Kromis",
 
-    start_url: currentURL,
-
-    scope: isKromis
-      ? `${baseURL}/`
-      : `${baseURL}/${company.slug}/`,
+    start_url: `${baseURL}${path}`,
+    scope: isKromis ? "/" : `/${company?.slug || path.replace("/", "")}`,
 
     display: "standalone",
 
@@ -42,10 +34,11 @@ export function setupPWA(company = null) {
     ],
   };
 
-  const blob = new Blob(
-    [JSON.stringify(manifest)],
-    { type: "application/manifest+json" }
-  );
+  const manifestJSON = JSON.stringify(manifest);
+
+  const blob = new Blob([manifestJSON], {
+    type: "application/manifest+json",
+  });
 
   const manifestURL = URL.createObjectURL(blob);
 
@@ -59,5 +52,5 @@ export function setupPWA(company = null) {
 
   link.href = manifestURL;
 
-  console.log("PWA:", manifest);
+  console.log("PWA MANIFEST:", manifest);
 }
