@@ -526,8 +526,11 @@ const AdminDesignPage = () => {
                   <div className="flex flex-col gap-2.5 w-full max-w-[200px] mx-auto">
                     <button
                       type="button"
-                      className="h-10 px-4 rounded-xl text-xs font-bold text-white flex items-center justify-center gap-1.5 transition-transform active:scale-95 shadow-md"
-                      style={{ backgroundColor: form.primary_color }}
+                      className="h-10 px-4 rounded-xl text-xs font-bold  flex items-center justify-center gap-1.5 transition-transform active:scale-95 shadow-md"
+                      style={{
+                        backgroundColor: form.primary_color,
+                        color: form.text_color,
+                      }}
                     >
                       <Calendar size={13} />
                       Agendar Serviço
@@ -535,7 +538,11 @@ const AdminDesignPage = () => {
 
                     <button
                       type="button"
-                      className="h-10 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border border-white/10 bg-white/5 backdrop-blur-md transition-all text-white"
+                      className="h-10 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border border-white/10 bg-white/5 backdrop-blur-md transition-all "
+                      style={{
+                        backgroundColor: form.secondary_color,
+                        color: form.text_color,
+                      }}
                     >
                       <ShoppingBag size={13} />
                       Ver Produtos
