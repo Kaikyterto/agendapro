@@ -6,6 +6,8 @@ import { getCompanyBySlug } from "../services/companyService";
 import Button from "../components/Button";
 import Nav from "../components/Nav";
 
+import { setupPWA } from "../utils/pwa";
+
 const HomePage = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
@@ -21,6 +23,10 @@ const HomePage = () => {
         const data = await getCompanyBySlug(slug);
 
         setCompany(data || null);
+
+        if (data) {
+          setupPWA(data);
+        }
 
         if (data?.colors) {
           document.documentElement.style.setProperty(
