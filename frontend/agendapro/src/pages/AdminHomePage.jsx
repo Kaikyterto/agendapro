@@ -20,7 +20,7 @@ const AdminHomePage = () => {
   useEffect(() => {
     async function validateToken() {
       try {
-        await apiFetch("/settings", {
+        await apiFetch("/products", {
           auth: true,
         });
       } catch (error) {
