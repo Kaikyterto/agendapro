@@ -121,7 +121,7 @@ const LoginPage = () => {
               onClick={installApp}
               className="mt-5 bg-blue-600 hover:bg-blue-500 text-white font-bold px-5 py-2 rounded-xl transition-all"
             >
-              📲 Instalar aplicativo
+              Instalar aplicativo
             </button>
           )}
         </div>
