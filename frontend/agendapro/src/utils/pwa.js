@@ -25,8 +25,8 @@ export function setupPWA(company = null) {
     icons: [
       {
         src: isKromis
-          ? `${baseURL}/kromis-logo.png`
-          : company?.logo || `${baseURL}/kromis-logo.png`,
+          ? `${baseURL}/logo-kromis.png`
+          : company?.logo || `${baseURL}/logo-kromis.png`,
         sizes: "1024x1024",
         type: "image/png",
         purpose: "any maskable",
