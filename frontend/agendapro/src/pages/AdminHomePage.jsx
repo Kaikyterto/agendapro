@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { apiFetch } from "../services/api";
-import { getDesignSettings } from "../services/designService";
+import { getDesignSettings } from "../services/design";
 
 import {
   ShoppingBag,
