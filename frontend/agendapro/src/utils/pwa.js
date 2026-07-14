@@ -1,7 +1,11 @@
 export function setupPWA(company) {
+  const isKromis =
+    company.name?.toLowerCase() === "kromis" ||
+    company.slug?.toLowerCase() === "kromis";
+
   const manifest = {
-    name: company.name,
-    short_name: company.name,
+    name: isKromis ? "Kromis" : company.name,
+    short_name: isKromis ? "Kromis" : company.name,
 
     start_url: window.location.pathname,
 
@@ -13,9 +17,10 @@ export function setupPWA(company) {
 
     icons: [
       {
-        src: company.logo,
-        sizes: "512x512",
+        src: isKromis ? "/kromis-logo.png" : company.logo,
+        sizes: "1024x1024",
         type: "image/png",
+        purpose: "any maskable",
       },
     ],
   };
@@ -30,9 +35,7 @@ export function setupPWA(company) {
 
   if (!link) {
     link = document.createElement("link");
-
     link.rel = "manifest";
-
     document.head.appendChild(link);
   }
 
