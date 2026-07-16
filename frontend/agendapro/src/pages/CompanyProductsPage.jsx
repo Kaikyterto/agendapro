@@ -50,7 +50,7 @@ export default function CompanyProductsPage() {
 
   const [expandedDescriptions, setExpandedDescriptions] = useState({});
 
-  // 1. PRIMEIRO DECLARAMOS OS VALORES COMPUTADOS (Para que os UseEffects abaixo possam usá-los sem erro)
+  // 1. PRIMEIRO DECLARAMOS OS VALORES COMPUTADOS
   const cartCount = useMemo(() => {
     return cart.reduce((acc, item) => acc + (item.quantity || 1), 0);
   }, [cart]);
@@ -63,7 +63,7 @@ export default function CompanyProductsPage() {
     }, 0);
   }, [cart]);
 
-  // 2. AGORA DECLARAMOS OS USEEFFECTS (Que dependem de 'total')
+  // 2. AGORA DECLARAMOS OS USEEFFECTS
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -125,9 +125,7 @@ export default function CompanyProductsPage() {
   }, [showPixModal, pixData]);
 
   // Hook para monitorar os primeiros dígitos do cartão e buscar o parcelamento real no Mercado Pago
-  // Hook para monitorar os primeiros dígitos do cartão e buscar o parcelamento real no Mercado Pago
   useEffect(() => {
-    // SEGURANÇA: Só busca parcelamento se o método for cartão, tiver os 6 dígitos do BIN E o total for maior que zero
     if (
       paymentMethod !== "card" ||
       cardNumber.length < 6 ||
@@ -164,7 +162,7 @@ export default function CompanyProductsPage() {
 
           // 2. Busca as regras de parcelamento direto na conta do Mercado Pago para este cartão e valor
           const installmentsData = await mp.getInstallments({
-            amount: total.toFixed(2), // Garante o formato decimal correto (ex: 150.00)
+            amount: total.toFixed(2),
             bin,
             paymentTypeId: "credit_card",
           });
@@ -181,7 +179,7 @@ export default function CompanyProductsPage() {
 
     const timer = setTimeout(() => {
       getInstallmentsList();
-    }, 400); // Um delay de 400ms para evitar requisições desnecessárias enquanto o usuário digita rápido
+    }, 400);
 
     return () => clearTimeout(timer);
   }, [cardNumber, paymentMethod, total]);
@@ -708,43 +706,51 @@ export default function CompanyProductsPage() {
                     }
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <input
-                    className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
-                    placeholder="CPF/CNPJ do Titular"
-                    type="tel"
-                    maxLength={14}
-                    value={docNumber}
-                    onChange={(e) =>
-                      setDocNumber(e.target.value.replace(/\D/g, ""))
-                    }
-                  />
 
-                  <select
-                    value={installments}
-                    onChange={(e) => setInstallments(Number(e.target.value))}
-                    className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all text-white/90 appearance-none cursor-pointer"
-                  >
-                    {dynamicInstallments.length === 0 ? (
-                      <option
-                        className="bg-[#0d0f14] text-white py-2"
-                        value={1}
-                      >
-                        1x de R$ {total.toFixed(2)} (Sem juros)
-                      </option>
-                    ) : (
-                      dynamicInstallments.map((installment) => (
+                {/* Campo de CPF/CNPJ ocupando a linha inteira */}
+                <input
+                  className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
+                  placeholder="CPF/CNPJ do Titular"
+                  type="tel"
+                  maxLength={14}
+                  value={docNumber}
+                  onChange={(e) =>
+                    setDocNumber(e.target.value.replace(/\D/g, ""))
+                  }
+                />
+
+                {/* Seletor de parcelas condicional: só aparece quando o usuário digita no campo do cartão */}
+                {cardNumber.length > 0 && (
+                  <div className="space-y-1.5 animate-fadeIn">
+                    <label className="text-[10px] text-white/50 px-1">
+                      Quantidade de parcelas:
+                    </label>
+                    <select
+                      value={installments}
+                      onChange={(e) => setInstallments(Number(e.target.value))}
+                      className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all text-white/90 appearance-none cursor-pointer"
+                    >
+                      {dynamicInstallments.length === 0 ? (
                         <option
-                          key={installment.installments}
-                          value={installment.installments}
                           className="bg-[#0d0f14] text-white py-2"
+                          value={1}
                         >
-                          {installment.recommended_message}
+                          1x de R$ {total.toFixed(2)} (Sem juros)
                         </option>
-                      ))
-                    )}
-                  </select>
-                </div>
+                      ) : (
+                        dynamicInstallments.map((installment) => (
+                          <option
+                            key={installment.installments}
+                            value={installment.installments}
+                            className="bg-[#0d0f14] text-white py-2"
+                          >
+                            {installment.recommended_message}
+                          </option>
+                        ))
+                      )}
+                    </select>
+                  </div>
+                )}
               </div>
             )}
 
