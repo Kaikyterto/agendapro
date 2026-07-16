@@ -26,7 +26,7 @@ export default function CompanyProductsPage() {
 
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
-  const [customerEmail, setCustomerEmail] = useState("");
+  const [customerEmail, setCustomerEmail] = useState(""); // Email obrigatório para cartão
 
   // Estados para Cartão de Crédito
   const [paymentMethod, setPaymentMethod] = useState("pix"); // "pix" ou "card"
@@ -37,11 +37,6 @@ export default function CompanyProductsPage() {
   const [cardHolderName, setCardHolderName] = useState("");
   const [installments, setInstallments] = useState(1);
   const [docNumber, setDocNumber] = useState(""); // CPF/CNPJ do titular
-
-  // Novos estados para parcelamento dinâmico
-  const [cardBin, setCardBin] = useState("");
-  const [installmentOptions, setInstallmentOptions] = useState([]);
-  const [selectedInstallmentData, setSelectedInstallmentData] = useState(null); // Guarda os dados completos da parcela selecionada (incluindo juros)
 
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [pixData, setPixData] = useState(null);
@@ -82,7 +77,7 @@ export default function CompanyProductsPage() {
     loadData();
   }, [slug]);
 
-  // Mantemos o Polling do Pix para quando for Pix
+  // Polling do Pix
   useEffect(() => {
     if (!showPixModal || !pixData?.orderId) return;
 
@@ -109,41 +104,6 @@ export default function CompanyProductsPage() {
 
     return () => clearInterval(interval);
   }, [showPixModal, pixData]);
-
-  // Função para buscar as opções de parcelamento quando o BIN muda (6 primeiros dígitos)
-  useEffect(() => {
-    if (
-      paymentMethod === "card" &&
-      cardBin.length === 6 &&
-      company?.mp_public_key
-    ) {
-      const fetchInstallments = async () => {
-        try {
-          const mp = new window.MercadoPago(company.mp_public_key);
-          const installmentsData = await mp.fields.createInstallments({
-            bin: cardBin,
-            amount: total.toString(),
-          });
-
-          if (installmentsData && installmentsData.payer_costs) {
-            setInstallmentOptions(installmentsData.payer_costs);
-            // Seleciona a primeira opção (geralmente 1x sem juros) por padrão
-            setInstallments(installmentsData.payer_costs[0].installments);
-            setSelectedInstallmentData(installmentsData.payer_costs[0]);
-          }
-        } catch (err) {
-          console.error("Erro ao buscar parcelas:", err);
-          setError("Erro ao processar o cartão. Verifique o número.");
-          setInstallmentOptions([]);
-        }
-      };
-
-      fetchInstallments();
-    } else if (cardBin.length < 6) {
-      setInstallmentOptions([]);
-      setSelectedInstallmentData(null);
-    }
-  }, [cardBin, total, paymentMethod, company?.mp_public_key]);
 
   const addToCart = (product) => {
     setCart((prev) => {
@@ -181,20 +141,14 @@ export default function CompanyProductsPage() {
     return cart.reduce((acc, item) => acc + (item.quantity || 1), 0);
   }, [cart]);
 
+  // Cálculo de total seguro tratando vírgulas e strings
   const total = useMemo(() => {
-    return cart.reduce(
-      (acc, item) => acc + Number(item.value || 0) * (item.quantity || 1),
-      0
-    );
+    return cart.reduce((acc, item) => {
+      const valueString = String(item.value || "0").replace(",", ".");
+      const cleanValue = parseFloat(valueString) || 0;
+      return acc + cleanValue * (item.quantity || 1);
+    }, 0);
   }, [cart]);
-
-  // Calcula o total a ser exibido no botão de pagamento (Total + Juros se houver)
-  const displayTotal = useMemo(() => {
-    if (paymentMethod === "card" && selectedInstallmentData) {
-      return selectedInstallmentData.total_amount;
-    }
-    return total;
-  }, [total, paymentMethod, selectedInstallmentData]);
 
   const openCheckout = () => {
     if (!cart.length) {
@@ -214,7 +168,7 @@ export default function CompanyProductsPage() {
     }));
   };
 
-  // Função para gerar o Token do Cartão com o SDK do Mercado Pago
+  // Função para gerar o Token do Cartão corrigida para a API correta do SDK
   const getCardToken = async (mp) => {
     try {
       if (
@@ -228,30 +182,41 @@ export default function CompanyProductsPage() {
         throw new Error("Preencha todos os dados do cartão e do titular");
       }
 
+      const documentType = docNumber.length > 11 ? "CNPJ" : "CPF";
+
       const tokenData = {
         cardNumber: cardNumber.replace(/\s/g, ""), // Remove espaços
         cardholderName: cardHolderName,
-        cardExpirationMonth: cardMonth,
-        cardExpirationYear: cardYear,
+        cardExpirationMonth: cardMonth.padStart(2, "0"), // Garante 2 dígitos (ex: "5" -> "05")
+        cardExpirationYear: cardYear.length === 2 ? `20${cardYear}` : cardYear, // Garante 4 dígitos
         securityCode: cardCVV,
-        identificationType: "CPF", // Assumindo CPF por padrão
+        identificationType: documentType,
         identificationNumber: docNumber,
       };
 
-      const tokenResponse = await mp.fields.createToken(tokenData);
+      // Chamada correta do SDK do Mercado Pago para tokens manuais
+      const tokenResponse = await mp.cardToken.create(tokenData);
+
+      if (!tokenResponse || !tokenResponse.id) {
+        throw new Error("Não foi possível gerar o token do cartão de crédito.");
+      }
 
       console.log("Token Gerado:", tokenResponse.id);
       return tokenResponse.id;
     } catch (error) {
       console.error("Erro ao gerar token do cartão:", error);
-      throw new Error(error.message || "Dados do cartão inválidos");
+      const errorMsg =
+        error?.cause?.[0]?.description ||
+        error.message ||
+        "Dados do cartão inválidos";
+      throw new Error(errorMsg);
     }
   };
 
   const handleCheckout = async () => {
     try {
-      if (!company?.id || !company?.mp_public_key) {
-        return setError("Empresa inválida ou não configurada para pagamentos.");
+      if (!company?.id) {
+        return setError("Empresa inválida");
       }
 
       if (!cart.length) {
@@ -265,33 +230,35 @@ export default function CompanyProductsPage() {
       setCheckoutLoading(true);
       setError("");
 
+      const documentType = docNumber.length > 11 ? "CNPJ" : "CPF";
+
+      // Payload sanitizado com valores formatados e precisos
       const payload = {
         company_id: company.id,
-        // IMPORTANTE: Envia o displayTotal, que inclui os juros se houver, para o backend criar a venda com o valor correto
-        amount: displayTotal,
-        items: cart.map((item) => ({
-          product_id: item.id,
-          quantity: item.quantity || 1,
-        })),
+        amount: parseFloat(total.toFixed(2)),
+        items: cart.map((item) => {
+          const itemValueString = String(item.value || "0").replace(",", ".");
+          return {
+            product_id: item.id,
+            quantity: item.quantity || 1,
+            price: parseFloat(parseFloat(itemValueString).toFixed(2)),
+          };
+        }),
         customer_name: customerName,
         phone: customerPhone,
-        payment_method: paymentMethod, // Usa o estado selecionado
+        payment_method: paymentMethod,
       };
 
       // =========================================================
-      // FLUXO DE CARTÃO DE CRÉDITO - NOVO E FOCADO
+      // FLUXO DE CARTÃO DE CRÉDITO - CORRIGIDO
       // =========================================================
       if (paymentMethod === "card") {
         if (!customerEmail) {
           return setError("E-mail é obrigatório para pagamento com cartão");
         }
 
-        if (!selectedInstallmentData) {
-          return setError("Selecione o parcelamento.");
-        }
-
-        // Inicializa o SDK do Mercado Pago usando a chave da empresa
-        const mp = new window.MercadoPago(company.mp_public_key);
+        // Inicializa o SDK do Mercado Pago
+        const mp = new window.MercadoPago(import.meta.env.VITE_MP_PUBLIC_KEY);
         if (!mp) {
           throw new Error("Erro ao carregar SDK do Mercado Pago");
         }
@@ -302,33 +269,20 @@ export default function CompanyProductsPage() {
         payload.email = customerEmail;
         payload.card_token = cardToken;
         payload.doc_number = docNumber;
-        payload.doc_type = "CPF";
+        payload.doc_type = documentType;
         payload.installments = installments;
         payload.description = `Compra na loja ${company.name} no Kromis`;
-        // O backend decide o payment_method_id (visa, master) com base no token
       }
 
-      // Chama a mesma API, que agora está pronta para processar Pix ou Cartão
       const res = await createSale(payload);
 
       console.log("CHECKOUT RESPONSE:", res);
 
       if (paymentMethod === "card") {
-        // No cartão, a resposta instantânea já nos diz o status
         if (res.status === "approved") {
           setPaymentConfirmed(true);
           setCart([]);
           setShowCustomerModal(false);
-          // Limpa os dados do cartão após aprovação
-          setCardNumber("");
-          setCardMonth("");
-          setCardYear("");
-          setCardCVV("");
-          setCardHolderName("");
-          setDocNumber("");
-          setCardBin("");
-          setInstallmentOptions([]);
-          setSelectedInstallmentData(null);
         } else if (res.status === "in_process") {
           setError(
             "Pagamento em análise pelo Mercado Pago. Você receberá um e-mail com a confirmação."
@@ -341,7 +295,7 @@ export default function CompanyProductsPage() {
           );
         }
       } else {
-        // Fluxo original do Pix
+        // Fluxo Pix
         if (!res?.pix_code) {
           throw new Error("PIX não gerado");
         }
@@ -367,25 +321,6 @@ export default function CompanyProductsPage() {
     } finally {
       setCheckoutLoading(false);
     }
-  };
-
-  // Handler para mudança no número do cartão que captura o BIN
-  const handleCardNumberChange = (e) => {
-    const value = e.target.value.replace(/\D/g, "");
-    setCardNumber(value);
-    setCardBin(value.substring(0, 6));
-  };
-
-  // Handler para mudança na parcela selecionada
-  const handleInstallmentChange = (e) => {
-    const installmentCount = Number(e.target.value);
-    setInstallments(installmentCount);
-
-    // Encontra os dados completos da parcela selecionada na lista
-    const selectedData = installmentOptions.find(
-      (option) => option.installments === installmentCount
-    );
-    setSelectedInstallmentData(selectedData);
   };
 
   if (loading) {
@@ -464,7 +399,9 @@ export default function CompanyProductsPage() {
                 <div className="flex flex-col gap-1.5 mt-auto">
                   <span className="text-[11px] sm:text-xs font-bold text-[var(--primary)] truncate">
                     R${" "}
-                    {Number(product.value || 0).toLocaleString("pt-BR", {
+                    {Number(
+                      String(product.value || 0).replace(",", ".")
+                    ).toLocaleString("pt-BR", {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })}
@@ -510,46 +447,51 @@ export default function CompanyProductsPage() {
                   Seu carrinho está vazio
                 </p>
               ) : (
-                cart.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex gap-3 bg-white/5 p-2.5 rounded-xl border border-white/5"
-                  >
-                    <img
-                      src={item.image_url}
-                      className="w-12 h-12 rounded-lg object-cover bg-black/20 shrink-0"
-                      alt={item.name}
-                    />
+                cart.map((item) => {
+                  const cleanItemValue = parseFloat(
+                    String(item.value || "0").replace(",", ".")
+                  );
+                  return (
+                    <div
+                      key={item.id}
+                      className="flex gap-3 bg-white/5 p-2.5 rounded-xl border border-white/5"
+                    >
+                      <img
+                        src={item.image_url}
+                        className="w-12 h-12 rounded-lg object-cover bg-black/20 shrink-0"
+                        alt={item.name}
+                      />
 
-                    <div className="flex-1 min-w-0 flex flex-col justify-between">
-                      <p className="text-xs font-medium text-white/90 truncate">
-                        {item.name}
-                      </p>
-                      <p className="text-[11px] font-semibold text-[var(--primary)]">
-                        R${" "}
-                        {(Number(item.value || 0) * item.quantity).toFixed(2)}
-                      </p>
+                      <div className="flex-1 min-w-0 flex flex-col justify-between">
+                        <p className="text-xs font-medium text-white/90 truncate">
+                          {item.name}
+                        </p>
+                        <p className="text-[11px] font-semibold text-[var(--primary)]">
+                          R${" "}
+                          {(cleanItemValue * (item.quantity || 1)).toFixed(2)}
+                        </p>
 
-                      <div className="flex gap-3 mt-1 items-center bg-black/20 w-fit px-2 py-0.5 rounded-lg border border-white/5 text-xs">
-                        <button
-                          className="text-white/50 hover:text-white"
-                          onClick={() => removeFromCart(item.id)}
-                        >
-                          -
-                        </button>
-                        <span className="font-bold text-[11px]">
-                          {item.quantity}
-                        </span>
-                        <button
-                          className="text-white/50 hover:text-white"
-                          onClick={() => addToCart(item)}
-                        >
-                          +
-                        </button>
+                        <div className="flex gap-3 mt-1 items-center bg-black/20 w-fit px-2 py-0.5 rounded-lg border border-white/5 text-xs">
+                          <button
+                            className="text-white/50 hover:text-white"
+                            onClick={() => removeFromCart(item.id)}
+                          >
+                            -
+                          </button>
+                          <span className="font-bold text-[11px]">
+                            {item.quantity}
+                          </span>
+                          <button
+                            className="text-white/50 hover:text-white"
+                            onClick={() => addToCart(item)}
+                          >
+                            +
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
 
@@ -592,7 +534,6 @@ export default function CompanyProductsPage() {
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value)}
                 />
-                {/* Email é obrigatório para o Mercado Pago em cartões */}
                 <input
                   className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
                   placeholder="E-mail"
@@ -603,7 +544,7 @@ export default function CompanyProductsPage() {
               </div>
             </div>
 
-            {/* SELEÇÃO DO MÉTODO DE PAGAMENTO - NOVO FOCADO */}
+            {/* SELEÇÃO DO MÉTODO DE PAGAMENTO */}
             <div className="mt-4">
               <p className="text-xs text-white/60 mb-2">
                 Selecione o método de pagamento:
@@ -650,7 +591,7 @@ export default function CompanyProductsPage() {
               </div>
             </div>
 
-            {/* FORMULÁRIO DE CARTÃO DE CRÉDITO - CONDICIONAL FOCADO */}
+            {/* FORMULÁRIO DE CARTÃO DE CRÉDITO */}
             {paymentMethod === "card" && (
               <div className="mt-4 space-y-2.5 border-t border-white/5 pt-4">
                 <input
@@ -667,7 +608,9 @@ export default function CompanyProductsPage() {
                   type="tel"
                   maxLength={16}
                   value={cardNumber}
-                  onChange={handleCardNumberChange} // Handler atualizado para capturar BIN
+                  onChange={(e) =>
+                    setCardNumber(e.target.value.replace(/\D/g, ""))
+                  }
                 />
                 <div className="grid grid-cols-3 gap-2">
                   <input
@@ -702,37 +645,24 @@ export default function CompanyProductsPage() {
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  {/* CPF do Titular é obrigatório para antifraude do MP */}
                   <input
                     className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
-                    placeholder="CPF do Titular (só números)"
+                    placeholder="CPF/CNPJ do Titular"
                     type="tel"
-                    maxLength={11}
+                    maxLength={14}
                     value={docNumber}
                     onChange={(e) =>
                       setDocNumber(e.target.value.replace(/\D/g, ""))
                     }
                   />
-
-                  {/* Parcelas dinâmicas: Populadas pelo Mercado Pago baseadas no BIN */}
                   <select
                     value={installments}
-                    onChange={handleInstallmentChange} // Handler atualizado para atualizar valor com juros
-                    className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all text-white/70 disabled:opacity-50"
-                    disabled={installmentOptions.length === 0} // Desabilita se não tivermos as parcelas buscadas
+                    onChange={(e) => setInstallments(Number(e.target.value))}
+                    className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all text-white/70"
                   >
-                    {installmentOptions.length === 0 ? (
-                      <option value="">Digite o cartão...</option>
-                    ) : (
-                      installmentOptions.map((option) => (
-                        <option
-                          key={option.installments}
-                          value={option.installments}
-                        >
-                          {option.recommended_message}
-                        </option>
-                      ))
-                    )}
+                    <option value={1}>1x sem juros</option>
+                    <option value={2}>2x sem juros</option>
+                    <option value={3}>3x sem juros</option>
                   </select>
                 </div>
               </div>
@@ -752,10 +682,7 @@ export default function CompanyProductsPage() {
                 Cancelar
               </button>
               <button
-                disabled={
-                  checkoutLoading ||
-                  (paymentMethod === "card" && !selectedInstallmentData)
-                } // Desabilita botão se for cartão e não tivermos parcelas buscadas
+                disabled={checkoutLoading}
                 onClick={handleCheckout}
                 className="h-10 bg-[var(--primary)] rounded-xl text-xs font-bold hover:opacity-90 disabled:opacity-50 transition-all flex items-center justify-center"
               >
@@ -765,8 +692,7 @@ export default function CompanyProductsPage() {
                     Processando...
                   </>
                 ) : (
-                  // Exibe o displayTotal que inclui os juros reais
-                  `Pagar R$ ${displayTotal.toFixed(2)}`
+                  `Pagar R$ ${total.toFixed(2)}`
                 )}
               </button>
             </div>
