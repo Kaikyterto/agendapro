@@ -54,6 +54,9 @@ export const loginService = async (credentials) => {
 // =========================================================
 // REGISTER
 // =========================================================
+// =========================================================
+// REGISTER (Corrigido para enviar os dados de pagamento)
+// =========================================================
 export const registerService = async (payload) => {
   const response = await fetch(`${API_URL}/auth/register`, {
     method: "POST",
@@ -68,6 +71,9 @@ export const registerService = async (payload) => {
       email: payload.email.trim(),
       password: payload.password,
       logo: payload.logo,
+      cardToken: payload.cardToken,
+      installments: payload.installments,
+      description: payload.description,
     }),
   });
 

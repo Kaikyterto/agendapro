@@ -251,3 +251,50 @@ class PaymentService:
             "status_detail": payment.get("status_detail"),
             "external_reference": payment.get("external_reference")
         }
+    
+
+    # =========================================================
+    # ASSINATURA DA PLATAFORMA (VIA CARTÃO DE CRÉDITO) - NOVO!
+    # =========================================================
+    @staticmethod
+    def create_platform_card_payment(data):
+        company_id = data.get("company_id")
+
+        if not company_id:
+            raise Exception("company_id é obrigatório")
+
+        company = db.session.get(Company, company_id)
+
+        if not company:
+            raise Exception("Empresa não encontrada")
+
+        sdk = PaymentService._get_platform_sdk()
+
+        payment_data = {
+            "transaction_amount": 29.90,
+            "description": "Assinatura Kromis",
+            "token": data["token"], # Token gerado pelo frontend
+            "installments": int(data.get("installments", 1)),
+            "external_reference": f"company_{company.id}",
+            "payer": {
+                "email": data["email"]
+            }
+        }
+
+        response = sdk.payment().create(payment_data)
+        payment = response.get("response", {})
+
+        if response.get("status", 200) >= 400 or not payment:
+            error_msg = payment.get("message") or "Erro ao processar assinatura com cartão"
+            raise Exception(error_msg)
+
+        payment_id = payment.get("id")
+        company.mercado_pago_payment_id = str(payment_id)
+        db.session.commit()
+
+        return {
+            "message": "Assinatura via cartão processada",
+            "payment_id": payment_id,
+            "status": payment.get("status"),
+            "status_detail": payment.get("status_detail")
+        }
