@@ -319,3 +319,67 @@ class PaymentService:
             "status": payment.get("status"),
             "status_detail": payment.get("status_detail")
         }
+
+
+# =========================================================
+    # VENDA DE PRODUTOS DA EMPRESA (VIA CARTÃO DE CRÉDITO)
+    # =========================================================
+    @staticmethod
+    def create_company_card_payment(data):
+        """
+        Gera uma cobrança via Cartão de Crédito na conta do cliente parceiro (Marketplace),
+        utilizando o SDK específico da empresa (vendedor).
+        """
+        try:
+            company_id = data.get("company_id")
+            if not company_id:
+                raise Exception("company_id é obrigatório para cobrança de empresa")
+
+            # Busca o SDK autenticado com as credenciais da empresa dona do produto
+            sdk = PaymentService._get_company_sdk(company_id)
+
+            # Estrutura a requisição exigida pelo Mercado Pago
+            payment_request = {
+                "transaction_amount": float(data["amount"]),
+                "token": data["token"],  # Token seguro gerado pelo frontend
+                "description": data.get("description", "Venda de Produto - Kromis"),
+                "installments": int(data.get("installments", 1)),
+                "payment_method_id": data.get("payment_method_id"),  # ex: "visa", "master"
+                "notification_url": "https://agendapro-z63z.onrender.com/webhook/mercadopago",
+                "payer": {
+                    "email": data["email"],
+                    "identification": {
+                        "type": data.get("doc_type", "CPF"),
+                        "number": data.get("doc_number")
+                    }
+                },
+                "external_reference": data.get("external_reference") or f"sale_{data.get('sale_record_id')}",
+            }
+
+            # Configura cabeçalhos personalizados de antifraude (Melidata Device ID)
+            request_options = None
+            device_id = data.get("device_id") or data.get("deviceId")
+            if device_id:
+                request_options = RequestOptions()
+                request_options.custom_headers = {
+                    "X-Melidata-Session-Id": str(device_id)
+                }
+
+            # Envia a cobrança para o Mercado Pago usando a conta da empresa correspondente
+            payment_response = sdk.payment().create(payment_request, request_options)
+            payment = payment_response.get("response", {})
+
+            # Trata erros retornados pela API do Mercado Pago
+            if payment_response.get("status", 200) >= 400 or not payment:
+                error_detail = payment.get("message") or payment.get("description") or "Erro ao processar pagamento com cartão"
+                raise Exception(f"Mercado Pago Card Error: {error_detail}")
+
+            return {
+                "payment_id": payment.get("id"),
+                "status": payment.get("status"),         # "approved", "in_process", "rejected"
+                "status_detail": payment.get("status_detail")  # ex: "accredited"
+            }
+
+        except Exception as e:
+            print("ERRO NO PAYMENT_SERVICE (CARTÃO DA EMPRESA):", str(e))
+            raise e
