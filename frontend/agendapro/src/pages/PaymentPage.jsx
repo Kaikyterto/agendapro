@@ -164,7 +164,9 @@ const PaymentPage = () => {
       const cardTokenResponse = await mp.createCardToken({
         cardNumber: cardData.cardNumber.replace(/\s/g, ""), // Limpa espaços
         cardholderName: cardData.cardholderName.trim(), // Nome do titular
-        cardExpirationMonth: cardData.cardExpirationMonth.replace(/\D/g, "").padStart(2, "0"), // Garante 2 dígitos (ex: "05")
+        cardExpirationMonth: cardData.cardExpirationMonth
+          .replace(/\D/g, "")
+          .padStart(2, "0"), // Garante 2 dígitos (ex: "05")
         cardExpirationYear: formattedYear, // String de 4 dígitos (ex: "2026")
         securityCode: cardData.securityCode.replace(/\D/g, ""), // Apenas números
         identificationType: cardData.identificationType, // CPF ou CNPJ
@@ -234,7 +236,7 @@ const PaymentPage = () => {
           err?.message || "Erro inesperado ao processar pagamento com cartão."
         );
       }
-    } finaly {
+    } finally {
       setLoadingCardProcessing(false);
     }
   };
@@ -358,7 +360,7 @@ const PaymentPage = () => {
                 Pagamento Confirmado!
               </h3>
               <p className="text-sm text-slate-300 mt-1">
-                Sua assinatura está activa. Redirecionando...
+                Sua assinatura está ativa. Redirecionando...
               </p>
             </div>
           )}
