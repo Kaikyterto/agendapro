@@ -222,10 +222,21 @@ const PaymentPage = () => {
       }
     } catch (err) {
       console.error("Erro no processamento do cartão:", err);
-      // Exibe o erro retornado pelo seu backend ou pelo SDK
-      setUiError(
-        err?.message || "Erro inesperado ao processar pagamento com cartão."
-      );
+
+      // === ADICIONE ESTA PARTE PARA DEPURAR ===
+      if (err.cause && Array.isArray(err.cause)) {
+        console.warn("DETALHES DO ERRO DO MERCADO PAGO:", err.cause);
+        // Tenta pegar a primeira descrição amigável do erro
+        const mpErrorMessage =
+          err.cause[0]?.description || "Verifique os dados do cartão.";
+        setUiError(mpErrorMessage);
+      } else {
+        // Exibe o erro genérico caso não venha do SDK
+        setUiError(
+          err?.message || "Erro inesperado ao processar pagamento com cartão."
+        );
+      }
+      // ========================================
     } finally {
       setLoadingCardProcessing(false);
     }
