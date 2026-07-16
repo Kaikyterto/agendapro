@@ -18,6 +18,16 @@ payment_bp.route(
 )
 
 # =========================================================
+# CARTÃO DA PLATAFORMA (ASSINATURA DO KROMIS)
+# =========================================================
+payment_bp.route(
+    "/payments/card",
+    methods=["POST"]
+)(
+    PaymentController.create_platform_card_payment
+)
+
+# =========================================================
 # CONSULTAR PAGAMENTO
 # =========================================================
 payment_bp.route(

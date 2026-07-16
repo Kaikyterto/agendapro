@@ -83,7 +83,6 @@ const PaymentPage = () => {
   // ========================================================
   useEffect(() => {
     const generatePix = async () => {
-      // Se já existe um pagamento pendente (Pix vindo do login/storage), não gera outro
       if (payment || !company?.id) return;
 
       try {
@@ -140,7 +139,6 @@ const PaymentPage = () => {
     setUiSuccess(false);
 
     try {
-      // A. Inicializa SDK do Mercado Pago v2
       if (!window.MercadoPago) {
         throw new Error(
           "SDK do Mercado Pago não carregado. Verifique sua conexão e o index.html."
@@ -150,16 +148,16 @@ const PaymentPage = () => {
       const PUBLIC_KEY = import.meta.env.VITE_MP_PUBLIC_KEY;
       if (!PUBLIC_KEY)
         throw new Error(
-          "Chave Pública do Mercado Pago não configurada no .env como VITE_MP_PUBLIC_KEY"
+          "Chave Pública do Mercado Pago não configurada no .env"
         );
 
       const mp = new window.MercadoPago(PUBLIC_KEY);
 
-      // Tratamento robusto do Ano para string de 4 dígitos (Aceita '26' ou '2026')
+      // Normaliza o ano para 4 dígitos (ex: '26' vira '2026')
       const rawYear = cardData.cardExpirationYear.replace(/\D/g, "");
       const formattedYear = rawYear.length === 2 ? `20${rawYear}` : rawYear;
 
-      // B. Gera Token do Cartão Seguramente usando o SDK v2 (Campos de data devem ser strings)
+      // Gera o Token com o SDK v2
       const cardTokenResponse = await mp.createCardToken({
         cardNumber: cardData.cardNumber.replace(/\s/g, ""),
         cardholderName: cardData.cardholderName.trim(),
@@ -178,25 +176,22 @@ const PaymentPage = () => {
         );
       }
 
-      // C. Coleta Device ID (Melidata para Antifraude)
       const deviceId = window.MP_DEVICE_SESSION_ID || "";
 
-      // D. Envia para o Backend
-      // NOTA: Ajustado o endpoint para '/payments/card' enviando o payload no formato esperado pelo Python
+      // Dispara o POST estruturado conforme o backend Python espera
       const response = await apiFetch("/payments/card", {
         method: "POST",
         body: JSON.stringify({
-          company_id: company.id, // company_id exigido
-          token: cardTokenResponse.id, // token gerado
-          deviceId: deviceId, // device_id para antifraude[cite: 2]
-          installments: parseInt(cardData.installments, 10), // parcelas[cite: 2]
-          email: company.email || "cliente@kromis.com", // email[cite: 2]
-          doc_type: cardData.identificationType, // doc_type[cite: 2]
-          doc_number: cardData.identificationNumber.replace(/\D/g, ""), // doc_number[cite: 2]
+          company_id: company.id,
+          token: cardTokenResponse.id,
+          deviceId: deviceId,
+          installments: parseInt(cardData.installments, 10),
+          email: company.email || "cliente@kromis.com",
+          doc_type: cardData.identificationType,
+          doc_number: cardData.identificationNumber.replace(/\D/g, ""),
         }),
       });
 
-      // E. Trata Resposta do Backend (status 'approved' ou 'active')
       if (response?.status === "approved" || response?.status === "active") {
         setUiSuccess(true);
         localStorage.removeItem("@AgendaPro:payment");
@@ -221,7 +216,6 @@ const PaymentPage = () => {
       console.error("Erro no processamento do cartão:", err);
 
       if (err.cause && Array.isArray(err.cause)) {
-        console.warn("DETALHES DO ERRO DO MERCADO PAGO:", err.cause);
         const mpErrorMessage =
           err.cause[0]?.description || "Verifique os dados do cartão.";
         setUiError(mpErrorMessage);
@@ -236,7 +230,7 @@ const PaymentPage = () => {
   };
 
   // ========================================================
-  // 6. MONITORAR STATUS (Websocket/Polling para PIX)
+  // 6. MONITORAR STATUS (Polling para PIX)
   // ========================================================
   useEffect(() => {
     if (!company?.id) return;
@@ -258,21 +252,18 @@ const PaymentPage = () => {
           });
         }
       } catch (error) {
-        // Silencioso: Aguardando pagamento...
+        // Silencioso
       } finally {
         setCheckingPayment(false);
       }
     };
 
-    checkStatus(); // Verifica imediatamente
-    interval = setInterval(checkStatus, 5000); // Polling a cada 5s
+    checkStatus();
+    interval = setInterval(checkStatus, 5000);
 
     return () => clearInterval(interval);
   }, [company, navigate]);
 
-  // ========================================================
-  // RENDERIZAÇÃO: LOADING PIX GENERATION
-  // ========================================================
   if (loadingPixGeneration) {
     return (
       <div className="min-h-screen bg-[#0b0d11] flex items-center justify-center text-white font-sans">
@@ -286,7 +277,6 @@ const PaymentPage = () => {
 
   return (
     <div className="min-h-screen bg-[#0b0d11] flex items-center justify-center p-4 font-sans text-slate-200 overflow-hidden relative">
-      {/* Background Gradients */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-900/10 blur-[120px] rounded-full pointer-events-none" />
 
@@ -413,7 +403,6 @@ const PaymentPage = () => {
               {/* CONTENT: CARTÃO */}
               {activeTab === "card" && (
                 <form onSubmit={handleCardPaymentSubmit} className="space-y-4">
-                  {/* Nome do Titular */}
                   <div>
                     <label className="text-xs text-slate-400 mb-1 block">
                       Nome impresso no Cartão
@@ -433,7 +422,6 @@ const PaymentPage = () => {
                     />
                   </div>
 
-                  {/* Número do Cartão */}
                   <div>
                     <label className="text-xs text-slate-400 mb-1 block">
                       Número do Cartão
@@ -457,7 +445,6 @@ const PaymentPage = () => {
                     />
                   </div>
 
-                  {/* Vencimento e CVC */}
                   <div className="grid grid-cols-3 gap-3">
                     <div>
                       <label className="text-xs text-slate-400 mb-1 block">
@@ -524,7 +511,6 @@ const PaymentPage = () => {
                     </div>
                   </div>
 
-                  {/* Documento */}
                   <div className="grid grid-cols-3 gap-3">
                     <select
                       value={cardData.identificationType}
@@ -578,7 +564,6 @@ const PaymentPage = () => {
             </>
           )}
 
-          {/* STATUS FOOTER (Apenas para PIX) */}
           {activeTab === "pix" && payment && !uiSuccess && (
             <div className="mt-8 text-slate-500 text-xs flex justify-center items-center gap-2 border-t border-white/5 pt-5">
               {checkingPayment ? (

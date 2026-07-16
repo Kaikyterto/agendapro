@@ -38,7 +38,7 @@ class PaymentController:
     # CRIAR ASSINATURA POR CARTÃO DE CRÉDITO
     # =========================================================
     @staticmethod
-    def create_platform_card_subscription():
+    def create_platform_card_payment():
         try:
             data = request.get_json()
 
@@ -47,22 +47,21 @@ class PaymentController:
                     "error": "Dados não enviados"
                 }), 400
                 
-            # O front-end enviará: company_id, card_token, email, etc.
+            # Chama o método correto existente no seu PaymentService
             result = (
                 PaymentService
-                .create_platform_card_subscription(data)
+                .create_platform_card_payment(data)
             )
 
-            # Salvamos o ID da assinatura (preapproval_id) no campo de pagamento da empresa
-            # para podermos consultar ou cancelar mais tarde, sem mexer na estrutura do banco
+            # Salva o ID da transação no campo de pagamento da empresa
             company_id = data.get("company_id")
-            if company_id and result.get("id"):
-                company = Company.query.get(company_id)
+            if company_id and result.get("payment_id"):
+                company = db.session.get(Company, company_id)
                 if company:
-                    company.mercado_pago_payment_id = result.get("id")
+                    company.mercado_pago_payment_id = str(result.get("payment_id"))
                     
-                    # Se a assinatura já foi autorizada/ativada imediatamente
-                    if result.get("status") == "authorized":
+                    # Se o pagamento do cartão já foi aprovado imediatamente
+                    if result.get("status") == "approved":
                         now = datetime.utcnow()
                         company.status = "active"
                         company.next_billing_at = now + timedelta(days=30)
@@ -79,12 +78,12 @@ class PaymentController:
             }), 400
 
     # =========================================================
-    # NOVO: CANCELAR ASSINATURA (CARTÃO)
+    # CANCELAR ASSINATURA (CARTÃO)
     # =========================================================
     @staticmethod
     def cancel_platform_subscription(company_id):
         try:
-            company = Company.query.get(company_id)
+            company = db.session.get(Company, company_id)
             if not company:
                 return jsonify({
                     "error": "Empresa não encontrada"
@@ -147,7 +146,7 @@ class PaymentController:
     @staticmethod
     def payment_status(company_id):
         try:
-            company = Company.query.get(company_id)
+            company = db.session.get(Company, company_id)
 
             if not company:
                 return jsonify({
@@ -177,7 +176,7 @@ class PaymentController:
 
             print("CONSULTANDO STATUS NO MERCADO PAGO:", company.mercado_pago_payment_id)
 
-            # Verificamos se o ID salvo começa com "preapproval" (assinatura) ou se é um pagamento único (Pix)
+            # Verificamos se o ID salvo começa com "preapproval" (assinatura) ou se é um pagamento único (Pix/Cartão Direto)
             is_subscription = str(company.mercado_pago_payment_id).startswith("preapproval")
 
             if is_subscription:
@@ -186,10 +185,9 @@ class PaymentController:
                     PaymentService
                     .get_platform_subscription(company.mercado_pago_payment_id)
                 )
-                # Na API de assinaturas do MP, o status ativo é "authorized"
                 approved_status = "authorized"
             else:
-                # Consulta pagamento único via Pix
+                # Consulta pagamento único via Pix ou Cartão Direto
                 payment = (
                     PaymentService
                     .get_platform_payment(company.mercado_pago_payment_id)
