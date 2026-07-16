@@ -250,23 +250,22 @@ export default function CompanyProductsPage() {
 
       const documentType = docNumber.length > 11 ? "CNPJ" : "CPF";
 
-      const tokenData = {
+      // Usando o método nativo e correto do SDK v2
+      const tokenResponse = await mp.createCardToken({
         cardNumber: cardNumber.replace(/\s/g, ""),
-        cardholderName: cardHolderName,
+        cardholderName: cardHolderName.trim(),
         cardExpirationMonth: cardMonth.padStart(2, "0"),
         cardExpirationYear: cardYear.length === 2 ? `20${cardYear}` : cardYear,
-        securityCode: cardCVV,
+        securityCode: cardCVV.replace(/\D/g, ""),
         identificationType: documentType,
-        identificationNumber: docNumber,
-      };
-
-      const tokenResponse = await mp.cardToken.create(tokenData);
+        identificationNumber: docNumber.replace(/\D/g, ""),
+      });
 
       if (!tokenResponse || !tokenResponse.id) {
         throw new Error("Não foi possível gerar o token do cartão de crédito.");
       }
 
-      console.log("Token Gerado:", tokenResponse.id);
+      console.log("Token Gerado via SDK v2:", tokenResponse.id);
       return tokenResponse.id;
     } catch (error) {
       console.error("Erro ao gerar token do cartão:", error);
@@ -277,7 +276,6 @@ export default function CompanyProductsPage() {
       throw new Error(errorMsg);
     }
   };
-
   const handleCheckout = async () => {
     try {
       if (!company?.id) {
