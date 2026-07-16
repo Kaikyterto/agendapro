@@ -131,7 +131,7 @@ class AuthController:
         }), 200
 
     # =========================================================
-    # REGISTER (Pronto para Cartão e Pix)
+    # REGISTER (Pronto para Cartão e Pix com Antifraude)
     # =========================================================
     @staticmethod
     def register():
@@ -143,8 +143,9 @@ class AuthController:
         password = data.get("password")
         logo = data.get("logo")
         
-        # Dados do pagamento via cartão vindos do frontend
+        # Dados do pagamento via cartão e antifraude vindos do frontend
         card_token = data.get("cardToken")
+        device_id = data.get("deviceId")  # <--- CAPTURA O DEVICE ID ENVIADO PELO FRONTEND
         installments = data.get("installments", 1)
 
         if not company_name or not email or not password:
@@ -210,13 +211,14 @@ class AuthController:
             # PROCESSAMENTO DO PAGAMENTO (CARTÃO OU PIX)
             # =================================================
             if card_token:
-                # Se enviou cartão, cria o pagamento por cartão
+                # Se enviou cartão, cria o pagamento por cartão passando o device_id
                 payment = (
                     PaymentService
                     .create_platform_card_payment({
                         "company_id": new_company.id,
                         "amount": 29.90,
                         "token": card_token,
+                        "deviceId": device_id,  # <--- REPASSA O DEVICE ID PARA O SERVIÇO DE PAGAMENTO
                         "installments": installments,
                         "email": email,
                         "description": "Assinatura Kromis"

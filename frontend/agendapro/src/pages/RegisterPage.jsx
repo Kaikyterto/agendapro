@@ -90,6 +90,24 @@ const RegisterPage = () => {
   };
 
   // ========================================================
+  // CAPTURA DO DEVICE ID (MERCADO PAGO ANTIFRAUDE)
+  // ========================================================
+  const getDeviceId = () => {
+    if (window.MP_DEVICE_SESSION_ID) {
+      return window.MP_DEVICE_SESSION_ID;
+    }
+    if (window.MercadoPago && window.MercadoPago.device_id) {
+      return window.MercadoPago.device_id;
+    }
+    // Caso use o SDK padrão do MP que pode injetar de outra forma
+    const mpDeviceInput = document.querySelector('input[name="deviceId"]');
+    if (mpDeviceInput) {
+      return mpDeviceInput.value;
+    }
+    return null;
+  };
+
+  // ========================================================
   // STEP 1: VALIDATE ACCOUNT DATA
   // ========================================================
   const continueToPayment = (e) => {
@@ -169,7 +187,6 @@ const RegisterPage = () => {
       }
 
       // --- ETAPA B: GERAÇÃO DO TOKEN DO CARTÃO (Via API Direta) ---
-      // Como não estamos usando iframes ("Fields"), fazemos uma requisição direta para a API do Mercado Pago
       const publicKey = import.meta.env.VITE_MP_PUBLIC_KEY;
 
       const response = await fetch(
@@ -207,9 +224,10 @@ const RegisterPage = () => {
 
       const cardToken = tokenData.id;
 
+      // Captura o Device ID gerado pelo script do Mercado Pago
+      const deviceId = getDeviceId();
+
       // --- ETAPA C: ENVIA REGISTRO E PAGAMENTO AO BACKEND ---
-      // Nosso serviço auth.js/registerService agora espera receber também o cardToken
-      // No seu RegisterPage.jsx:
       const responseData = await registerService({
         name: formData.name,
         companyName: formData.companyName,
@@ -217,6 +235,7 @@ const RegisterPage = () => {
         password: formData.password,
         logo: uploadedLogoUrl,
         cardToken: cardToken,
+        deviceId: deviceId, // <--- Envia o Device ID para o backend salvar e repassar ao header
         installments: 1,
         description: "Assinatura Mensal Kromis",
         docType: cardData.docType,
@@ -239,12 +258,11 @@ const RegisterPage = () => {
           docNumber: "",
         });
 
-        // Redireciona para onde a empresa configurará o espaço
+        // Redireciona de forma limpa para o login raiz pré-preenchendo o e-mail
         setTimeout(() => {
-          navigate("/configurar-espaco", {
+          navigate("/", {
             state: {
-              company: responseData.company,
-              subscription: responseData.subscription,
+              email: formData.email,
             },
           });
         }, 1500);
@@ -265,7 +283,6 @@ const RegisterPage = () => {
       }
     } catch (err) {
       console.error(err);
-      // Erro geral na criação da conta ou na rede
       setError(err.message || "Erro ao processar assinatura e criar conta.");
     } finally {
       setIsLoading(false);
@@ -274,17 +291,12 @@ const RegisterPage = () => {
 
   return (
     <div className="min-h-screen bg-[#0b0d11] relative flex items-center justify-center p-4 font-sans text-slate-200 overflow-hidden transform-gpu">
-      {/* ================================================ */}
-      {/* GLOW */}
-      {/* ================================================ */}
+      {/* GLOWS */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
-
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-900/10 blur-[120px] rounded-full pointer-events-none" />
 
       <div className="w-full max-w-[480px] relative">
-        {/* ============================================== */}
         {/* HEADER */}
-        {/* ============================================== */}
         <div className="flex flex-col items-center mb-8">
           <h1 className="text-3xl font-black text-white tracking-tight text-center">
             Assine por apenas <span className="text-blue-500">29,90</span>
@@ -315,11 +327,8 @@ const RegisterPage = () => {
           </div>
         </div>
 
-        {/* ============================================== */}
         {/* CARD */}
-        {/* ============================================== */}
         <div className="bg-[#16191f]/80 backdrop-blur-xl border border-white/[0.08] p-7 rounded-3xl shadow-2xl transition-all duration-300">
-          {/* TÍTULO DA ETAPA ATUAL */}
           <h2 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
             {currentStep === 1 ? (
               <>
@@ -335,9 +344,6 @@ const RegisterPage = () => {
           </h2>
 
           <form className="space-y-4.5">
-            {/* ======================================================== */}
-            {/* STEP 1: DADOS DA CONTA */}
-            {/* ======================================================== */}
             {currentStep === 1 && (
               <>
                 {/* NAME */}
@@ -495,9 +501,6 @@ const RegisterPage = () => {
               </>
             )}
 
-            {/* ======================================================== */}
-            {/* STEP 2: DADOS DE PAGAMENTO (CARTÃO) */}
-            {/* ======================================================== */}
             {currentStep === 2 && (
               <>
                 {/* EXPLICATIVO SEGURANÇA */}
@@ -643,9 +646,7 @@ const RegisterPage = () => {
               </>
             )}
 
-            {/* ========================================== */}
-            {/* ERROR & PAYMENT STATUS MESSAGES */}
-            {/* ========================================== */}
+            {/* MESSAGES */}
             {error && (
               <p className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 px-4 py-3 rounded-xl flex items-center gap-2">
                 <XCircle size={18} />
@@ -686,9 +687,7 @@ const RegisterPage = () => {
                 </p>
               )}
 
-            {/* ========================================== */}
             {/* SUBMIT BUTTON - STEP 2 */}
-            {/* ========================================== */}
             {currentStep === 2 && (
               <div className="grid grid-cols-3 gap-2.5 pt-2">
                 <button
@@ -719,9 +718,7 @@ const RegisterPage = () => {
             )}
           </form>
 
-          {/* ============================================ */}
           {/* FOOTER */}
-          {/* ============================================ */}
           {currentStep === 1 && (
             <div className="mt-7 pt-5 border-t border-white/[0.06] text-center transform-gpu">
               <p className="text-slate-500 text-sm mb-3.5 leading-relaxed max-w-xs mx-auto">

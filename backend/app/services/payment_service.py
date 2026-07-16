@@ -1,12 +1,9 @@
 import os
 import mercadopago
 
-
 from app.models.company import Company
 from app.database.db import db
 from app.models.mercado_pago_account import MercadoPagoAccount
-
-
 
 
 class PaymentService:
@@ -121,11 +118,10 @@ class PaymentService:
 
         payment_data = {
             "transaction_amount": float(data["amount"]),
-            "description": data.get("description", "Venda de Produto - Kromis"), # Atualizado AgendaPro -> Kromis
+            "description": data.get("description", "Venda de Produto - Kromis"),
             "payment_method_id": "pix",
             "external_reference": f"sale_{data['sale_record_id']}",
             # Webhook que receberá o aviso de que o cliente pagou o produto
-            # TODO: Atualizar esta URL quando o link do Kromis estiver pronto!
             "notification_url": "https://agendapro-z63z.onrender.com/webhook/mercadopago",
             "payer": {
                 "first_name": data["customer_name"],
@@ -185,12 +181,20 @@ class PaymentService:
                     }
                 },
                 "external_reference": payment_data["external_reference"],
-                # TODO: Descomentar e atualizar a URL do Webhook do Kromis para cartão quando estiver pronta!
-                # "notification_url": "https://agendapro-z63z.onrender.com/webhook/mercadopago" 
             }
 
-            # Envia a cobrança para o Mercado Pago
-            payment_response = sdk.payment().create(payment_request)
+            # Configura cabeçalhos personalizados de antifraude (Melidata Device ID)
+            request_options = {}
+            device_id = payment_data.get("device_id") or payment_data.get("deviceId")
+            if device_id:
+                request_options = {
+                    "headers": {
+                        "X-Melidata-Session-Id": str(device_id)
+                    }
+                }
+
+            # Envia a cobrança para o Mercado Pago incluindo as opções com o deviceId
+            payment_response = sdk.payment().create(payment_request, request_options)
             payment = payment_response.get("response", {})
 
             # Trata possíveis erros de recusa de cartão retornados pelo MP
@@ -285,7 +289,18 @@ class PaymentService:
             }
         }
 
-        response = sdk.payment().create(payment_data)
+        # Configura cabeçalhos de antifraude específicos do Mercado Pago para a Assinatura
+        request_options = {}
+        device_id = data.get("device_id") or data.get("deviceId")
+        if device_id:
+            request_options = {
+                "headers": {
+                    "X-Melidata-Session-Id": str(device_id)
+                }
+            }
+
+        # Cria a transação enviando os cabeçalhos de antifraude nas opções adicionais
+        response = sdk.payment().create(payment_data, request_options)
         payment = response.get("response", {})
 
         if response.get("status", 200) >= 400 or not payment:

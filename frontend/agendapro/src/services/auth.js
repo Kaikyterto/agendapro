@@ -54,9 +54,6 @@ export const loginService = async (credentials) => {
 // =========================================================
 // REGISTER
 // =========================================================
-// =========================================================
-// REGISTER (Corrigido para enviar os dados de pagamento)
-// =========================================================
 export const registerService = async (payload) => {
   const response = await fetch(`${API_URL}/auth/register`, {
     method: "POST",
@@ -72,6 +69,7 @@ export const registerService = async (payload) => {
       password: payload.password,
       logo: payload.logo,
       cardToken: payload.cardToken,
+      deviceId: payload.deviceId, // <--- ADICIONE ESTA LINHA AQUI!
       installments: payload.installments,
       description: payload.description,
       docType: payload.docType,
@@ -88,33 +86,4 @@ export const registerService = async (payload) => {
   }
 
   return data;
-};
-
-// =========================================================
-// PARSE RESPONSE (ROBUSTO)
-// =========================================================
-const parseResponse = async (response) => {
-  const contentType = response.headers.get("content-type");
-
-  if (contentType?.includes("application/json")) {
-    return await response.json();
-  }
-
-  return await response.text();
-};
-
-// =========================================================
-// AUTH CHECK
-// =========================================================
-export const isAuthenticated = () => {
-  return Boolean(localStorage.getItem("@AgendaPro:token"));
-};
-
-// =========================================================
-// LOGOUT
-// =========================================================
-export const logout = () => {
-  localStorage.removeItem("@AgendaPro:token");
-  localStorage.removeItem("@AgendaPro:user");
-  localStorage.removeItem("@AgendaPro:company");
 };
