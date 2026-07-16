@@ -28,6 +28,7 @@ class SaleController:
             if not customer_name or not phone:
                 return jsonify({"error": "Nome e telefone são obrigatórios"}), 400
 
+            # Cria o registro do pedido pendente
             order = SalesRecord(
                 company_id=company_id,
                 value=Decimal("0.00"),
@@ -38,17 +39,24 @@ class SaleController:
             )
 
             db.session.add(order)
-            db.session.flush()
+            db.session.flush()  # Gera o ID do pedido no banco sem commitar ainda
 
             total = Decimal("0.00")
+            items_added = 0
 
             for item in items:
-                product = Product.query.get(item["product_id"])
+                # CORREÇÃO: Usar db.session.get para busca direta por ID
+                product = db.session.get(Product, item["product_id"])
 
+                # CORREÇÃO: Em vez de apenas ignorar, avisa o cliente que o produto está indisponível
                 if not product or not product.active:
-                    continue
+                    return jsonify({
+                        "error": f"O produto com ID {item['product_id']} não está disponível."
+                    }), 400
 
                 quantity = int(item.get("quantity", 1))
+                if quantity <= 0:
+                    return jsonify({"error": "A quantidade de cada item deve ser maior que zero"}), 400
 
                 unit_price = Decimal(str(product.value))
                 item_total = unit_price * quantity
@@ -64,9 +72,14 @@ class SaleController:
 
                 db.session.add(sale_item)
                 total += item_total
+                items_added += 1
+
+            if items_added == 0:
+                return jsonify({"error": "Nenhum item válido foi adicionado ao pedido"}), 400
 
             order.value = total
 
+            # Gera o Pix com a credencial da empresa correspondente no Kromis
             payment = PaymentService.create_company_pix_payment({
                 "company_id": company_id,
                 "sale_record_id": order.id,
@@ -76,6 +89,7 @@ class SaleController:
                 "description": f"Pedido #{order.id}"
             })
 
+            # Salva os retornos de pagamento gerados pelo SDK do Mercado Pago
             order.payment_id = str(payment["payment_id"])
             order.external_reference = f"sale_{order.id}"
 
@@ -113,7 +127,6 @@ class SaleController:
             history = []
 
             for sale in sales:
-
                 products = (
                     Sale.query
                     .options(joinedload(Sale.product))
@@ -134,7 +147,6 @@ class SaleController:
                     "total": float(sale.value),
                     "payment_date": sale.payment_date.isoformat() if sale.payment_date else None,
                     "created_at": sale.created_at.isoformat(),
-
                     "products": [
                         {
                             "id": item.product.id,
@@ -143,7 +155,7 @@ class SaleController:
                             "unit_price": float(item.unit_price),
                             "total_price": float(item.total_price)
                         }
-                        for item in products
+                        for item in products if item.product  # Evita quebras se o produto sumir do banco
                     ]
                 })
 
@@ -156,7 +168,10 @@ class SaleController:
     @staticmethod
     def get_sale(sale_id):
         try:
-            sale = SalesRecord.query.get_or_404(sale_id)
+            # CORREÇÃO: Substituído query.get_or_404 pelo session.get clássico para evitar o warning
+            sale = db.session.get(SalesRecord, sale_id)
+            if not sale:
+                return jsonify({"error": "Pedido não encontrado"}), 404
 
             items = (
                 Sale.query
@@ -184,7 +199,7 @@ class SaleController:
                         "unit_price": float(item.unit_price),
                         "total_price": float(item.total_price)
                     }
-                    for item in items
+                    for item in items if item.product
                 ]
             }), 200
 

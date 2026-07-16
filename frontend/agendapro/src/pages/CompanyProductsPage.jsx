@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Plus, X, Loader2 } from "lucide-react";
+import { Plus, X, Loader2, CreditCard, QrCode } from "lucide-react"; // Importados novos ícones
 import { useParams } from "react-router-dom";
 
 import {
@@ -26,6 +26,18 @@ export default function CompanyProductsPage() {
 
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
+  const [customerEmail, setCustomerEmail] = useState(""); // Novo: Email obrigatório para cartão
+  
+  // Novos estados para Cartão de Crédito
+  const [paymentMethod, setPaymentMethod] = useState("pix"); // "pix" ou "card"
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardMonth, setCardMonth] = useState("");
+  const [cardYear, setCardYear] = useState("");
+  const [cardCVV, setCardCVV] = useState("");
+  const [cardHolderName, setCardHolderName] = useState("");
+  const [installments, setInstallments] = useState(1);
+  const [docNumber, setDocNumber] = useState(""); // CPF/CNPJ do titular
+
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [pixData, setPixData] = useState(null);
   const [showPixModal, setShowPixModal] = useState(false);
@@ -65,6 +77,7 @@ export default function CompanyProductsPage() {
     loadData();
   }, [slug]);
 
+  // Mantemos o Polling do Pix para quando for Pix
   useEffect(() => {
     if (!showPixModal || !pixData?.orderId) return;
 
@@ -81,6 +94,7 @@ export default function CompanyProductsPage() {
           setCart([]);
           setCustomerName("");
           setCustomerPhone("");
+          setCustomerEmail("");
           setPixData(null);
         }
       } catch (err) {
@@ -152,6 +166,35 @@ export default function CompanyProductsPage() {
     }));
   };
 
+  // Função para gerar o Token do Cartão com o SDK do Mercado Pago
+  const getCardToken = async (mp) => {
+    try {
+      if (!cardNumber || !cardMonth || !cardYear || !cardCVV || !cardHolderName || !docNumber) {
+        throw new Error("Preencha todos os dados do cartão e do titular");
+      }
+
+      const tokenData = {
+        cardNumber: cardNumber.replace(/\s/g, ""), // Remove espaços
+        cardholderName: cardHolderName,
+        cardExpirationMonth: cardMonth,
+        cardExpirationYear: cardYear,
+        securityCode: cardCVV,
+        identificationType: "CPF", // Assumindo CPF por padrão
+        identificationNumber: docNumber,
+      };
+
+      const tokenResponse = await mp.fields.createToken(tokenData);
+
+      console.log("Token Gerado:", tokenResponse.id);
+      return tokenResponse.id;
+
+    } catch (error) {
+      console.error("Erro ao gerar token do cartão:", error);
+      throw new Error(error.message || "Dados do cartão inválidos");
+    }
+  };
+
+
   const handleCheckout = async () => {
     try {
       if (!company?.id) {
@@ -178,26 +221,68 @@ export default function CompanyProductsPage() {
         })),
         customer_name: customerName,
         phone: customerPhone,
-        payment_method: "pix",
+        payment_method: paymentMethod, // Usa o estado selecionado
       };
 
-      const res = await createSale(payload);
+      // =========================================================
+      // FLUXO DE CARTÃO DE CRÉDITO - NOVO E FOCADO
+      // =========================================================
+      if (paymentMethod === "card") {
+        if (!customerEmail) {
+            return setError("E-mail é obrigatório para pagamento com cartão");
+        }
 
-      console.log("PIX RESPONSE:", res);
+        // Inicializa o SDK do Mercado Pago
+        const mp = new window.MercadoPago(import.meta.env.VITE_MP_PUBLIC_KEY); // Requer chave pública no .env do frontend
+        if (!mp) {
+            throw new Error("Erro ao carregar SDK do Mercado Pago");
+        }
 
-      if (!res?.pix_code) {
-        throw new Error("PIX não gerado");
+        const cardToken = await getCardToken(mp); // Gera o token seguro
+
+        // Incrementa o payload com os dados específicos do cartão
+        payload.email = customerEmail;
+        payload.card_token = cardToken;
+        payload.doc_number = docNumber;
+        payload.doc_type = "CPF";
+        payload.installments = installments;
+        payload.description = `Compra na loja ${company.name} no Kromis`;
+        // O backend decide o payment_method_id (visa, master) com base no token
       }
 
-      setPixData({
-        pixCode: res.pix_code,
-        qrCodeBase64: res.qr_code_base64,
-        paymentId: res.payment_id,
-        orderId: res.order_id,
-      });
+      // Chama a mesma API, que agora está pronta para processar Pix ou Cartão
+      const res = await createSale(payload);
 
-      setShowCustomerModal(false);
-      setShowPixModal(true);
+      console.log("CHECKOUT RESPONSE:", res);
+
+      if (paymentMethod === "card") {
+          // No cartão, a resposta instantânea já nos diz o status
+          if (res.status === "approved") {
+              setPaymentConfirmed(true);
+              setCart([]);
+              setShowCustomerModal(false);
+          } else if (res.status === "in_process") {
+              setError("Pagamento em análise pelo Mercado Pago. Você receberá um e-mail com a confirmação.");
+          } else {
+              setError(`Pagamento recusado: ${res.status_detail || "Verifique os dados do cartão."}`);
+          }
+      } else {
+          // Fluxo original do Pix
+          if (!res?.pix_code) {
+              throw new Error("PIX não gerado");
+          }
+
+          setPixData({
+              pixCode: res.pix_code,
+              qrCodeBase64: res.qr_code_base64,
+              paymentId: res.payment_id,
+              orderId: res.order_id,
+          });
+
+          setShowCustomerModal(false);
+          setShowPixModal(true);
+      }
+
     } catch (err) {
       console.error(err);
 
@@ -397,40 +482,145 @@ export default function CompanyProductsPage() {
 
       {showCustomerModal && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[999] p-4 transform-gpu">
-          <div className="bg-[#0d0f14] p-5 rounded-2xl w-full max-w-sm border border-white/10 shadow-2xl">
-            <h2 className="text-base font-bold mb-3">Seus dados</h2>
+          <div className="bg-[#0d0f14] p-5 rounded-2xl w-full max-w-md border border-white/10 shadow-2xl overflow-y-auto max-h-[90vh] custom-scrollbar">
+            <h2 className="text-base font-bold mb-3">Dados e Pagamento</h2>
 
             <div className="space-y-3">
               <input
                 className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
-                placeholder="Nome"
+                placeholder="Nome completo"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
               />
 
-              <input
-                className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
-                placeholder="Telefone"
-                value={customerPhone}
-                onChange={(e) => setCustomerPhone(e.target.value)}
-              />
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                    className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
+                    placeholder="Telefone (WhatsApp)"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                />
+                {/* Email é obrigatório para o Mercado Pago em cartões */}
+                <input
+                    className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
+                    placeholder="E-mail"
+                    type="email"
+                    value={customerEmail}
+                    onChange={(e) => setCustomerEmail(e.target.value)}
+                />
+              </div>
             </div>
 
-            {error && <p className="text-red-400 text-[11px] mt-2">{error}</p>}
+            {/* SELEÇÃO DO MÉTODO DE PAGAMENTO - NOVO FOCADO */}
+            <div className="mt-4">
+                <p className="text-xs text-white/60 mb-2">Selecione o método de pagamento:</p>
+                <div className="grid grid-cols-2 gap-2">
+                    <button
+                        onClick={() => setPaymentMethod("pix")}
+                        className={`h-12 flex flex-col items-center justify-center border rounded-xl gap-1 transition-all ${paymentMethod === "pix" ? "border-[var(--primary)] bg-[var(--primary)]/10" : "border-white/5 bg-white/5 hover:border-white/10"}`}
+                    >
+                        <QrCode size={18} className={paymentMethod === "pix" ? "text-[var(--primary)]" : "text-white/60"}/>
+                        <span className="text-[10px] font-semibold">PIX (Polling)</span>
+                    </button>
+                    <button
+                        onClick={() => setPaymentMethod("card")}
+                        className={`h-12 flex flex-col items-center justify-center border rounded-xl gap-1 transition-all ${paymentMethod === "card" ? "border-[var(--primary)] bg-[var(--primary)]/10" : "border-white/5 bg-white/5 hover:border-white/10"}`}
+                    >
+                        <CreditCard size={18} className={paymentMethod === "card" ? "text-[var(--primary)]" : "text-white/60"}/>
+                        <span className="text-[10px] font-semibold">Cartão de Crédito</span>
+                    </button>
+                </div>
+            </div>
+
+            {/* FORMULÁRIO DE CARTÃO DE CRÉDITO - CONDICIONAL FOCADO */}
+            {paymentMethod === "card" && (
+                <div className="mt-4 space-y-2.5 border-t border-white/5 pt-4">
+                    <input
+                        className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
+                        placeholder="Nome como está no cartão"
+                        value={cardHolderName}
+                        onChange={(e) => setCardHolderName(e.target.value.toUpperCase())}
+                    />
+                    <input
+                        className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
+                        placeholder="Número do cartão (só números)"
+                        type="tel"
+                        maxLength={16}
+                        value={cardNumber}
+                        onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, ""))}
+                    />
+                    <div className="grid grid-cols-3 gap-2">
+                        <input
+                            className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
+                            placeholder="Mês (MM)"
+                            type="tel"
+                            maxLength={2}
+                            value={cardMonth}
+                            onChange={(e) => setCardMonth(e.target.value.replace(/\D/g, ""))}
+                        />
+                        <input
+                            className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
+                            placeholder="Ano (AAAA)"
+                            type="tel"
+                            maxLength={4}
+                            value={cardYear}
+                            onChange={(e) => setCardYear(e.target.value.replace(/\D/g, ""))}
+                        />
+                        <input
+                            className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
+                            placeholder="CVV"
+                            type="tel"
+                            maxLength={4}
+                            value={cardCVV}
+                            onChange={(e) => setCardCVV(e.target.value.replace(/\D/g, ""))}
+                        />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                        {/* CPF do Titular é obrigatório para antifraude do MP */}
+                        <input
+                            className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
+                            placeholder="CPF do Titular (só números)"
+                            type="tel"
+                            maxLength={11}
+                            value={docNumber}
+                            onChange={(e) => setDocNumber(e.target.value.replace(/\D/g, ""))}
+                        />
+                        {/* Parcelas simples: Padrão 1x por simplicidade do checkout */}
+                        <select
+                            value={installments}
+                            onChange={(e) => setInstallments(Number(e.target.value))}
+                            className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all text-white/70"
+                        >
+                            <option value={1}>1x sem juros</option>
+                            <option value={2}>2x sem juros</option>
+                            <option value={3}>3x sem juros</option>
+                        </select>
+                    </div>
+                </div>
+            )}
+
+            {error && <p className="text-red-400 text-[11px] mt-2 bg-red-950/20 p-2 rounded-lg border border-red-800/30">{error}</p>}
 
             <div className="grid grid-cols-2 gap-2 mt-4">
               <button
                 onClick={() => setShowCustomerModal(false)}
-                className="h-10 border border-white/10 rounded-xl text-xs font-semibold"
+                className="h-10 border border-white/10 rounded-xl text-xs font-semibold hover:bg-white/5 transition-all"
               >
                 Cancelar
               </button>
               <button
                 disabled={checkoutLoading}
                 onClick={handleCheckout}
-                className="h-10 bg-[var(--primary)] rounded-xl text-xs font-bold hover:opacity-90 disabled:opacity-50"
+                className="h-10 bg-[var(--primary)] rounded-xl text-xs font-bold hover:opacity-90 disabled:opacity-50 transition-all flex items-center justify-center"
               >
-                {checkoutLoading ? "Processando..." : "Comprar"}
+                {checkoutLoading ? (
+                  <>
+                    <Loader2 className="animate-spin mr-1.5" size={12} />
+                    Processando...
+                  </>
+                ) : (
+                  `Pagar R$ ${total.toFixed(2)}`
+                )}
               </button>
             </div>
           </div>
@@ -444,15 +634,15 @@ export default function CompanyProductsPage() {
 
             <h2 className="text-xl font-bold">Pagamento confirmado!</h2>
 
-            <p className="text-white/60 mt-3 text-sm">
-              Recebemos seu pagamento com sucesso.
+            <p className="text-white/60 mt-3 text-sm leading-relaxed">
+              Recebemos seu pagamento com sucesso no Kromis.
               <br />
-              Seu pedido foi confirmado e enviado para a empresa.
+              Seu pedido foi confirmado e enviado para a empresa parceira.
             </p>
 
             <button
               onClick={() => setPaymentConfirmed(false)}
-              className="w-full mt-6 h-11 rounded-xl bg-[var(--primary)] font-bold"
+              className="w-full mt-6 h-11 rounded-xl bg-[var(--primary)] font-bold hover:opacity-90 transition-all"
             >
               Fechar
             </button>
@@ -477,7 +667,7 @@ export default function CompanyProductsPage() {
               readOnly
               value={pixData.pixCode}
               rows={3}
-              className="w-full p-2.5 rounded-xl bg-white/5 text-[10px] resize-none outline-none border border-white/5 text-white/60 select-all"
+              className="w-full p-2.5 rounded-xl bg-white/5 text-[10px] resize-none outline-none border border-white/5 text-white/60 select-all custom-scrollbar"
             />
 
             <button
@@ -486,14 +676,14 @@ export default function CompanyProductsPage() {
                 setToast("Código PIX copiado!");
                 setTimeout(() => setToast(""), 2000);
               }}
-              className="w-full mt-3 h-10 rounded-xl font-bold bg-[var(--primary)] text-xs hover:opacity-90"
+              className="w-full mt-3 h-10 rounded-xl font-bold bg-[var(--primary)] text-xs hover:opacity-90 transition-all"
             >
               Copiar código PIX
             </button>
 
             <button
               onClick={() => setShowPixModal(false)}
-              className="w-full mt-2 h-10 rounded-xl border border-white/10 text-xs font-semibold text-white/60"
+              className="w-full mt-2 h-10 rounded-xl border border-white/10 text-xs font-semibold text-white/60 hover:bg-white/5 transition-all"
             >
               Fechar
             </button>

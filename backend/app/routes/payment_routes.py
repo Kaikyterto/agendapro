@@ -8,7 +8,7 @@ payment_bp = Blueprint(
 )
 
 # =========================================================
-# PIX DA PLATAFORMA (ASSINATURA DO SAAS)
+# PIX DA PLATAFORMA (ASSINATURA DO KROMIS)
 # =========================================================
 payment_bp.route(
     "/payments/pix",
