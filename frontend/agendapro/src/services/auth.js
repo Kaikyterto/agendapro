@@ -1,36 +1,29 @@
-const API_URL = import.meta.env.VITE_API_URL;
+// src/services/auth.js (Refatorado para usar apiFetch)
+import { apiFetch } from "./api"; // IMPORTAÇÃO OBRIGATÓRIA
 
 // =========================================================
 // LOGIN
 // =========================================================
 export const loginService = async (credentials) => {
-  const response = await fetch(`${API_URL}/auth/login`, {
+  // Agora usa o apiFetch centralizado
+  const data = await apiFetch("/auth/login", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
     body: JSON.stringify({
       email: credentials.email.trim(),
       password: credentials.password,
     }),
   });
 
-  const data = await parseResponse(response);
+  // O apiFetch já joga erro se (!response.ok), então 'data' aqui é seguro
 
   // ==========================================
   // PAGAMENTO PENDENTE (403 CONTROLADO)
   // ==========================================
-  if (response.status === 403 && data?.payment_pending === true) {
+  // Esta lógica precisa ser ajustada no backend para retornar 'payment_pending: true'
+  // dentro do corpo da resposta 200/400 se o backend decidir usar 200 para pendente.
+  // Se o backend usar 403, o apiFetch lançará o erro acima.
+  if (data?.payment_pending === true) {
     return data;
-  }
-
-  // ==========================================
-  // OUTROS ERROS
-  // ==========================================
-  if (!response.ok) {
-    throw new Error(
-      data?.error || data?.message || data?.msg || "Erro ao realizar login"
-    );
   }
 
   // ==========================================
@@ -55,13 +48,9 @@ export const loginService = async (credentials) => {
 // REGISTER
 // =========================================================
 export const registerService = async (payload) => {
-  const response = await fetch(`${API_URL}/auth/register`, {
+  // Agora usa o apiFetch centralizado
+  const data = await apiFetch("/auth/register", {
     method: "POST",
-
-    headers: {
-      "Content-Type": "application/json",
-    },
-
     body: JSON.stringify({
       name: payload.name,
       company_name: payload.companyName,
@@ -71,28 +60,19 @@ export const registerService = async (payload) => {
     }),
   });
 
-  const data = await parseResponse(response);
-
-  if (!response.ok) {
-    throw new Error(
-      data?.error || data?.message || data?.msg || "Erro ao criar conta"
-    );
-  }
-
   return data;
 };
 
 // =========================================================
-// PARSE RESPONSE (ROBUSTO)
+// CONSULTAR STATUS DA ASSINATURA (Para Polling do Pix da Plataforma)
 // =========================================================
-const parseResponse = async (response) => {
-  const contentType = response.headers.get("content-type");
-
-  if (contentType?.includes("application/json")) {
-    return await response.json();
-  }
-
-  return await response.text();
+export const getSubscriptionStatus = (companyId) => {
+  // Aponta para a rota que criamos no backend: /payments/status/<int:company_id>
+  // O endpoint deve ser relativo à baseURL '/api'
+  return apiFetch(`/payments/status/${companyId}`, {
+    method: "GET",
+    auth: true, // Requer autenticação
+  });
 };
 
 // =========================================================
