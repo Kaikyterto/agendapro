@@ -1,206 +1,587 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { ArrowRight, UserPlus, Mail, Lock } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import {
+  CheckCircle2,
+  Copy,
+  Loader2,
+  QrCode,
+  CreditCard,
+  AlertTriangle,
+  ArrowLeft,
+} from "lucide-react";
+import { apiFetch } from "../services/api";
 
-import { loginService } from "../services/auth";
-import { setupPWA } from "../utils/pwa";
-import { usePWAInstall } from "../hooks/usePWAInstall";
-
-import AppLogo from "../assets/logo-kromis-transparente.png";
-
-const LoginPage = () => {
-  useEffect(() => {
-    setupPWA({
-      name: "Kromis",
-      slug: "kromis",
-      colors: {
-        primary: "#000000",
-        secondary: "#ffffff",
-      },
-      logo: "/kromis-logo.png",
-    });
-  }, []);
-
-  const { canInstall, installApp } = usePWAInstall();
-
-  const navigate = useNavigate();
+const PaymentPage = () => {
   const location = useLocation();
+  const navigate = useNavigate();
 
-  const successMessage = location.state?.success;
+  // Recupera dados do localStorage se não vierem no State do Router
+  const savedPayment = JSON.parse(localStorage.getItem("@AgendaPro:payment"));
+  const savedCompany = JSON.parse(localStorage.getItem("@AgendaPro:company"));
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [payment, setPayment] = useState(
+    location.state?.payment || savedPayment
+  );
+  const [company, setCompany] = useState(
+    location.state?.company || savedCompany
+  );
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  // Estados da Interface
+  const [activeTab, setActiveTab] = useState("pix"); // 'pix' ou 'card'
+  const [copied, setCopied] = useState(false);
+  const [checkingPayment, setCheckingPayment] = useState(true);
+  const [loadingPixGeneration, setLoadingPixGeneration] = useState(false);
+  const [loadingCardProcessing, setLoadingCardProcessing] = useState(false);
+  const [uiError, setUiError] = useState("");
+  const [uiSuccess, setUiSuccess] = useState(false);
 
+  // Estados do Formulário de Cartão
+  const [cardData, setCardData] = useState({
+    cardNumber: "",
+    cardExpirationMonth: "",
+    cardExpirationYear: "",
+    securityCode: "",
+    cardholderName: "",
+    identificationType: "CPF",
+    identificationNumber: "",
+    installments: "1",
+  });
+
+  // ========================================================
+  // 1. SALVAR DADOS VINDOS DO LOGIN NO LOCALSTORAGE
+  // ========================================================
   useEffect(() => {
-    setupPWA();
-  }, []);
-
-  const handleLogin = async (e) => {
-    e.preventDefault();
-
-    if (!email || !password) {
-      return setError("Preencha todos os campos.");
+    if (location.state?.payment) {
+      setPayment(location.state.payment);
+      localStorage.setItem(
+        "@AgendaPro:payment",
+        JSON.stringify(location.state.payment)
+      );
     }
 
-    setIsLoading(true);
-    setError("");
+    if (location.state?.company) {
+      setCompany(location.state.company);
+      localStorage.setItem(
+        "@AgendaPro:company",
+        JSON.stringify(location.state.company)
+      );
+    }
+  }, [location.state]);
 
-    try {
-      // 1. LIMPEZA PREVENTIVA: Remove dados antigos para não contaminar os Headers
-      localStorage.removeItem("@AgendaPro:token");
-      localStorage.removeItem("@AgendaPro:payment_pending");
+  // ========================================================
+  // 2. SEGURANÇA: GARANTIR QUE HÁ EMPRESA NA SESSÃO
+  // ========================================================
+  useEffect(() => {
+    if (!company?.id && !savedCompany?.id) {
+      console.error("Sessão de pagamento inválida: Empresa não encontrada.");
+      navigate("/");
+    }
+  }, [company, savedCompany, navigate]);
 
-      const data = await loginService({ email, password });
+  // ========================================================
+  // 3. FLUXO PIX: GERAR CASO NÃO TENHA PAGAMENTO ATIVO
+  // ========================================================
+  useEffect(() => {
+    const generatePix = async () => {
+      // Se já existe um pagamento pendente (Pix vindo do login/storage), não gera outro
+      if (payment || !company?.id) return;
 
-      // ========================================================
-      // PAGAMENTO PENDENTE
-      // ========================================================
-      if (data?.payment_pending || data?.payment) {
-        localStorage.setItem("@AgendaPro:payment_pending", "true");
-        localStorage.setItem(
-          "@AgendaPro:payment",
-          JSON.stringify(data.payment)
-        );
+      try {
+        setLoadingPixGeneration(true);
+        setUiError("");
 
-        navigate("/payment", {
-          state: {
-            payment: data.payment,
-            company: data.company,
-          },
+        const response = await apiFetch("/payments/pix", {
+          method: "POST",
+          body: JSON.stringify({ company_id: company.id }),
         });
-        return;
+
+        if (response?.pix_code) {
+          setPayment(response);
+          localStorage.setItem("@AgendaPro:payment", JSON.stringify(response));
+        } else {
+          throw new Error("Resposta inválida ao gerar PIX.");
+        }
+      } catch (error) {
+        console.error("Erro ao gerar PIX automático:", error);
+        setUiError(
+          "Não foi possível gerar um código PIX. Tente usar Cartão ou recarregue."
+        );
+      } finally {
+        setLoadingPixGeneration(false);
       }
+    };
 
-      // ========================================================
-      // SALVAR LOGIN COM SUCESSO
-      // ========================================================
-      localStorage.setItem("@AgendaPro:token", data.access_token);
-      localStorage.setItem("@AgendaPro:user", JSON.stringify(data.user));
+    generatePix();
+  }, [company, payment]);
 
-      const slug = data?.company?.slug || data?.user?.company?.slug || null;
-
-      if (slug) {
-        navigate(`/admin/${slug}`);
-      } else {
-        navigate("/admin");
-      }
-    } catch (err) {
-      console.error("Erro capturado no Login:", err);
-      setError(err?.msg || err?.message || "E-mail ou senha incorretos.");
-    } finally {
-      setIsLoading(false);
+  // ========================================================
+  // 4. FLUXO PIX: COPIAR CÓDIGO
+  // ========================================================
+  const handleCopyPix = async () => {
+    if (!payment?.pix_code) return;
+    try {
+      await navigator.clipboard.writeText(payment.pix_code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 3000);
+    } catch (error) {
+      console.error("Falha ao copiar:", error);
     }
   };
 
+  // ========================================================
+  // 5. FLUXO CARTÃO: PROCESSAR PAGAMENTO
+  // ========================================================
+  const handleCardPaymentSubmit = async (e) => {
+    e.preventDefault();
+    if (!company?.id) return;
+
+    setLoadingCardProcessing(true);
+    setUiError("");
+    setUiSuccess(false);
+
+    try {
+      // A. Inicializa SDK do Mercado Pago
+      if (!window.MercadoPago) {
+        throw new Error(
+          "SDK do Mercado Pago não carregado. Verifique sua conexão."
+        );
+      }
+
+      const PUBLIC_KEY = import.meta.env.VITE_MERCADO_PAGO_PUBLIC_KEY;
+      if (!PUBLIC_KEY)
+        throw new Error(
+          "Chave Pública do Mercado Pago não configurada no .env"
+        );
+
+      const mp = new window.MercadoPago(PUBLIC_KEY);
+
+      // B. Gera Token do Cartão Seguramente
+      const cardTokenResponse = await mp.createCardToken({
+        cardNumber: cardData.cardNumber.replace(/\s/g, ""),
+        cardholderName: cardData.cardholderName,
+        cardExpirationMonth: cardData.cardExpirationMonth,
+        cardExpirationYear: cardData.cardExpirationYear.slice(-2), // Pega últimos 2 dígitos (2026 -> 26)
+        securityCode: cardData.securityCode,
+        identificationType: cardData.identificationType,
+        identificationNumber: cardData.identificationNumber.replace(/\D/g, ""),
+      });
+
+      if (!cardTokenResponse?.id) {
+        throw new Error(
+          "Dados do cartão inválidos ou recusados pelo Mercado Pago."
+        );
+      }
+
+      // C. Coleta Device ID (Antifraude)
+      const deviceId = window.MP_DEVICE_SESSION_ID || "";
+
+      // D. Envia para o Backend para processar a Assinatura (Rota de repagamento/alteração)
+      const response = await apiFetch(
+        `/payments/card-subscription/${company.id}`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            token: cardTokenResponse.id,
+            deviceId: deviceId,
+            installments: parseInt(cardData.installments),
+            email: company.email || "", // E-mail usado no cadastro/login
+          }),
+        }
+      );
+
+      // E. Trata Resposta do Backend
+      if (response?.status === "authorized" || response?.status === "active") {
+        setUiSuccess(true);
+        // Limpa pendências
+        localStorage.removeItem("@AgendaPro:payment");
+        localStorage.removeItem("@AgendaPro:payment_pending");
+        // Mantém a empresa se necessário para rotas futuras, ou limpa se for refazer login
+        // localStorage.removeItem("@AgendaPro:company");
+
+        setTimeout(() => {
+          navigate("/", {
+            state: { success: "Assinatura ativada com sucesso! Faça login." },
+          });
+        }, 3000);
+      } else {
+        // Trata recusas controladas (cc_rejected, etc)
+        throw new Error(
+          `Pagamento não autorizado: ${
+            response?.status_detail || "Verifique os dados ou use outro cartão."
+          }`
+        );
+      }
+    } catch (err) {
+      console.error("Erro no processamento do cartão:", err);
+      setUiError(
+        err?.message || "Erro inesperado ao processar pagamento com cartão."
+      );
+    } finally {
+      setLoadingCardProcessing(false);
+    }
+  };
+
+  // ========================================================
+  // 6. MONITORAR STATUS (Websocket/Polling para PIX)
+  // ========================================================
+  useEffect(() => {
+    if (!company?.id) return;
+
+    let interval;
+
+    const checkStatus = async () => {
+      try {
+        const response = await apiFetch(`/payments/status/${company.id}`);
+
+        if (response?.active) {
+          clearInterval(interval);
+          setUiSuccess(true);
+          localStorage.removeItem("@AgendaPro:payment");
+          localStorage.removeItem("@AgendaPro:payment_pending");
+
+          navigate("/", {
+            state: { success: "Pagamento aprovado via PIX! Faça login." },
+          });
+        }
+      } catch (error) {
+        // Silencioso: Aguardando pagamento...
+      } finally {
+        setCheckingPayment(false);
+      }
+    };
+
+    checkStatus(); // Verifica imediatamente
+    interval = setInterval(checkStatus, 5000); // Polling a cada 5s
+
+    return () => clearInterval(interval);
+  }, [company, navigate]);
+
+  // ========================================================
+  // RENDERIZAÇÃO: LOADING PIX GERATION
+  // ========================================================
+  if (loadingPixGeneration) {
+    return (
+      <div className="min-h-screen bg-[#0b0d11] flex items-center justify-center text-white font-sans">
+        <div className="flex items-center gap-3 bg-[#16191f] p-6 rounded-2xl border border-white/5">
+          <Loader2 className="animate-spin text-blue-500" size={24} />
+          Gerando código PIX...
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#0b0d11] relative flex items-center justify-center p-4 font-sans text-slate-200 overflow-hidden">
+      {/* Background Gradients */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-900/10 blur-[120px] rounded-full pointer-events-none" />
 
-      <div className="w-full max-w-[400px] relative">
-        <div className="text-center mb-10 flex flex-col items-center">
-          <img
-            src={AppLogo}
-            alt="Kromis Logo"
-            className="w-[140px] h-[100px] drop-shadow-[0_0_15px_rgba(59,130,246,0.5)]"
-          />
-
-          <h1 className="text-2xl font-black text-white tracking-tight">
-            Kro<span className="text-blue-500">mis</span>
-          </h1>
-
-          <p className="text-slate-500 text-sm mt-2">
-            Gestão inteligente para seu negócio.
-          </p>
-
-          {canInstall && (
-            <button
-              onClick={installApp}
-              className="mt-5 bg-blue-600 hover:bg-blue-500 text-white font-bold px-5 py-2 rounded-xl transition-all"
-            >
-              Instalar aplicativo
-            </button>
-          )}
-        </div>
-
+      <div className="w-full max-w-[480px] relative">
         <div className="bg-[#16191f]/80 backdrop-blur-xl border border-white/[0.08] p-8 rounded-3xl shadow-2xl">
-          {successMessage && (
-            <div className="mb-5 bg-green-500/10 border border-green-500/20 text-green-400 px-4 py-3 rounded-xl text-sm">
-              {successMessage}
-            </div>
-          )}
+          <button
+            onClick={() => navigate("/")}
+            className="flex items-center gap-2 text-slate-400 hover:text-white transition-all text-sm mb-6"
+          >
+            <ArrowLeft size={16} /> Voltar ao Login
+          </button>
 
-          <form className="space-y-5" onSubmit={handleLogin}>
-            <div>
-              <label className="text-sm text-slate-400 mb-2 block">
-                E-mail
-              </label>
-              <div className="relative">
-                <Mail
-                  size={18}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"
-                />
-                <input
-                  type="email"
-                  placeholder="nome@gmail.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-[#0f1115] border border-white/[0.05] rounded-xl pl-12 pr-4 py-3 text-white outline-none focus:border-blue-500 transition-all"
-                />
-              </div>
-            </div>
+          <div className="text-center mb-6">
+            <h1 className="text-2xl font-black text-white">
+              Ativar Assinatura
+            </h1>
+            <p className="text-slate-400 text-sm mt-1">
+              Sua empresa{" "}
+              <span className="font-bold text-blue-400">
+                {company?.name || "Kromis"}
+              </span>{" "}
+              está com pagamento pendente.
+            </p>
+          </div>
 
-            <div>
-              <label className="text-sm text-slate-400 mb-2 block">Senha</label>
-              <div className="relative">
-                <Lock
-                  size={18}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"
-                />
-                <input
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-[#0f1115] border border-white/[0.05] rounded-xl pl-12 pr-4 py-3 text-white outline-none focus:border-blue-500 transition-all"
-                />
-              </div>
-            </div>
-
-            {error && (
-              <p className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 px-4 py-3 rounded-xl">
-                {error}
-              </p>
-            )}
-
+          {/* TABS SELECTOR */}
+          <div className="grid grid-cols-2 gap-3 mb-6 bg-[#0f1115] p-1.5 rounded-xl border border-white/5">
             <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-70 text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2"
+              onClick={() => setActiveTab("pix")}
+              className={`py-2.5 rounded-lg flex items-center justify-center gap-2.5 font-bold transition-all text-sm ${
+                activeTab === "pix"
+                  ? "bg-blue-600 text-white shadow-md"
+                  : "text-slate-400 hover:text-white"
+              }`}
             >
-              {isLoading ? "Entrando..." : "Entrar"}
-              <ArrowRight size={18} />
+              <QrCode size={18} /> Via Pix
             </button>
-          </form>
-
-          {/* FOOTER */}
-          <div className="mt-8 pt-6 border-t border-white/[0.06] text-center">
-            <p className="text-slate-500 text-sm mb-4">Ainda não tem conta?</p>
             <button
-              onClick={() => navigate("/register")}
-              className="w-full border border-white/[0.08] hover:border-blue-500/40 hover:bg-blue-500/10 text-white font-semibold py-3 rounded-xl transition-all flex items-center justify-center gap-2"
+              onClick={() => setActiveTab("card")}
+              className={`py-2.5 rounded-lg flex items-center justify-center gap-2.5 font-bold transition-all text-sm ${
+                activeTab === "card"
+                  ? "bg-blue-600 text-white shadow-md"
+                  : "text-slate-400 hover:text-white"
+              }`}
             >
-              <UserPlus size={18} />
-              Assine já
+              <CreditCard size={18} /> Via Cartão
             </button>
           </div>
+
+          {/* GLOBAL MESSAGES */}
+          {uiError && (
+            <div className="mb-5 bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl text-sm flex gap-2.5 items-center">
+              <AlertTriangle size={20} className="shrink-0" />
+              <span>{uiError}</span>
+            </div>
+          )}
+
+          {uiSuccess && (
+            <div className="mb-5 bg-green-500/10 border border-green-500/20 text-green-400 px-4 py-5 rounded-xl text-center">
+              <CheckCircle2
+                size={40}
+                className="mx-auto mb-2.5 text-green-500"
+              />
+              <h3 className="font-bold text-lg text-white">
+                Pagamento Confirmado!
+              </h3>
+              <p className="text-sm text-slate-300 mt-1">
+                Sua assinatura está ativa. Redirecionando...
+              </p>
+            </div>
+          )}
+
+          {!uiSuccess && (
+            <>
+              {/* CONTENT: PIX */}
+              {activeTab === "pix" && payment && (
+                <div className="space-y-5 text-center">
+                  {payment.qr_code_base64 ? (
+                    <div className="bg-white p-3.5 rounded-2xl inline-block mx-auto shadow-inner border border-slate-200">
+                      <img
+                        src={`data:image/jpeg;base64,${payment.qr_code_base64}`}
+                        alt="QR Code PIX"
+                        className="w-56 h-56"
+                      />
+                    </div>
+                  ) : (
+                    <div className="bg-[#0f1115] border border-white/5 py-12 rounded-2xl text-slate-500">
+                      <QrCode size={48} className="mx-auto mb-2" />
+                      Falha ao carregar imagem do QR Code.
+                    </div>
+                  )}
+
+                  <div className="space-y-3">
+                    <p className="text-slate-400 text-xs">
+                      Ou pague copiando o código abaixo:
+                    </p>
+                    <textarea
+                      readOnly
+                      value={payment.pix_code}
+                      className="w-full bg-[#0f1115] border border-white/10 rounded-xl p-3 text-xs text-slate-300 h-24 resize-none font-mono outline-none"
+                    />
+                    <button
+                      onClick={handleCopyPix}
+                      className={`w-full font-bold py-3.5 rounded-xl flex justify-center items-center gap-2 transition-all ${
+                        copied
+                          ? "bg-green-600 text-white"
+                          : "bg-blue-600 hover:bg-blue-500 text-white"
+                      }`}
+                    >
+                      {copied ? (
+                        <>
+                          <CheckCircle2 size={18} /> Copiado!
+                        </>
+                      ) : (
+                        <>
+                          <Copy size={18} /> Copiar Código PIX
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* CONTENT: CARTÃO */}
+              {activeTab === "card" && (
+                <form onSubmit={handleCardPaymentSubmit} className="space-y-4">
+                  {/* Nome do Titular */}
+                  <div>
+                    <label className="text-xs text-slate-400 mb-1 block">
+                      Nome impresso no Cartão
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="JOAO S SILVA"
+                      value={cardData.cardholderName}
+                      onChange={(e) =>
+                        setCardData({
+                          ...cardData,
+                          cardholderName: e.target.value.toUpperCase(),
+                        })
+                      }
+                      className="w-full bg-[#0f1115] border border-white/5 rounded-xl px-4 py-3.5 text-white outline-none focus:border-blue-500 text-sm"
+                    />
+                  </div>
+
+                  {/* Número do Cartão */}
+                  <div>
+                    <label className="text-xs text-slate-400 mb-1 block">
+                      Número do Cartão
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      maxLength="19"
+                      placeholder="0000 0000 0000 0000"
+                      value={cardData.cardNumber}
+                      onChange={(e) =>
+                        setCardData({
+                          ...cardData,
+                          cardNumber: e.target.value
+                            .replace(/\D/g, "")
+                            .replace(/(.{4})/g, "$1 ")
+                            .trim(),
+                        })
+                      }
+                      className="w-full bg-[#0f1115] border border-white/5 rounded-xl px-4 py-3.5 text-white outline-none focus:border-blue-500 text-sm font-mono"
+                    />
+                  </div>
+
+                  {/* Vencimento e CVC */}
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="text-xs text-slate-400 mb-1 block">
+                        Mês Exp.
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        maxLength="2"
+                        placeholder="MM"
+                        value={cardData.cardExpirationMonth}
+                        onChange={(e) =>
+                          setCardData({
+                            ...cardData,
+                            cardExpirationMonth: e.target.value.replace(
+                              /\D/g,
+                              ""
+                            ),
+                          })
+                        }
+                        className="w-full bg-[#0f1115] border border-white/5 rounded-xl px-4 py-3.5 text-center text-white outline-none focus:border-blue-500 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-400 mb-1 block">
+                        Ano Exp.
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        maxLength="4"
+                        placeholder="AAAA"
+                        value={cardData.cardExpirationYear}
+                        onChange={(e) =>
+                          setCardData({
+                            ...cardData,
+                            cardExpirationYear: e.target.value.replace(
+                              /\D/g,
+                              ""
+                            ),
+                          })
+                        }
+                        className="w-full bg-[#0f1115] border border-white/5 rounded-xl px-4 py-3.5 text-center text-white outline-none focus:border-blue-500 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-400 mb-1 block">
+                        CVC
+                      </label>
+                      <input
+                        type="password"
+                        required
+                        maxLength="4"
+                        placeholder="123"
+                        value={cardData.securityCode}
+                        onChange={(e) =>
+                          setCardData({
+                            ...cardData,
+                            securityCode: e.target.value.replace(/\D/g, ""),
+                          })
+                        }
+                        className="w-full bg-[#0f1115] border border-white/5 rounded-xl px-4 py-3.5 text-center text-white outline-none focus:border-blue-500 text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Documento */}
+                  <div className="grid grid-cols-3 gap-3">
+                    <select
+                      value={cardData.identificationType}
+                      onChange={(e) =>
+                        setCardData({
+                          ...cardData,
+                          identificationType: e.target.value,
+                        })
+                      }
+                      className="bg-[#0f1115] border border-white/5 rounded-xl px-3 py-3.5 text-white outline-none focus:border-blue-500 text-sm h-[48px]"
+                    >
+                      <option value="CPF">CPF</option>
+                      <option value="CNPJ">CNPJ</option>
+                    </select>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Número Doc (só números)"
+                      colSpan={2}
+                      value={cardData.identificationNumber}
+                      onChange={(e) =>
+                        setCardData({
+                          ...cardData,
+                          identificationNumber: e.target.value.replace(
+                            /\D/g,
+                            ""
+                          ),
+                        })
+                      }
+                      className="col-span-2 w-full bg-[#0f1115] border border-white/5 rounded-xl px-4 py-3.5 text-white outline-none focus:border-blue-500 text-sm"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loadingCardProcessing}
+                    className="w-full mt-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-bold py-4 rounded-xl flex justify-center items-center gap-2.5 transition-all text-sm"
+                  >
+                    {loadingCardProcessing ? (
+                      <>
+                        <Loader2 className="animate-spin" size={18} />{" "}
+                        Processando Cartão...
+                      </>
+                    ) : (
+                      <>
+                        <CreditCard size={18} /> Pagar R$ 29,90 com Cartão
+                      </>
+                    )}
+                  </button>
+                </form>
+              )}
+            </>
+          )}
+
+          {/* STATUS FOOTER (Apenas para PIX) */}
+          {activeTab === "pix" && payment && !uiSuccess && (
+            <div className="mt-8 text-slate-500 text-xs flex justify-center items-center gap-2 border-t border-white/5 pt-5">
+              {checkingPayment ? (
+                <>
+                  <Loader2 size={14} className="animate-spin text-blue-500" />
+                  Verificando pagamento automaticamente...
+                </>
+              ) : (
+                "Aguardando confirmação do banco (Polling ativo)..."
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 };
 
-export default LoginPage;
+export default PaymentPage;
