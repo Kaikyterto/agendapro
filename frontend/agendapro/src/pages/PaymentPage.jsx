@@ -129,7 +129,7 @@ const PaymentPage = () => {
   };
 
   // ========================================================
-  // 5. FLUXO CARTÃO (CORRIGIDO PARA SDK V2): PROCESSAR PAGAMENTO
+  // 5. FLUXO CARTÃO: PROCESSAR PAGAMENTO DA ASSINATURA
   // ========================================================
   const handleCardPaymentSubmit = async (e) => {
     e.preventDefault();
@@ -140,7 +140,7 @@ const PaymentPage = () => {
     setUiSuccess(false);
 
     try {
-      // A. Inicializa SDK do Mercado Pago v2 (confirmando que está carregado no index.html)
+      // A. Inicializa SDK do Mercado Pago v2
       if (!window.MercadoPago) {
         throw new Error(
           "SDK do Mercado Pago não carregado. Verifique sua conexão e o index.html."
@@ -159,18 +159,17 @@ const PaymentPage = () => {
       const rawYear = cardData.cardExpirationYear.replace(/\D/g, "");
       const formattedYear = rawYear.length === 2 ? `20${rawYear}` : rawYear;
 
-      // B. Gera Token do Cartão Seguramente usando o SDK v2
-      // IMPORTANTE: Modificado para enviar Strings ao invés de inteiros nos campos de data
+      // B. Gera Token do Cartão Seguramente usando o SDK v2 (Campos de data devem ser strings)
       const cardTokenResponse = await mp.createCardToken({
-        cardNumber: cardData.cardNumber.replace(/\s/g, ""), // Limpa espaços
-        cardholderName: cardData.cardholderName.trim(), // Nome do titular
+        cardNumber: cardData.cardNumber.replace(/\s/g, ""),
+        cardholderName: cardData.cardholderName.trim(),
         cardExpirationMonth: cardData.cardExpirationMonth
           .replace(/\D/g, "")
-          .padStart(2, "0"), // Garante 2 dígitos (ex: "05")
-        cardExpirationYear: formattedYear, // String de 4 dígitos (ex: "2026")
-        securityCode: cardData.securityCode.replace(/\D/g, ""), // Apenas números
-        identificationType: cardData.identificationType, // CPF ou CNPJ
-        identificationNumber: cardData.identificationNumber.replace(/\D/g, ""), // CPF sem formatação
+          .padStart(2, "0"),
+        cardExpirationYear: formattedYear,
+        securityCode: cardData.securityCode.replace(/\D/g, ""),
+        identificationType: cardData.identificationType,
+        identificationNumber: cardData.identificationNumber.replace(/\D/g, ""),
       });
 
       if (!cardTokenResponse?.id) {
@@ -179,29 +178,27 @@ const PaymentPage = () => {
         );
       }
 
-      // C. Coleta Device ID (Antifraude gerado pelo security.js no index.html)
+      // C. Coleta Device ID (Melidata para Antifraude)
       const deviceId = window.MP_DEVICE_SESSION_ID || "";
 
-      // D. Envia para o Backend para processar a Assinatura (Rota de repagamento/alteração)
-      const response = await apiFetch(
-        `/payments/card-subscription/${company.id}`,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            token: cardTokenResponse.id, // O token gerado acima
-            deviceId: deviceId, // O DeviceId para antifraude
-            installments: parseInt(cardData.installments, 10), // Número de parcelas
-            email: company.email || "", // E-mail usado no cadastro/login
-            docType: cardData.identificationType,
-            docNumber: cardData.identificationNumber.replace(/\D/g, ""),
-          }),
-        }
-      );
+      // D. Envia para o Backend
+      // NOTA: Ajustado o endpoint para '/payments/card' enviando o payload no formato esperado pelo Python
+      const response = await apiFetch("/payments/card", {
+        method: "POST",
+        body: JSON.stringify({
+          company_id: company.id, // company_id exigido
+          token: cardTokenResponse.id, // token gerado
+          deviceId: deviceId, // device_id para antifraude[cite: 2]
+          installments: parseInt(cardData.installments, 10), // parcelas[cite: 2]
+          email: company.email || "cliente@kromis.com", // email[cite: 2]
+          doc_type: cardData.identificationType, // doc_type[cite: 2]
+          doc_number: cardData.identificationNumber.replace(/\D/g, ""), // doc_number[cite: 2]
+        }),
+      });
 
-      // E. Trata Resposta do Backend
+      // E. Trata Resposta do Backend (status 'approved' ou 'active')
       if (response?.status === "approved" || response?.status === "active") {
         setUiSuccess(true);
-        // Limpa pendências do localStorage
         localStorage.removeItem("@AgendaPro:payment");
         localStorage.removeItem("@AgendaPro:payment_pending");
 
@@ -214,7 +211,6 @@ const PaymentPage = () => {
           });
         }, 3000);
       } else {
-        // Trata recusas controladas retornadas pelo seu backend (cc_rejected, etc)
         throw new Error(
           `Pagamento não autorizado: ${
             response?.status_detail || "Verifique os dados ou use outro cartão."
@@ -226,12 +222,10 @@ const PaymentPage = () => {
 
       if (err.cause && Array.isArray(err.cause)) {
         console.warn("DETALHES DO ERRO DO MERCADO PAGO:", err.cause);
-        // Tenta pegar a primeira descrição amigável do erro
         const mpErrorMessage =
           err.cause[0]?.description || "Verifique os dados do cartão.";
         setUiError(mpErrorMessage);
       } else {
-        // Exibe o erro genérico caso não venha do SDK
         setUiError(
           err?.message || "Erro inesperado ao processar pagamento com cartão."
         );
