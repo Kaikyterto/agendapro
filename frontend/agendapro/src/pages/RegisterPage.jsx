@@ -168,41 +168,44 @@ const RegisterPage = () => {
         uploadedLogoUrl = uploadResult?.url || uploadResult;
       }
 
-      // --- ETAPA B: GERAÇÃO DO TOKEN DO CARTÃO (Mercado Pago) ---
-      // Isso envia os dados crus para o MP, e recebemos de volta um token seguro.
-      const mp = new window.MercadoPago(import.meta.env.VITE_MP_PUBLIC_KEY); // Chave pública nas variáveis de ambiente
+      // --- ETAPA B: GERAÇÃO DO TOKEN DO CARTÃO (Via API Direta) ---
+      // Como não estamos usando iframes ("Fields"), fazemos uma requisição direta para a API do Mercado Pago
+      const publicKey = import.meta.env.VITE_MP_PUBLIC_KEY;
 
-      const tokenData = {
-        cardNumber: cardData.cardNumber.replace(/\s/g, ""), // Remove espaços
-        cardholderName: cardData.cardholderName,
-        cardExpirationMonth: cardData.expirationMonth.padStart(2, "0"), // Garante dois dígitos
-        cardExpirationYear: `20${cardData.expirationYear}`, // Ajusta ano para formato AAAA (ex: 2024)
-        securityCode: cardData.securityCode,
-        identificationType: cardData.docType,
-        identificationNumber: cardData.docNumber,
-      };
+      const response = await fetch(
+        `https://api.mercadopago.com/v1/card_tokens?public_key=${publicKey}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            card_number: cardData.cardNumber.replace(/\s/g, ""), // Remove espaços
+            cardholder: {
+              name: cardData.cardholderName.toUpperCase(),
+              identification: {
+                type: cardData.docType,
+                number: cardData.docNumber,
+              },
+            },
+            expiration_month: parseInt(cardData.expirationMonth, 10),
+            expiration_year: parseInt(`20${cardData.expirationYear}`, 10),
+            security_code: cardData.securityCode,
+          }),
+        }
+      );
 
-      // Fallback seguro de métodos de acordo com o carregamento do script do SDK v2
-      let tokenResponse;
-      if (mp.cardToken && typeof mp.cardToken.create === "function") {
-        tokenResponse = await mp.cardToken.create(tokenData);
-      } else if (typeof mp.createToken === "function") {
-        tokenResponse = await mp.createToken(tokenData);
-      } else if (mp.fields && typeof mp.fields.createCardToken === "function") {
-        tokenResponse = await mp.fields.createCardToken(tokenData);
-      } else {
+      const tokenData = await response.json();
+
+      if (!response.ok || !tokenData.id) {
+        console.error("Erro MP API:", tokenData);
         throw new Error(
-          "O SDK do Mercado Pago não possui suporte para criação de tokens diretos nesta versão."
+          tokenData.cause?.[0]?.description ||
+            "Erro ao processar dados do cartão com o Mercado Pago."
         );
       }
 
-      const cardToken = tokenResponse?.id;
-
-      if (!cardToken) {
-        throw new Error(
-          "Erro ao processar dados do cartão com o Mercado Pago."
-        );
-      }
+      const cardToken = tokenData.id;
 
       // --- ETAPA C: ENVIA REGISTRO E PAGAMENTO AO BACKEND ---
       // Nosso serviço auth.js/registerService agora espera receber também o cardToken
@@ -289,7 +292,7 @@ const RegisterPage = () => {
             cadastro. Processamento seguro via Mercado Pago.
           </p>
 
-          {/* STEP INDICATOR - NOVO */}
+          {/* STEP INDICATOR */}
           <div className="flex items-center gap-3 mt-6">
             <div
               className={`w-3 h-3 rounded-full transition-colors ${
@@ -313,7 +316,7 @@ const RegisterPage = () => {
         {/* CARD */}
         {/* ============================================== */}
         <div className="bg-[#16191f]/80 backdrop-blur-xl border border-white/[0.08] p-7 rounded-3xl shadow-2xl transition-all duration-300">
-          {/* TÍTULO DA ETAPA ATUAL - NOVO */}
+          {/* TÍTULO DA ETAPA ATUAL */}
           <h2 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
             {currentStep === 1 ? (
               <>
