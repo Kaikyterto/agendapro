@@ -209,15 +209,18 @@ const RegisterPage = () => {
 
       // --- ETAPA C: ENVIA REGISTRO E PAGAMENTO AO BACKEND ---
       // Nosso serviço auth.js/registerService agora espera receber também o cardToken
+      // No seu RegisterPage.jsx:
       const responseData = await registerService({
         name: formData.name,
         companyName: formData.companyName,
         email: formData.email,
         password: formData.password,
         logo: uploadedLogoUrl,
-        cardToken: cardToken, // O backend usará este token para cobrar
-        installments: 1, // Assinatura recorrente é sempre 1 parcela
+        cardToken: cardToken,
+        installments: 1,
         description: "Assinatura Mensal Kromis",
+        docType: cardData.docType,
+        docNumber: cardData.docNumber,
       });
 
       // --- ETAPA D: TRATA RESPOSTA DE PAGAMENTO ---

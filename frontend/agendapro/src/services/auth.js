@@ -74,6 +74,8 @@ export const registerService = async (payload) => {
       cardToken: payload.cardToken,
       installments: payload.installments,
       description: payload.description,
+      docType: payload.docType,
+      docNumber: payload.docNumber,
     }),
   });
 

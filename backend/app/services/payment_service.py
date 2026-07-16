@@ -67,12 +67,12 @@ class PaymentService:
 
         payment_data = {
             "transaction_amount": 29.90,
-            "description": "Assinatura Kromis", # Atualizado AgendaPro -> Kromis
+            "description": "Assinatura Kromis", 
             "payment_method_id": "pix",
             "external_reference": f"company_{company.id}",
             "payer": {
                 "first_name": company.name,
-                "email": getattr(company, "email", "cliente@kromis.com") # Atualizado @agendapro -> @kromis
+                "email": getattr(company, "email", "cliente@kromis.com") 
             }
         }
 
@@ -129,7 +129,7 @@ class PaymentService:
             "notification_url": "https://agendapro-z63z.onrender.com/webhook/mercadopago",
             "payer": {
                 "first_name": data["customer_name"],
-                "email": data.get("email", "cliente@kromis.com") # Atualizado @agendapro -> @kromis
+                "email": data.get("email", "cliente@kromis.com") 
             }
         }
 
@@ -155,7 +155,7 @@ class PaymentService:
 
 
     # =========================================================
-    # VENDA DE PRODUTOS DA EMPRESA (VIA CARTÃO DE CRÉDITO) - NOVO FOCADO
+    # VENDA DE PRODUTOS DA EMPRESA (VIA CARTÃO DE CRÉDITO) 
     # =========================================================
     @staticmethod
     def create_credit_card_payment(payment_data):
@@ -254,7 +254,7 @@ class PaymentService:
     
 
     # =========================================================
-    # ASSINATURA DA PLATAFORMA (VIA CARTÃO DE CRÉDITO) - NOVO!
+    # ASSINATURA DA PLATAFORMA (VIA CARTÃO DE CRÉDITO)
     # =========================================================
     @staticmethod
     def create_platform_card_payment(data):
@@ -271,13 +271,17 @@ class PaymentService:
         sdk = PaymentService._get_platform_sdk()
 
         payment_data = {
-            "transaction_amount": 29.90,
-            "description": "Assinatura Kromis",
-            "token": data["token"], # Token gerado pelo frontend
+            "transaction_amount": float(data.get("amount", 29.90)),
+            "description": data.get("description", "Assinatura Kromis"),
+            "token": data["token"],
             "installments": int(data.get("installments", 1)),
             "external_reference": f"company_{company.id}",
             "payer": {
-                "email": data["email"]
+                "email": data["email"],
+                "identification": {                 
+                    "type": data.get("doc_type", "CPF"), 
+                    "number": data.get("doc_number")    
+                }
             }
         }
 
@@ -285,8 +289,8 @@ class PaymentService:
         payment = response.get("response", {})
 
         if response.get("status", 200) >= 400 or not payment:
-            error_msg = payment.get("message") or "Erro ao processar assinatura com cartão"
-            raise Exception(error_msg)
+            error_detail = payment.get("message") or "Erro ao processar assinatura com cartão"
+            raise Exception(error_detail)
 
         payment_id = payment.get("id")
         company.mercado_pago_payment_id = str(payment_id)
