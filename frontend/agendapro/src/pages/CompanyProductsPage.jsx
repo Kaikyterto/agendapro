@@ -125,8 +125,15 @@ export default function CompanyProductsPage() {
   }, [showPixModal, pixData]);
 
   // Hook para monitorar os primeiros dígitos do cartão e buscar o parcelamento real no Mercado Pago
+  // Hook para monitorar os primeiros dígitos do cartão e buscar o parcelamento real no Mercado Pago
   useEffect(() => {
-    if (paymentMethod !== "card" || cardNumber.length < 6) {
+    // SEGURANÇA: Só busca parcelamento se o método for cartão, tiver os 6 dígitos do BIN E o total for maior que zero
+    if (
+      paymentMethod !== "card" ||
+      cardNumber.length < 6 ||
+      !total ||
+      total <= 0
+    ) {
       setDynamicInstallments([]);
       return;
     }
@@ -134,7 +141,16 @@ export default function CompanyProductsPage() {
     const getInstallmentsList = async () => {
       try {
         if (typeof window.MercadoPago === "undefined") return;
-        const mp = new window.MercadoPago(import.meta.env.VITE_MP_PUBLIC_KEY);
+
+        const publicKey = import.meta.env.VITE_MP_PUBLIC_KEY;
+        if (!publicKey) {
+          console.warn(
+            "Chave pública do Mercado Pago (VITE_MP_PUBLIC_KEY) não encontrada."
+          );
+          return;
+        }
+
+        const mp = new window.MercadoPago(publicKey);
         if (!mp) return;
 
         const bin = cardNumber.substring(0, 6);
@@ -148,7 +164,7 @@ export default function CompanyProductsPage() {
 
           // 2. Busca as regras de parcelamento direto na conta do Mercado Pago para este cartão e valor
           const installmentsData = await mp.getInstallments({
-            amount: total.toString(),
+            amount: total.toFixed(2), // Garante o formato decimal correto (ex: 150.00)
             bin,
             paymentTypeId: "credit_card",
           });
@@ -165,7 +181,7 @@ export default function CompanyProductsPage() {
 
     const timer = setTimeout(() => {
       getInstallmentsList();
-    }, 300);
+    }, 400); // Um delay de 400ms para evitar requisições desnecessárias enquanto o usuário digita rápido
 
     return () => clearTimeout(timer);
   }, [cardNumber, paymentMethod, total]);
