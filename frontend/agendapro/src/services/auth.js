@@ -52,7 +52,7 @@ export const loginService = async (credentials) => {
 };
 
 // =========================================================
-// REGISTER
+// REGISTER (Configurado com deviceId para Antifraude)
 // =========================================================
 export const registerService = async (payload) => {
   const response = await fetch(`${API_URL}/auth/register`, {
@@ -86,4 +86,33 @@ export const registerService = async (payload) => {
   }
 
   return data;
+};
+
+// =========================================================
+// PARSE RESPONSE (ROBUSTO) - ESSA FUNÇÃO RESOLVE O SEU ERRO!
+// =========================================================
+const parseResponse = async (response) => {
+  const contentType = response.headers.get("content-type");
+
+  if (contentType?.includes("application/json")) {
+    return await response.json();
+  }
+
+  return await response.text();
+};
+
+// =========================================================
+// AUTH CHECK
+// =========================================================
+export const isAuthenticated = () => {
+  return Boolean(localStorage.getItem("@AgendaPro:token"));
+};
+
+// =========================================================
+// LOGOUT
+// =========================================================
+export const logout = () => {
+  localStorage.removeItem("@AgendaPro:token");
+  localStorage.removeItem("@AgendaPro:user");
+  localStorage.removeItem("@AgendaPro:company");
 };
