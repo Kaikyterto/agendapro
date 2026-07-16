@@ -185,15 +185,17 @@ class PaymentService:
                 "external_reference": payment_data["external_reference"],
             }
 
-            # CORREÇÃO 1: Configura o cabeçalho encapsulado no RequestOptions oficial[cite: 6]
+            # Configura cabeçalhos personalizados de antifraude (Melidata Device ID)
             request_options = None
             device_id = payment_data.get("device_id") or payment_data.get("deviceId")
             if device_id:
-                request_options = RequestOptions(
-                    headers={"X-Melidata-Session-Id": str(device_id)}
-                )
+                # CORREÇÃO: Instancia vazio e atribui os custom_headers manualmente para evitar erros de construtor
+                request_options = RequestOptions()
+                request_options.custom_headers = {
+                    "X-Melidata-Session-Id": str(device_id)
+                }
 
-            # Envia a cobrança incluindo o objeto RequestOptions
+            # Envia a cobrança para o Mercado Pago incluindo as opções com o deviceId
             payment_response = sdk.payment().create(payment_request, request_options)
             payment = payment_response.get("response", {})
 
@@ -289,13 +291,15 @@ class PaymentService:
             }
         }
 
-        # CORREÇÃO 2: Configura o cabeçalho encapsulado no RequestOptions oficial[cite: 6]
+        # Configura cabeçalhos de antifraude específicos do Mercado Pago para a Assinatura
         request_options = None
         device_id = data.get("device_id") or data.get("deviceId")
         if device_id:
-            request_options = RequestOptions(
-                headers={"X-Melidata-Session-Id": str(device_id)}
-            )
+            # CORREÇÃO: Instancia vazio e atribui os custom_headers manualmente para evitar erros de construtor
+            request_options = RequestOptions()
+            request_options.custom_headers = {
+                "X-Melidata-Session-Id": str(device_id)
+            }
 
         # Cria a transação enviando os cabeçalhos de antifraude nas opções adicionais
         response = sdk.payment().create(payment_data, request_options)
