@@ -155,16 +155,17 @@ const PaymentPage = () => {
 
       const mp = new window.MercadoPago(PUBLIC_KEY);
 
+      // Tratamento robusto do Ano para string de 4 dígitos (Aceita '26' ou '2026')
+      const rawYear = cardData.cardExpirationYear.replace(/\D/g, "");
+      const formattedYear = rawYear.length === 2 ? `20${rawYear}` : rawYear;
+
       // B. Gera Token do Cartão Seguramente usando o SDK v2
-      // IMPORTANTE: Garantimos os formatos de CPF e Ano antes de enviar
+      // IMPORTANTE: Modificado para enviar Strings ao invés de inteiros nos campos de data
       const cardTokenResponse = await mp.createCardToken({
         cardNumber: cardData.cardNumber.replace(/\s/g, ""), // Limpa espaços
         cardholderName: cardData.cardholderName.trim(), // Nome do titular
-        cardExpirationMonth: cardData.cardExpirationMonth.replace(/\D/g, ""), // Apenas números
-        cardExpirationYear: parseInt(
-          `20${cardData.cardExpirationYear.replace(/\D/g, "").slice(-2)}`,
-          10
-        ), // Ano como 4 dígitos (ex: 2026)
+        cardExpirationMonth: cardData.cardExpirationMonth.replace(/\D/g, "").padStart(2, "0"), // Garante 2 dígitos (ex: "05")
+        cardExpirationYear: formattedYear, // String de 4 dígitos (ex: "2026")
         securityCode: cardData.securityCode.replace(/\D/g, ""), // Apenas números
         identificationType: cardData.identificationType, // CPF ou CNPJ
         identificationNumber: cardData.identificationNumber.replace(/\D/g, ""), // CPF sem formatação
@@ -180,7 +181,6 @@ const PaymentPage = () => {
       const deviceId = window.MP_DEVICE_SESSION_ID || "";
 
       // D. Envia para o Backend para processar a Assinatura (Rota de repagamento/alteração)
-      // O BACKEND deve receber o cardToken e o deviceId
       const response = await apiFetch(
         `/payments/card-subscription/${company.id}`,
         {
@@ -188,9 +188,8 @@ const PaymentPage = () => {
           body: JSON.stringify({
             token: cardTokenResponse.id, // O token gerado acima
             deviceId: deviceId, // O DeviceId para antifraude
-            installments: parseInt(cardData.installments), // Número de parcelas
+            installments: parseInt(cardData.installments, 10), // Número de parcelas
             email: company.email || "", // E-mail usado no cadastro/login
-            // Documentação opcional para revalidação no backend
             docType: cardData.identificationType,
             docNumber: cardData.identificationNumber.replace(/\D/g, ""),
           }),
@@ -223,7 +222,6 @@ const PaymentPage = () => {
     } catch (err) {
       console.error("Erro no processamento do cartão:", err);
 
-      // === ADICIONE ESTA PARTE PARA DEPURAR ===
       if (err.cause && Array.isArray(err.cause)) {
         console.warn("DETALHES DO ERRO DO MERCADO PAGO:", err.cause);
         // Tenta pegar a primeira descrição amigável do erro
@@ -236,8 +234,7 @@ const PaymentPage = () => {
           err?.message || "Erro inesperado ao processar pagamento com cartão."
         );
       }
-      // ========================================
-    } finally {
+    } finaly {
       setLoadingCardProcessing(false);
     }
   };
@@ -278,7 +275,7 @@ const PaymentPage = () => {
   }, [company, navigate]);
 
   // ========================================================
-  // RENDERIZAÇÃO: LOADING PIX GERATION
+  // RENDERIZAÇÃO: LOADING PIX GENERATION
   // ========================================================
   if (loadingPixGeneration) {
     return (
@@ -292,7 +289,7 @@ const PaymentPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#0b0d11] relative flex items-center justify-center p-4 font-sans text-slate-200 overflow-hidden relative">
+    <div className="min-h-screen bg-[#0b0d11] flex items-center justify-center p-4 font-sans text-slate-200 overflow-hidden relative">
       {/* Background Gradients */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-900/10 blur-[120px] rounded-full pointer-events-none" />
@@ -361,7 +358,7 @@ const PaymentPage = () => {
                 Pagamento Confirmado!
               </h3>
               <p className="text-sm text-slate-300 mt-1">
-                Sua assinatura está ativa. Redirecionando...
+                Sua assinatura está activa. Redirecionando...
               </p>
             </div>
           )}
@@ -550,7 +547,6 @@ const PaymentPage = () => {
                       type="text"
                       required
                       placeholder="CPF/CNPJ (somente números)"
-                      colSpan={2}
                       value={cardData.identificationNumber}
                       onChange={(e) =>
                         setCardData({
