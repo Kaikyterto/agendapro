@@ -170,7 +170,6 @@ const RegisterPage = () => {
 
       // --- ETAPA B: GERAÇÃO DO TOKEN DO CARTÃO (Mercado Pago) ---
       // Isso envia os dados crus para o MP, e recebemos de volta um token seguro.
-      // O backend NUNCA recebe os dados crus do cartão.
       const mp = new window.MercadoPago(import.meta.env.VITE_MP_PUBLIC_KEY); // Chave pública nas variáveis de ambiente
 
       const tokenData = {
@@ -183,8 +182,20 @@ const RegisterPage = () => {
         identificationNumber: cardData.docNumber,
       };
 
-      // Alterado para mp.cardToken.create devido ao SDK V2
-      const tokenResponse = await mp.cardToken.create(tokenData);
+      // Fallback seguro de métodos de acordo com o carregamento do script do SDK v2
+      let tokenResponse;
+      if (mp.cardToken && typeof mp.cardToken.create === "function") {
+        tokenResponse = await mp.cardToken.create(tokenData);
+      } else if (typeof mp.createToken === "function") {
+        tokenResponse = await mp.createToken(tokenData);
+      } else if (mp.fields && typeof mp.fields.createCardToken === "function") {
+        tokenResponse = await mp.fields.createCardToken(tokenData);
+      } else {
+        throw new Error(
+          "O SDK do Mercado Pago não possui suporte para criação de tokens diretos nesta versão."
+        );
+      }
+
       const cardToken = tokenResponse?.id;
 
       if (!cardToken) {
