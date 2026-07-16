@@ -176,15 +176,16 @@ const RegisterPage = () => {
       const tokenData = {
         cardNumber: cardData.cardNumber.replace(/\s/g, ""), // Remove espaços
         cardholderName: cardData.cardholderName,
-        cardExpirationMonth: cardData.expirationMonth,
+        cardExpirationMonth: cardData.expirationMonth.padStart(2, "0"), // Garante dois dígitos
         cardExpirationYear: `20${cardData.expirationYear}`, // Ajusta ano para formato AAAA (ex: 2024)
         securityCode: cardData.securityCode,
         identificationType: cardData.docType,
         identificationNumber: cardData.docNumber,
       };
 
-      const tokenResponse = await mp.createToken(tokenData);
-      const cardToken = tokenResponse.id;
+      // Alterado para mp.cardToken.create devido ao SDK V2
+      const tokenResponse = await mp.cardToken.create(tokenData);
+      const cardToken = tokenResponse?.id;
 
       if (!cardToken) {
         throw new Error(
