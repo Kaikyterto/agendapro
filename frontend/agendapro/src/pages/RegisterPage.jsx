@@ -299,7 +299,9 @@ const RegisterPage = () => {
               disabled={isLoading}
               className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 mt-4"
             >
-              {isLoading ? "Criando Conta..." : "Criar Conta & Ver Pagamento"}
+              {isLoading
+                ? "Criando Conta..."
+                : "Criar Conta e ir para Pagamento"}
               <ArrowRight size={18} />
             </button>
           </form>

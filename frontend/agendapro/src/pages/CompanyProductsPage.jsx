@@ -276,6 +276,7 @@ export default function CompanyProductsPage() {
       throw new Error(errorMsg);
     }
   };
+
   const handleCheckout = async () => {
     try {
       if (!company?.id) {
@@ -342,7 +343,12 @@ export default function CompanyProductsPage() {
       console.log("CHECKOUT RESPONSE:", res);
 
       if (paymentMethod === "card") {
-        if (res.status === "approved") {
+        // AJUSTE: Passou a aceitar "approved", "paid" ou "accredited" como confirmações válidas
+        if (
+          res.status === "approved" ||
+          res.status === "paid" ||
+          res.status === "accredited"
+        ) {
           setPaymentConfirmed(true);
           setCart([]);
           setShowCustomerModal(false);
