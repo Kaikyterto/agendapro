@@ -26,17 +26,22 @@ export default function CompanyProductsPage() {
 
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
-  const [customerEmail, setCustomerEmail] = useState(""); // Email obrigatório para cartão
+  const [customerEmail, setCustomerEmail] = useState("");
 
   // Estados para Cartão de Crédito
-  const [paymentMethod, setPaymentMethod] = useState("pix"); // "pix" ou "card"
+  const [paymentMethod, setPaymentMethod] = useState("pix");
   const [cardNumber, setCardNumber] = useState("");
   const [cardMonth, setCardMonth] = useState("");
   const [cardYear, setCardYear] = useState("");
   const [cardCVV, setCardCVV] = useState("");
   const [cardHolderName, setCardHolderName] = useState("");
   const [installments, setInstallments] = useState(1);
-  const [docNumber, setDocNumber] = useState(""); // CPF/CNPJ do titular
+  const [docNumber, setDocNumber] = useState("");
+
+  // Novos estados para parcelamento dinâmico (Opção A)
+  const [dynamicInstallments, setDynamicInstallments] = useState([]);
+  const [paymentMethodId, setPaymentMethodId] = useState("");
+  const [issuerId, setIssuerId] = useState("");
 
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [pixData, setPixData] = useState(null);
@@ -105,6 +110,52 @@ export default function CompanyProductsPage() {
     return () => clearInterval(interval);
   }, [showPixModal, pixData]);
 
+  // Hook para monitorar os primeiros dígitos do cartão e buscar o parcelamento real no Mercado Pago
+  useEffect(() => {
+    if (paymentMethod !== "card" || cardNumber.length < 6) {
+      setDynamicInstallments([]);
+      return;
+    }
+
+    const getInstallmentsList = async () => {
+      try {
+        if (typeof window.MercadoPago === "undefined") return;
+        const mp = new window.MercadoPago(import.meta.env.VITE_MP_PUBLIC_KEY);
+        if (!mp) return;
+
+        const bin = cardNumber.substring(0, 6);
+
+        // 1. Descobre qual é a bandeira e os dados de emissão do cartão com base no BIN
+        const paymentMethodsData = await mp.getPaymentMethods({ bin });
+
+        if (paymentMethodsData && paymentMethodsData.results?.length > 0) {
+          const pmId = paymentMethodsData.results[0].id;
+          setPaymentMethodId(pmId);
+
+          // 2. Busca as regras de parcelamento direto na conta do Mercado Pago para este cartão e valor
+          const installmentsData = await mp.getInstallments({
+            amount: total.toString(),
+            bin,
+            paymentTypeId: "credit_card",
+          });
+
+          if (installmentsData && installmentsData.length > 0) {
+            setIssuerId(installmentsData[0].issuer.id);
+            setDynamicInstallments(installmentsData[0].payer_costs || []);
+          }
+        }
+      } catch (err) {
+        console.error("Erro ao obter parcelas do Mercado Pago:", err);
+      }
+    };
+
+    const timer = setTimeout(() => {
+      getInstallmentsList();
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [cardNumber, paymentMethod, total]);
+
   const addToCart = (product) => {
     setCart((prev) => {
       const exists = prev.find((p) => p.id === product.id);
@@ -141,7 +192,6 @@ export default function CompanyProductsPage() {
     return cart.reduce((acc, item) => acc + (item.quantity || 1), 0);
   }, [cart]);
 
-  // Cálculo de total seguro tratando vírgulas e strings
   const total = useMemo(() => {
     return cart.reduce((acc, item) => {
       const valueString = String(item.value || "0").replace(",", ".");
@@ -168,7 +218,6 @@ export default function CompanyProductsPage() {
     }));
   };
 
-  // Função para gerar o Token do Cartão corrigida para a API correta do SDK
   const getCardToken = async (mp) => {
     try {
       if (
@@ -185,16 +234,15 @@ export default function CompanyProductsPage() {
       const documentType = docNumber.length > 11 ? "CNPJ" : "CPF";
 
       const tokenData = {
-        cardNumber: cardNumber.replace(/\s/g, ""), // Remove espaços
+        cardNumber: cardNumber.replace(/\s/g, ""),
         cardholderName: cardHolderName,
-        cardExpirationMonth: cardMonth.padStart(2, "0"), // Garante 2 dígitos (ex: "5" -> "05")
-        cardExpirationYear: cardYear.length === 2 ? `20${cardYear}` : cardYear, // Garante 4 dígitos
+        cardExpirationMonth: cardMonth.padStart(2, "0"),
+        cardExpirationYear: cardYear.length === 2 ? `20${cardYear}` : cardYear,
         securityCode: cardCVV,
         identificationType: documentType,
         identificationNumber: docNumber,
       };
 
-      // Chamada correta do SDK do Mercado Pago para tokens manuais
       const tokenResponse = await mp.cardToken.create(tokenData);
 
       if (!tokenResponse || !tokenResponse.id) {
@@ -232,7 +280,6 @@ export default function CompanyProductsPage() {
 
       const documentType = docNumber.length > 11 ? "CNPJ" : "CPF";
 
-      // Payload sanitizado com valores formatados e precisos
       const payload = {
         company_id: company.id,
         amount: parseFloat(total.toFixed(2)),
@@ -249,28 +296,29 @@ export default function CompanyProductsPage() {
         payment_method: paymentMethod,
       };
 
-      // =========================================================
-      // FLUXO DE CARTÃO DE CRÉDITO - CORRIGIDO
-      // =========================================================
       if (paymentMethod === "card") {
         if (!customerEmail) {
           return setError("E-mail é obrigatório para pagamento com cartão");
         }
 
-        // Inicializa o SDK do Mercado Pago
+        if (typeof window.MercadoPago === "undefined") {
+          throw new Error("SDK do Mercado Pago não carregado.");
+        }
+
         const mp = new window.MercadoPago(import.meta.env.VITE_MP_PUBLIC_KEY);
         if (!mp) {
           throw new Error("Erro ao carregar SDK do Mercado Pago");
         }
 
-        const cardToken = await getCardToken(mp); // Gera o token seguro
+        const cardToken = await getCardToken(mp);
 
-        // Incrementa o payload com os dados específicos do cartão
         payload.email = customerEmail;
         payload.card_token = cardToken;
         payload.doc_number = docNumber;
         payload.doc_type = documentType;
         payload.installments = installments;
+        payload.payment_method_id = paymentMethodId;
+        payload.issuer_id = issuerId;
         payload.description = `Compra na loja ${company.name} no Kromis`;
       }
 
@@ -295,7 +343,6 @@ export default function CompanyProductsPage() {
           );
         }
       } else {
-        // Fluxo Pix
         if (!res?.pix_code) {
           throw new Error("PIX não gerado");
         }
@@ -544,7 +591,6 @@ export default function CompanyProductsPage() {
               </div>
             </div>
 
-            {/* SELEÇÃO DO MÉTODO DE PAGAMENTO */}
             <div className="mt-4">
               <p className="text-xs text-white/60 mb-2">
                 Selecione o método de pagamento:
@@ -591,7 +637,6 @@ export default function CompanyProductsPage() {
               </div>
             </div>
 
-            {/* FORMULÁRIO DE CARTÃO DE CRÉDITO */}
             {paymentMethod === "card" && (
               <div className="mt-4 space-y-2.5 border-t border-white/5 pt-4">
                 <input
@@ -655,14 +700,30 @@ export default function CompanyProductsPage() {
                       setDocNumber(e.target.value.replace(/\D/g, ""))
                     }
                   />
+
                   <select
                     value={installments}
                     onChange={(e) => setInstallments(Number(e.target.value))}
-                    className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all text-white/70"
+                    className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all text-white/90 appearance-none cursor-pointer"
                   >
-                    <option value={1}>1x sem juros</option>
-                    <option value={2}>2x sem juros</option>
-                    <option value={3}>3x sem juros</option>
+                    {dynamicInstallments.length === 0 ? (
+                      <option
+                        className="bg-[#0d0f14] text-white py-2"
+                        value={1}
+                      >
+                        1x de R$ {total.toFixed(2)} (Sem juros)
+                      </option>
+                    ) : (
+                      dynamicInstallments.map((installment) => (
+                        <option
+                          key={installment.installments}
+                          value={installment.installments}
+                          className="bg-[#0d0f14] text-white py-2"
+                        >
+                          {installment.recommended_message}
+                        </option>
+                      ))
+                    )}
                   </select>
                 </div>
               </div>
