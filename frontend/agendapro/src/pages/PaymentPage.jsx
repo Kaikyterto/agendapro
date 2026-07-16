@@ -129,7 +129,7 @@ const PaymentPage = () => {
   };
 
   // ========================================================
-  // 5. FLUXO CARTÃO: PROCESSAR PAGAMENTO
+  // 5. FLUXO CARTÃO (CORRIGIDO PARA SDK V2): PROCESSAR PAGAMENTO
   // ========================================================
   const handleCardPaymentSubmit = async (e) => {
     e.preventDefault();
@@ -140,30 +140,34 @@ const PaymentPage = () => {
     setUiSuccess(false);
 
     try {
-      // A. Inicializa SDK do Mercado Pago
+      // A. Inicializa SDK do Mercado Pago v2 (confirmando que está carregado no index.html)
       if (!window.MercadoPago) {
         throw new Error(
-          "SDK do Mercado Pago não carregado. Verifique sua conexão."
+          "SDK do Mercado Pago não carregado. Verifique sua conexão e o index.html."
         );
       }
 
       const PUBLIC_KEY = import.meta.env.VITE_MP_PUBLIC_KEY;
       if (!PUBLIC_KEY)
         throw new Error(
-          "Chave Pública do Mercado Pago não configurada no .env"
+          "Chave Pública do Mercado Pago não configurada no .env como VITE_MP_PUBLIC_KEY"
         );
 
       const mp = new window.MercadoPago(PUBLIC_KEY);
 
-      // B. Gera Token do Cartão Seguramente
+      // B. Gera Token do Cartão Seguramente usando o SDK v2
+      // IMPORTANTE: Garantimos os formatos de CPF e Ano antes de enviar
       const cardTokenResponse = await mp.createCardToken({
-        cardNumber: cardData.cardNumber.replace(/\s/g, ""),
-        cardholderName: cardData.cardholderName,
-        cardExpirationMonth: cardData.cardExpirationMonth,
-        cardExpirationYear: cardData.cardExpirationYear.slice(-2), // Pega últimos 2 dígitos (2026 -> 26)
-        securityCode: cardData.securityCode,
-        identificationType: cardData.identificationType,
-        identificationNumber: cardData.identificationNumber.replace(/\D/g, ""),
+        cardNumber: cardData.cardNumber.replace(/\s/g, ""), // Limpa espaços
+        cardholderName: cardData.cardholderName.trim(), // Nome do titular
+        cardExpirationMonth: cardData.cardExpirationMonth.replace(/\D/g, ""), // Apenas números
+        cardExpirationYear: parseInt(
+          `20${cardData.cardExpirationYear.replace(/\D/g, "").slice(-2)}`,
+          10
+        ), // Ano como 4 dígitos (ex: 2026)
+        securityCode: cardData.securityCode.replace(/\D/g, ""), // Apenas números
+        identificationType: cardData.identificationType, // CPF ou CNPJ
+        identificationNumber: cardData.identificationNumber.replace(/\D/g, ""), // CPF sem formatação
       });
 
       if (!cardTokenResponse?.id) {
@@ -172,39 +176,44 @@ const PaymentPage = () => {
         );
       }
 
-      // C. Coleta Device ID (Antifraude)
+      // C. Coleta Device ID (Antifraude gerado pelo security.js no index.html)
       const deviceId = window.MP_DEVICE_SESSION_ID || "";
 
       // D. Envia para o Backend para processar a Assinatura (Rota de repagamento/alteração)
+      // O BACKEND deve receber o cardToken e o deviceId
       const response = await apiFetch(
         `/payments/card-subscription/${company.id}`,
         {
           method: "POST",
           body: JSON.stringify({
-            token: cardTokenResponse.id,
-            deviceId: deviceId,
-            installments: parseInt(cardData.installments),
+            token: cardTokenResponse.id, // O token gerado acima
+            deviceId: deviceId, // O DeviceId para antifraude
+            installments: parseInt(cardData.installments), // Número de parcelas
             email: company.email || "", // E-mail usado no cadastro/login
+            // Documentação opcional para revalidação no backend
+            docType: cardData.identificationType,
+            docNumber: cardData.identificationNumber.replace(/\D/g, ""),
           }),
         }
       );
 
       // E. Trata Resposta do Backend
-      if (response?.status === "authorized" || response?.status === "active") {
+      if (response?.status === "approved" || response?.status === "active") {
         setUiSuccess(true);
-        // Limpa pendências
+        // Limpa pendências do localStorage
         localStorage.removeItem("@AgendaPro:payment");
         localStorage.removeItem("@AgendaPro:payment_pending");
-        // Mantém a empresa se necessário para rotas futuras, ou limpa se for refazer login
-        // localStorage.removeItem("@AgendaPro:company");
 
         setTimeout(() => {
           navigate("/", {
-            state: { success: "Assinatura ativada com sucesso! Faça login." },
+            state: {
+              success:
+                "Assinatura ativada com sucesso! Faça login para continuar.",
+            },
           });
         }, 3000);
       } else {
-        // Trata recusas controladas (cc_rejected, etc)
+        // Trata recusas controladas retornadas pelo seu backend (cc_rejected, etc)
         throw new Error(
           `Pagamento não autorizado: ${
             response?.status_detail || "Verifique os dados ou use outro cartão."
@@ -213,6 +222,7 @@ const PaymentPage = () => {
       }
     } catch (err) {
       console.error("Erro no processamento do cartão:", err);
+      // Exibe o erro retornado pelo seu backend ou pelo SDK
       setUiError(
         err?.message || "Erro inesperado ao processar pagamento com cartão."
       );
@@ -271,13 +281,13 @@ const PaymentPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#0b0d11] relative flex items-center justify-center p-4 font-sans text-slate-200 overflow-hidden">
+    <div className="min-h-screen bg-[#0b0d11] relative flex items-center justify-center p-4 font-sans text-slate-200 overflow-hidden relative">
       {/* Background Gradients */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-900/10 blur-[120px] rounded-full pointer-events-none" />
 
-      <div className="w-full max-w-[480px] relative">
-        <div className="bg-[#16191f]/80 backdrop-blur-xl border border-white/[0.08] p-8 rounded-3xl shadow-2xl">
+      <div className="w-full max-w-[480px] relative z-10">
+        <div className="bg-[#16191f]/80 backdrop-blur-xl border border-white/[0.08] p-8 rounded-3xl shadow-2xl relative z-10">
           <button
             onClick={() => navigate("/")}
             className="flex items-center gap-2 text-slate-400 hover:text-white transition-all text-sm mb-6"
@@ -285,8 +295,8 @@ const PaymentPage = () => {
             <ArrowLeft size={16} /> Voltar ao Login
           </button>
 
-          <div className="text-center mb-6">
-            <h1 className="text-2xl font-black text-white">
+          <div className="text-center mb-6 relative">
+            <h1 className="text-2xl font-black text-white relative">
               Ativar Assinatura
             </h1>
             <p className="text-slate-400 text-sm mt-1">
@@ -528,7 +538,7 @@ const PaymentPage = () => {
                     <input
                       type="text"
                       required
-                      placeholder="Número Doc (só números)"
+                      placeholder="CPF/CNPJ (somente números)"
                       colSpan={2}
                       value={cardData.identificationNumber}
                       onChange={(e) =>
