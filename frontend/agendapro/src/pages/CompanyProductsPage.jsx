@@ -38,7 +38,7 @@ export default function CompanyProductsPage() {
   const [installments, setInstallments] = useState(1);
   const [docNumber, setDocNumber] = useState("");
 
-  // Novos estados para parcelamento dinâmico (Opção A)
+  // Novos estados para parcelamento dinâmico
   const [dynamicInstallments, setDynamicInstallments] = useState([]);
   const [paymentMethodId, setPaymentMethodId] = useState("");
   const [issuerId, setIssuerId] = useState("");
@@ -50,6 +50,20 @@ export default function CompanyProductsPage() {
 
   const [expandedDescriptions, setExpandedDescriptions] = useState({});
 
+  // 1. PRIMEIRO DECLARAMOS OS VALORES COMPUTADOS (Para que os UseEffects abaixo possam usá-los sem erro)
+  const cartCount = useMemo(() => {
+    return cart.reduce((acc, item) => acc + (item.quantity || 1), 0);
+  }, [cart]);
+
+  const total = useMemo(() => {
+    return cart.reduce((acc, item) => {
+      const valueString = String(item.value || "0").replace(",", ".");
+      const cleanValue = parseFloat(valueString) || 0;
+      return acc + cleanValue * (item.quantity || 1);
+    }, 0);
+  }, [cart]);
+
+  // 2. AGORA DECLARAMOS OS USEEFFECTS (Que dependem de 'total')
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -156,6 +170,7 @@ export default function CompanyProductsPage() {
     return () => clearTimeout(timer);
   }, [cardNumber, paymentMethod, total]);
 
+  // 3. FUNÇÕES DE MANIPULAÇÃO
   const addToCart = (product) => {
     setCart((prev) => {
       const exists = prev.find((p) => p.id === product.id);
@@ -187,18 +202,6 @@ export default function CompanyProductsPage() {
       return prev.filter((p) => p.id !== id);
     });
   };
-
-  const cartCount = useMemo(() => {
-    return cart.reduce((acc, item) => acc + (item.quantity || 1), 0);
-  }, [cart]);
-
-  const total = useMemo(() => {
-    return cart.reduce((acc, item) => {
-      const valueString = String(item.value || "0").replace(",", ".");
-      const cleanValue = parseFloat(valueString) || 0;
-      return acc + cleanValue * (item.quantity || 1);
-    }, 0);
-  }, [cart]);
 
   const openCheckout = () => {
     if (!cart.length) {
