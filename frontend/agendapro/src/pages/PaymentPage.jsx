@@ -147,7 +147,7 @@ const PaymentPage = () => {
         );
       }
 
-      const PUBLIC_KEY = import.meta.env.VITE_MERCADO_PAGO_PUBLIC_KEY;
+      const PUBLIC_KEY = import.meta.env.VITE_MP_PUBLIC_KEY;
       if (!PUBLIC_KEY)
         throw new Error(
           "Chave Pública do Mercado Pago não configurada no .env"
