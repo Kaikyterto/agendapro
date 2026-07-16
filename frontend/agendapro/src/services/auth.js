@@ -1,92 +1,65 @@
-// src/services/auth.js (Refatorado para usar apiFetch)
-import { apiFetch } from "./api"; // IMPORTAÇÃO OBRIGATÓRIA
+export const BASE_URL = import.meta.env.VITE_API_URL;
+export const API_URL = `${BASE_URL}/api`;
 
-// =========================================================
-// LOGIN
-// =========================================================
-export const loginService = async (credentials) => {
-  // Agora usa o apiFetch centralizado
-  const data = await apiFetch("/auth/login", {
-    method: "POST",
-    body: JSON.stringify({
-      email: credentials.email.trim(),
-      password: credentials.password,
-    }),
+export async function apiFetch(endpoint, options = {}) {
+  const token = localStorage.getItem("@AgendaPro:token");
+
+  // Se bypassApiPrefix for true, bate na raiz do servidor. Senão, usa /api.
+  const baseUrlToUse = options.bypassApiPrefix ? BASE_URL : API_URL;
+  const url = new URL(`${baseUrlToUse}${endpoint}`);
+
+  if (options.params) {
+    Object.entries(options.params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        url.searchParams.append(key, value);
+      }
+    });
+  }
+
+  const response = await fetch(url.toString(), {
+    method: options.method || "GET",
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.auth && token
+        ? {
+            Authorization: `Bearer ${token}`,
+          }
+        : {}),
+      ...(options.headers || {}),
+    },
+    body: options.body,
   });
 
-  // O apiFetch já joga erro se (!response.ok), então 'data' aqui é seguro
+  let data = null;
 
-  // ==========================================
-  // PAGAMENTO PENDENTE (403 CONTROLADO)
-  // ==========================================
-  // Esta lógica precisa ser ajustada no backend para retornar 'payment_pending: true'
-  // dentro do corpo da resposta 200/400 se o backend decidir usar 200 para pendente.
-  // Se o backend usar 403, o apiFetch lançará o erro acima.
-  if (data?.payment_pending === true) {
-    return data;
+  try {
+    data = await response.json();
+  } catch {}
+
+  // Token expirado ou inválido
+  if (response.status === 401) {
+    localStorage.removeItem("@AgendaPro:token");
+    localStorage.removeItem("@AgendaPro:user");
+
+    // Evita loop caso já esteja na tela de login
+    if (window.location.pathname !== "/") {
+      window.location.replace("/");
+    }
+
+    throw (
+      data || {
+        message: "Sessão expirada. Faça login novamente.",
+      }
+    );
   }
 
-  // ==========================================
-  // LOGIN OK
-  // ==========================================
-  if (data?.access_token) {
-    localStorage.setItem("@AgendaPro:token", data.access_token);
-  }
-
-  if (data?.user) {
-    localStorage.setItem("@AgendaPro:user", JSON.stringify(data.user));
-  }
-
-  if (data?.company) {
-    localStorage.setItem("@AgendaPro:company", JSON.stringify(data.company));
+  if (!response.ok) {
+    throw (
+      data || {
+        message: "Erro na requisição",
+      }
+    );
   }
 
   return data;
-};
-
-// =========================================================
-// REGISTER
-// =========================================================
-export const registerService = async (payload) => {
-  // Agora usa o apiFetch centralizado
-  const data = await apiFetch("/auth/register", {
-    method: "POST",
-    body: JSON.stringify({
-      name: payload.name,
-      company_name: payload.companyName,
-      email: payload.email.trim(),
-      password: payload.password,
-      logo: payload.logo,
-    }),
-  });
-
-  return data;
-};
-
-// =========================================================
-// CONSULTAR STATUS DA ASSINATURA (Para Polling do Pix da Plataforma)
-// =========================================================
-export const getSubscriptionStatus = (companyId) => {
-  // Aponta para a rota que criamos no backend: /payments/status/<int:company_id>
-  // O endpoint deve ser relativo à baseURL '/api'
-  return apiFetch(`/payments/status/${companyId}`, {
-    method: "GET",
-    auth: true, // Requer autenticação
-  });
-};
-
-// =========================================================
-// AUTH CHECK
-// =========================================================
-export const isAuthenticated = () => {
-  return Boolean(localStorage.getItem("@AgendaPro:token"));
-};
-
-// =========================================================
-// LOGOUT
-// =========================================================
-export const logout = () => {
-  localStorage.removeItem("@AgendaPro:token");
-  localStorage.removeItem("@AgendaPro:user");
-  localStorage.removeItem("@AgendaPro:company");
-};
+}
