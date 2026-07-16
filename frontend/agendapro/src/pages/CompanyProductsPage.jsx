@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Plus, X, Loader2, CreditCard, QrCode } from "lucide-react"; // Importados novos ícones
+import { Plus, X, Loader2, CreditCard, QrCode } from "lucide-react";
 import { useParams } from "react-router-dom";
 
 import {
@@ -26,9 +26,9 @@ export default function CompanyProductsPage() {
 
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
-  const [customerEmail, setCustomerEmail] = useState(""); // Novo: Email obrigatório para cartão
-  
-  // Novos estados para Cartão de Crédito
+  const [customerEmail, setCustomerEmail] = useState("");
+
+  // Estados para Cartão de Crédito
   const [paymentMethod, setPaymentMethod] = useState("pix"); // "pix" ou "card"
   const [cardNumber, setCardNumber] = useState("");
   const [cardMonth, setCardMonth] = useState("");
@@ -37,6 +37,11 @@ export default function CompanyProductsPage() {
   const [cardHolderName, setCardHolderName] = useState("");
   const [installments, setInstallments] = useState(1);
   const [docNumber, setDocNumber] = useState(""); // CPF/CNPJ do titular
+
+  // Novos estados para parcelamento dinâmico
+  const [cardBin, setCardBin] = useState("");
+  const [installmentOptions, setInstallmentOptions] = useState([]);
+  const [selectedInstallmentData, setSelectedInstallmentData] = useState(null); // Guarda os dados completos da parcela selecionada (incluindo juros)
 
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [pixData, setPixData] = useState(null);
@@ -105,6 +110,41 @@ export default function CompanyProductsPage() {
     return () => clearInterval(interval);
   }, [showPixModal, pixData]);
 
+  // Função para buscar as opções de parcelamento quando o BIN muda (6 primeiros dígitos)
+  useEffect(() => {
+    if (
+      paymentMethod === "card" &&
+      cardBin.length === 6 &&
+      company?.mp_public_key
+    ) {
+      const fetchInstallments = async () => {
+        try {
+          const mp = new window.MercadoPago(company.mp_public_key);
+          const installmentsData = await mp.fields.createInstallments({
+            bin: cardBin,
+            amount: total.toString(),
+          });
+
+          if (installmentsData && installmentsData.payer_costs) {
+            setInstallmentOptions(installmentsData.payer_costs);
+            // Seleciona a primeira opção (geralmente 1x sem juros) por padrão
+            setInstallments(installmentsData.payer_costs[0].installments);
+            setSelectedInstallmentData(installmentsData.payer_costs[0]);
+          }
+        } catch (err) {
+          console.error("Erro ao buscar parcelas:", err);
+          setError("Erro ao processar o cartão. Verifique o número.");
+          setInstallmentOptions([]);
+        }
+      };
+
+      fetchInstallments();
+    } else if (cardBin.length < 6) {
+      setInstallmentOptions([]);
+      setSelectedInstallmentData(null);
+    }
+  }, [cardBin, total, paymentMethod, company?.mp_public_key]);
+
   const addToCart = (product) => {
     setCart((prev) => {
       const exists = prev.find((p) => p.id === product.id);
@@ -148,6 +188,14 @@ export default function CompanyProductsPage() {
     );
   }, [cart]);
 
+  // Calcula o total a ser exibido no botão de pagamento (Total + Juros se houver)
+  const displayTotal = useMemo(() => {
+    if (paymentMethod === "card" && selectedInstallmentData) {
+      return selectedInstallmentData.total_amount;
+    }
+    return total;
+  }, [total, paymentMethod, selectedInstallmentData]);
+
   const openCheckout = () => {
     if (!cart.length) {
       setError("Carrinho vazio");
@@ -169,7 +217,14 @@ export default function CompanyProductsPage() {
   // Função para gerar o Token do Cartão com o SDK do Mercado Pago
   const getCardToken = async (mp) => {
     try {
-      if (!cardNumber || !cardMonth || !cardYear || !cardCVV || !cardHolderName || !docNumber) {
+      if (
+        !cardNumber ||
+        !cardMonth ||
+        !cardYear ||
+        !cardCVV ||
+        !cardHolderName ||
+        !docNumber
+      ) {
         throw new Error("Preencha todos os dados do cartão e do titular");
       }
 
@@ -187,18 +242,16 @@ export default function CompanyProductsPage() {
 
       console.log("Token Gerado:", tokenResponse.id);
       return tokenResponse.id;
-
     } catch (error) {
       console.error("Erro ao gerar token do cartão:", error);
       throw new Error(error.message || "Dados do cartão inválidos");
     }
   };
 
-
   const handleCheckout = async () => {
     try {
-      if (!company?.id) {
-        return setError("Empresa inválida");
+      if (!company?.id || !company?.mp_public_key) {
+        return setError("Empresa inválida ou não configurada para pagamentos.");
       }
 
       if (!cart.length) {
@@ -214,7 +267,8 @@ export default function CompanyProductsPage() {
 
       const payload = {
         company_id: company.id,
-        amount: total,
+        // IMPORTANTE: Envia o displayTotal, que inclui os juros se houver, para o backend criar a venda com o valor correto
+        amount: displayTotal,
         items: cart.map((item) => ({
           product_id: item.id,
           quantity: item.quantity || 1,
@@ -229,13 +283,17 @@ export default function CompanyProductsPage() {
       // =========================================================
       if (paymentMethod === "card") {
         if (!customerEmail) {
-            return setError("E-mail é obrigatório para pagamento com cartão");
+          return setError("E-mail é obrigatório para pagamento com cartão");
         }
 
-        // Inicializa o SDK do Mercado Pago
-        const mp = new window.MercadoPago(import.meta.env.VITE_MP_PUBLIC_KEY); // Requer chave pública no .env do frontend
+        if (!selectedInstallmentData) {
+          return setError("Selecione o parcelamento.");
+        }
+
+        // Inicializa o SDK do Mercado Pago usando a chave da empresa
+        const mp = new window.MercadoPago(company.mp_public_key);
         if (!mp) {
-            throw new Error("Erro ao carregar SDK do Mercado Pago");
+          throw new Error("Erro ao carregar SDK do Mercado Pago");
         }
 
         const cardToken = await getCardToken(mp); // Gera o token seguro
@@ -256,33 +314,48 @@ export default function CompanyProductsPage() {
       console.log("CHECKOUT RESPONSE:", res);
 
       if (paymentMethod === "card") {
-          // No cartão, a resposta instantânea já nos diz o status
-          if (res.status === "approved") {
-              setPaymentConfirmed(true);
-              setCart([]);
-              setShowCustomerModal(false);
-          } else if (res.status === "in_process") {
-              setError("Pagamento em análise pelo Mercado Pago. Você receberá um e-mail com a confirmação.");
-          } else {
-              setError(`Pagamento recusado: ${res.status_detail || "Verifique os dados do cartão."}`);
-          }
-      } else {
-          // Fluxo original do Pix
-          if (!res?.pix_code) {
-              throw new Error("PIX não gerado");
-          }
-
-          setPixData({
-              pixCode: res.pix_code,
-              qrCodeBase64: res.qr_code_base64,
-              paymentId: res.payment_id,
-              orderId: res.order_id,
-          });
-
+        // No cartão, a resposta instantânea já nos diz o status
+        if (res.status === "approved") {
+          setPaymentConfirmed(true);
+          setCart([]);
           setShowCustomerModal(false);
-          setShowPixModal(true);
-      }
+          // Limpa os dados do cartão após aprovação
+          setCardNumber("");
+          setCardMonth("");
+          setCardYear("");
+          setCardCVV("");
+          setCardHolderName("");
+          setDocNumber("");
+          setCardBin("");
+          setInstallmentOptions([]);
+          setSelectedInstallmentData(null);
+        } else if (res.status === "in_process") {
+          setError(
+            "Pagamento em análise pelo Mercado Pago. Você receberá um e-mail com a confirmação."
+          );
+        } else {
+          setError(
+            `Pagamento recusado: ${
+              res.status_detail || "Verifique os dados do cartão."
+            }`
+          );
+        }
+      } else {
+        // Fluxo original do Pix
+        if (!res?.pix_code) {
+          throw new Error("PIX não gerado");
+        }
 
+        setPixData({
+          pixCode: res.pix_code,
+          qrCodeBase64: res.qr_code_base64,
+          paymentId: res.payment_id,
+          orderId: res.order_id,
+        });
+
+        setShowCustomerModal(false);
+        setShowPixModal(true);
+      }
     } catch (err) {
       console.error(err);
 
@@ -294,6 +367,25 @@ export default function CompanyProductsPage() {
     } finally {
       setCheckoutLoading(false);
     }
+  };
+
+  // Handler para mudança no número do cartão que captura o BIN
+  const handleCardNumberChange = (e) => {
+    const value = e.target.value.replace(/\D/g, "");
+    setCardNumber(value);
+    setCardBin(value.substring(0, 6));
+  };
+
+  // Handler para mudança na parcela selecionada
+  const handleInstallmentChange = (e) => {
+    const installmentCount = Number(e.target.value);
+    setInstallments(installmentCount);
+
+    // Encontra os dados completos da parcela selecionada na lista
+    const selectedData = installmentOptions.find(
+      (option) => option.installments === installmentCount
+    );
+    setSelectedInstallmentData(selectedData);
   };
 
   if (loading) {
@@ -495,111 +587,162 @@ export default function CompanyProductsPage() {
 
               <div className="grid grid-cols-2 gap-2">
                 <input
-                    className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
-                    placeholder="Telefone (WhatsApp)"
-                    value={customerPhone}
-                    onChange={(e) => setCustomerPhone(e.target.value)}
+                  className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
+                  placeholder="Telefone (WhatsApp)"
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
                 />
                 {/* Email é obrigatório para o Mercado Pago em cartões */}
                 <input
-                    className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
-                    placeholder="E-mail"
-                    type="email"
-                    value={customerEmail}
-                    onChange={(e) => setCustomerEmail(e.target.value)}
+                  className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
+                  placeholder="E-mail"
+                  type="email"
+                  value={customerEmail}
+                  onChange={(e) => setCustomerEmail(e.target.value)}
                 />
               </div>
             </div>
 
             {/* SELEÇÃO DO MÉTODO DE PAGAMENTO - NOVO FOCADO */}
             <div className="mt-4">
-                <p className="text-xs text-white/60 mb-2">Selecione o método de pagamento:</p>
-                <div className="grid grid-cols-2 gap-2">
-                    <button
-                        onClick={() => setPaymentMethod("pix")}
-                        className={`h-12 flex flex-col items-center justify-center border rounded-xl gap-1 transition-all ${paymentMethod === "pix" ? "border-[var(--primary)] bg-[var(--primary)]/10" : "border-white/5 bg-white/5 hover:border-white/10"}`}
-                    >
-                        <QrCode size={18} className={paymentMethod === "pix" ? "text-[var(--primary)]" : "text-white/60"}/>
-                        <span className="text-[10px] font-semibold">PIX (Polling)</span>
-                    </button>
-                    <button
-                        onClick={() => setPaymentMethod("card")}
-                        className={`h-12 flex flex-col items-center justify-center border rounded-xl gap-1 transition-all ${paymentMethod === "card" ? "border-[var(--primary)] bg-[var(--primary)]/10" : "border-white/5 bg-white/5 hover:border-white/10"}`}
-                    >
-                        <CreditCard size={18} className={paymentMethod === "card" ? "text-[var(--primary)]" : "text-white/60"}/>
-                        <span className="text-[10px] font-semibold">Cartão de Crédito</span>
-                    </button>
-                </div>
+              <p className="text-xs text-white/60 mb-2">
+                Selecione o método de pagamento:
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setPaymentMethod("pix")}
+                  className={`h-12 flex flex-col items-center justify-center border rounded-xl gap-1 transition-all ${
+                    paymentMethod === "pix"
+                      ? "border-[var(--primary)] bg-[var(--primary)]/10"
+                      : "border-white/5 bg-white/5 hover:border-white/10"
+                  }`}
+                >
+                  <QrCode
+                    size={18}
+                    className={
+                      paymentMethod === "pix"
+                        ? "text-[var(--primary)]"
+                        : "text-white/60"
+                    }
+                  />
+                  <span className="text-[10px] font-semibold">PIX</span>
+                </button>
+                <button
+                  onClick={() => setPaymentMethod("card")}
+                  className={`h-12 flex flex-col items-center justify-center border rounded-xl gap-1 transition-all ${
+                    paymentMethod === "card"
+                      ? "border-[var(--primary)] bg-[var(--primary)]/10"
+                      : "border-white/5 bg-white/5 hover:border-white/10"
+                  }`}
+                >
+                  <CreditCard
+                    size={18}
+                    className={
+                      paymentMethod === "card"
+                        ? "text-[var(--primary)]"
+                        : "text-white/60"
+                    }
+                  />
+                  <span className="text-[10px] font-semibold">
+                    Cartão de Crédito
+                  </span>
+                </button>
+              </div>
             </div>
 
             {/* FORMULÁRIO DE CARTÃO DE CRÉDITO - CONDICIONAL FOCADO */}
             {paymentMethod === "card" && (
-                <div className="mt-4 space-y-2.5 border-t border-white/5 pt-4">
-                    <input
-                        className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
-                        placeholder="Nome como está no cartão"
-                        value={cardHolderName}
-                        onChange={(e) => setCardHolderName(e.target.value.toUpperCase())}
-                    />
-                    <input
-                        className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
-                        placeholder="Número do cartão (só números)"
-                        type="tel"
-                        maxLength={16}
-                        value={cardNumber}
-                        onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, ""))}
-                    />
-                    <div className="grid grid-cols-3 gap-2">
-                        <input
-                            className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
-                            placeholder="Mês (MM)"
-                            type="tel"
-                            maxLength={2}
-                            value={cardMonth}
-                            onChange={(e) => setCardMonth(e.target.value.replace(/\D/g, ""))}
-                        />
-                        <input
-                            className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
-                            placeholder="Ano (AAAA)"
-                            type="tel"
-                            maxLength={4}
-                            value={cardYear}
-                            onChange={(e) => setCardYear(e.target.value.replace(/\D/g, ""))}
-                        />
-                        <input
-                            className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
-                            placeholder="CVV"
-                            type="tel"
-                            maxLength={4}
-                            value={cardCVV}
-                            onChange={(e) => setCardCVV(e.target.value.replace(/\D/g, ""))}
-                        />
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                        {/* CPF do Titular é obrigatório para antifraude do MP */}
-                        <input
-                            className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
-                            placeholder="CPF do Titular (só números)"
-                            type="tel"
-                            maxLength={11}
-                            value={docNumber}
-                            onChange={(e) => setDocNumber(e.target.value.replace(/\D/g, ""))}
-                        />
-                        {/* Parcelas simples: Padrão 1x por simplicidade do checkout */}
-                        <select
-                            value={installments}
-                            onChange={(e) => setInstallments(Number(e.target.value))}
-                            className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all text-white/70"
-                        >
-                            <option value={1}>1x sem juros</option>
-                            <option value={2}>2x sem juros</option>
-                            <option value={3}>3x sem juros</option>
-                        </select>
-                    </div>
+              <div className="mt-4 space-y-2.5 border-t border-white/5 pt-4">
+                <input
+                  className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
+                  placeholder="Nome como está no cartão"
+                  value={cardHolderName}
+                  onChange={(e) =>
+                    setCardHolderName(e.target.value.toUpperCase())
+                  }
+                />
+                <input
+                  className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
+                  placeholder="Número do cartão (só números)"
+                  type="tel"
+                  maxLength={16}
+                  value={cardNumber}
+                  onChange={handleCardNumberChange} // Handler atualizado para capturar BIN
+                />
+                <div className="grid grid-cols-3 gap-2">
+                  <input
+                    className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
+                    placeholder="Mês (MM)"
+                    type="tel"
+                    maxLength={2}
+                    value={cardMonth}
+                    onChange={(e) =>
+                      setCardMonth(e.target.value.replace(/\D/g, ""))
+                    }
+                  />
+                  <input
+                    className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
+                    placeholder="Ano (AAAA)"
+                    type="tel"
+                    maxLength={4}
+                    value={cardYear}
+                    onChange={(e) =>
+                      setCardYear(e.target.value.replace(/\D/g, ""))
+                    }
+                  />
+                  <input
+                    className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
+                    placeholder="CVV"
+                    type="tel"
+                    maxLength={4}
+                    value={cardCVV}
+                    onChange={(e) =>
+                      setCardCVV(e.target.value.replace(/\D/g, ""))
+                    }
+                  />
                 </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {/* CPF do Titular é obrigatório para antifraude do MP */}
+                  <input
+                    className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
+                    placeholder="CPF do Titular (só números)"
+                    type="tel"
+                    maxLength={11}
+                    value={docNumber}
+                    onChange={(e) =>
+                      setDocNumber(e.target.value.replace(/\D/g, ""))
+                    }
+                  />
+
+                  {/* Parcelas dinâmicas: Populadas pelo Mercado Pago baseadas no BIN */}
+                  <select
+                    value={installments}
+                    onChange={handleInstallmentChange} // Handler atualizado para atualizar valor com juros
+                    className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all text-white/70 disabled:opacity-50"
+                    disabled={installmentOptions.length === 0} // Desabilita se não tivermos as parcelas buscadas
+                  >
+                    {installmentOptions.length === 0 ? (
+                      <option value="">Digite o cartão...</option>
+                    ) : (
+                      installmentOptions.map((option) => (
+                        <option
+                          key={option.installments}
+                          value={option.installments}
+                        >
+                          {option.recommended_message}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                </div>
+              </div>
             )}
 
-            {error && <p className="text-red-400 text-[11px] mt-2 bg-red-950/20 p-2 rounded-lg border border-red-800/30">{error}</p>}
+            {error && (
+              <p className="text-red-400 text-[11px] mt-2 bg-red-950/20 p-2 rounded-lg border border-red-800/30">
+                {error}
+              </p>
+            )}
 
             <div className="grid grid-cols-2 gap-2 mt-4">
               <button
@@ -609,7 +752,10 @@ export default function CompanyProductsPage() {
                 Cancelar
               </button>
               <button
-                disabled={checkoutLoading}
+                disabled={
+                  checkoutLoading ||
+                  (paymentMethod === "card" && !selectedInstallmentData)
+                } // Desabilita botão se for cartão e não tivermos parcelas buscadas
                 onClick={handleCheckout}
                 className="h-10 bg-[var(--primary)] rounded-xl text-xs font-bold hover:opacity-90 disabled:opacity-50 transition-all flex items-center justify-center"
               >
@@ -619,7 +765,8 @@ export default function CompanyProductsPage() {
                     Processando...
                   </>
                 ) : (
-                  `Pagar R$ ${total.toFixed(2)}`
+                  // Exibe o displayTotal que inclui os juros reais
+                  `Pagar R$ ${displayTotal.toFixed(2)}`
                 )}
               </button>
             </div>
