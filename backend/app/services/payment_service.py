@@ -1,47 +1,33 @@
 import os
-
 import mercadopago
-
-from dotenv import load_dotenv
+# Importa a classe RequestOptions exigida pelo SDK para passar headers
+from mercadopago.config import RequestOptions
 
 from app.models.company import Company
 from app.database.db import db
-
 from app.models.mercado_pago_account import MercadoPagoAccount
-
-
-load_dotenv()
 
 
 class PaymentService:
 
-
     # =========================================================
-    # SDK DA PLATAFORMA
+    # SDK DA PLATAFORMA (Uso interno do Kromis)
     # =========================================================
     @staticmethod
     def _get_platform_sdk():
-
-        access_token = os.getenv(
-            "MERCADO_PAGO_ACCESS_TOKEN"
-        )
+        access_token = os.getenv("MERCADO_PAGO_ACCESS_TOKEN")
 
         if not access_token:
-            raise Exception(
-                "Token da plataforma não configurado"
-            )
+            raise Exception("Token da plataforma não configurado")
 
-        return mercadopago.SDK(
-            access_token
-        )
+        return mercadopago.SDK(access_token)
 
 
     # =========================================================
-    # SDK DA EMPRESA
+    # SDK DA EMPRESA (Uso do cliente da plataforma)
     # =========================================================
     @staticmethod
     def _get_company_sdk(company_id):
-
         mp_account = (
             MercadoPagoAccount
             .query
@@ -53,373 +39,347 @@ class PaymentService:
         )
 
         if not mp_account:
-            raise Exception(
-                "Empresa não possui Mercado Pago conectado"
-            )
-
+            raise Exception("Empresa não possui Mercado Pago conectado")
 
         if not mp_account.access_token:
-            raise Exception(
-                "Access Token da empresa não encontrado"
-            )
+            raise Exception("Access Token da empresa não encontrado")
 
-
-        return mercadopago.SDK(
-            mp_account.access_token
-        )
-
+        return mercadopago.SDK(mp_account.access_token)
 
 
     # =========================================================
-    # ASSINATURA DA PLATAFORMA
+    # ASSINATURA DA PLATAFORMA (VIA PIX)
     # =========================================================
     @staticmethod
     def create_platform_pix_payment(data):
-
-        company_id = data.get(
-            "company_id"
-        )
-
+        company_id = data.get("company_id")
 
         if not company_id:
-            raise Exception(
-                "company_id é obrigatório"
-            )
+            raise Exception("company_id é obrigatório")
 
-
-        company = db.session.get(
-            Company,
-            company_id
-        )
-
+        company = db.session.get(Company, company_id)
 
         if not company:
-            raise Exception(
-                "Empresa não encontrada"
-            )
+            raise Exception("Empresa não encontrada")
 
-
-        sdk = (
-            PaymentService
-            ._get_platform_sdk()
-        )
-
+        sdk = PaymentService._get_platform_sdk()
 
         payment_data = {
-
-            "transaction_amount":
-                29.90,
-
-
-            "description":
-                "Assinatura AgendaPro",
-
-
-            "payment_method_id":
-                "pix",
-
-
-            "external_reference":
-                f"company_{company.id}",
-
-
+            "transaction_amount": 29.90,
+            "description": "Assinatura Kromis", 
+            "payment_method_id": "pix",
+            "external_reference": f"company_{company.id}",
             "payer": {
-
-                "first_name":
-                    company.name,
-
-
-                "email":
-                    getattr(
-                        company,
-                        "email",
-                        "cliente@agendapro.com"
-                    )
-
+                "first_name": company.name,
+                "email": getattr(company, "email", "cliente@kromis.com") 
             }
-
         }
 
-
-        response = (
-            sdk.payment()
-            .create(payment_data)
-        )
-
-
-        payment = response.get(
-            "response",
-            {}
-        )
-
+        response = sdk.payment().create(payment_data)
+        payment = response.get("response", {})
 
         if not payment:
-            raise Exception(
-                "Erro ao gerar PIX"
-            )
+            raise Exception("Erro ao gerar PIX da assinatura")
 
-
-        payment_id = payment.get(
-            "id"
-        )
-
-
-        company.mercado_pago_payment_id = (
-            str(payment_id)
-        )
-
+        payment_id = payment.get("id")
+        company.mercado_pago_payment_id = str(payment_id)
         db.session.commit()
-
 
         transaction_data = (
             payment
-            .get(
-                "point_of_interaction",
-                {}
-            )
-            .get(
-                "transaction_data",
-                {}
-            )
+            .get("point_of_interaction", {})
+            .get("transaction_data", {})
         )
 
-
         return {
-
-            "message":
-                "PIX gerado com sucesso",
-
-
-            "payment_id":
-                payment_id,
-
-
-            "status":
-                payment.get(
-                    "status"
-                ),
-
-
-            "pix_code":
-                transaction_data.get(
-                    "qr_code"
-                ),
-
-
-            "qr_code_base64":
-                transaction_data.get(
-                    "qr_code_base64"
-                )
-
+            "message": "PIX de assinatura gerado com sucesso",
+            "payment_id": payment_id,
+            "status": payment.get("status"),
+            "pix_code": transaction_data.get("qr_code"),
+            "qr_code_base64": transaction_data.get("qr_code_base64")
         }
 
 
-
     # =========================================================
-    # VENDA DA EMPRESA
+    # VENDA DE PRODUTOS DA EMPRESA (VIA PIX)
     # =========================================================
     @staticmethod
     def create_company_pix_payment(data):
-
-
         required_fields = [
-
             "company_id",
             "sale_record_id",
             "amount",
             "customer_name"
-
         ]
 
-
         for field in required_fields:
-
             if not data.get(field):
+                raise Exception(f"O campo '{field}' é obrigatório")
 
-                raise Exception(
-                    f"{field} é obrigatório"
-                )
-
-
-        sdk = (
-            PaymentService
-            ._get_company_sdk(
-                data["company_id"]
-            )
-        )
-
+        sdk = PaymentService._get_company_sdk(data["company_id"])
 
         payment_data = {
-
-
-            "transaction_amount":
-                float(
-                    data["amount"]
-                ),
-
-
-            "description":
-                data.get(
-                    "description",
-                    "Compra AgendaPro"
-                ),
-
-
-            "payment_method_id":
-                "pix",
-
-
-            "external_reference":
-                f"sale_{data['sale_record_id']}",
-
-
-            "notification_url":
-                "https://agendapro-z63z.onrender.com/webhook/mercadopago",
-
-
+            "transaction_amount": float(data["amount"]),
+            "description": data.get("description", "Venda de Produto - Kromis"),
+            "payment_method_id": "pix",
+            "external_reference": f"sale_{data['sale_record_id']}",
+            # Webhook que receberá o aviso de que o cliente pagou o produto
+            "notification_url": "https://agendapro-z63z.onrender.com/webhook/mercadopago",
             "payer": {
-
-                "first_name":
-                    data["customer_name"],
-
-
-                "email":
-                    data.get(
-                        "email",
-                        "cliente@agendapro.com"
-                    )
-
+                "first_name": data["customer_name"],
+                "email": data.get("email", "cliente@kromis.com") 
             }
-
         }
 
-
-        response = (
-            sdk.payment()
-            .create(payment_data)
-        )
-
-
-        payment = response.get(
-            "response",
-            {}
-        )
-
+        response = sdk.payment().create(payment_data)
+        payment = response.get("response", {})
 
         if not payment:
-            raise Exception(
-                "Erro ao gerar PIX"
-            )
-
+            raise Exception("Erro ao gerar PIX para a venda do produto")
 
         transaction_data = (
             payment
-            .get(
-                "point_of_interaction",
-                {}
-            )
-            .get(
-                "transaction_data",
-                {}
-            )
+            .get("point_of_interaction", {})
+            .get("transaction_data", {})
         )
 
-
         return {
-
-            "message":
-                "PIX gerado com sucesso",
-
-
-            "payment_id":
-                payment.get(
-                    "id"
-                ),
-
-
-            "status":
-                payment.get(
-                    "status"
-                ),
-
-
-            "pix_code":
-                transaction_data.get(
-                    "qr_code"
-                ),
-
-
-            "qr_code_base64":
-                transaction_data.get(
-                    "qr_code_base64"
-                )
-
+            "message": "PIX do produto gerado com sucesso",
+            "payment_id": payment.get("id"),
+            "status": payment.get("status"),
+            "pix_code": transaction_data.get("qr_code"),
+            "qr_code_base64": transaction_data.get("qr_code_base64")
         }
 
 
+    # =========================================================
+    # VENDA DE PRODUTOS DA EMPRESA (VIA CARTÃO DE CRÉDITO) 
+    # =========================================================
+    @staticmethod
+    def create_credit_card_payment(payment_data):
+        """
+        Gera uma cobrança via Cartão de Crédito utilizando o token do cartão gerado no frontend.
+        """
+        try:
+            # Carrega o token único da plataforma do ambiente Render
+            access_token = os.getenv("MERCADO_PAGO_ACCESS_TOKEN")
+            if not access_token:
+                 raise Exception("Token da plataforma Kromis não configurado no Render")
+            
+            sdk = mercadopago.SDK(access_token)
+
+            # Estrutura a requisição exigida pelo Mercado Pago para cartão de crédito
+            payment_request = {
+                "transaction_amount": float(payment_data["amount"]),
+                "token": payment_data["card_token"],  # Token seguro gerado pelo frontend
+                "description": payment_data.get("description", "Venda Kromis"),
+                "installments": int(payment_data.get("installments", 1)), # Parcelas
+                "payment_method_id": payment_data["payment_method_id"], # ex: "visa", "master"
+                "payer": {
+                    "email": payment_data["email"], # Obrigatório para cartão no MP
+                    "identification": {
+                        "type": payment_data.get("doc_type", "CPF"),
+                        "number": payment_data["doc_number"] # CPF/CNPJ do pagador
+                    }
+                },
+                "external_reference": payment_data["external_reference"],
+            }
+
+            # Configura cabeçalhos personalizados de antifraude (Melidata Device ID)
+            request_options = None
+            device_id = payment_data.get("device_id") or payment_data.get("deviceId")
+            if device_id:
+                # CORREÇÃO: Instancia vazio e atribui os custom_headers manualmente para evitar erros de construtor
+                request_options = RequestOptions()
+                request_options.custom_headers = {
+                    "X-Melidata-Session-Id": str(device_id)
+                }
+
+            # Envia a cobrança para o Mercado Pago incluindo as opções com o deviceId
+            payment_response = sdk.payment().create(payment_request, request_options)
+            payment = payment_response.get("response", {})
+
+            # Trata possíveis erros de recusa de cartão retornados pelo MP
+            if payment_response.get("status") >= 400:
+                error_detail = payment.get("message") or payment.get("description") or "Erro ao processar pagamento com cartão"
+                raise Exception(f"Mercado Pago Card Error: {error_detail}")
+
+            return {
+                "payment_id": payment.get("id"),
+                "status": payment.get("status"), # "approved", "in_process", "rejected", etc.
+                "status_detail": payment.get("status_detail") # ex: "accredited", "cc_rejected_bad_filled_date"
+            }
+
+        except Exception as e:
+            print("ERRO NO PAYMENT_SERVICE (CARTÃO):", str(e))
+            raise e
+
 
     # =========================================================
-    # CONSULTAR PAGAMENTO DA PLATAFORMA
+    # CONSULTAR PAGAMENTO DA PLATAFORMA (Assinatura)
     # =========================================================
     @staticmethod
     def get_platform_payment(payment_id):
-
-
-        sdk = (
-            PaymentService
-            ._get_platform_sdk()
-        )
-
-
-        response = (
-            sdk.payment()
-            .get(payment_id)
-        )
-
-
-        print("==============================")
-        print("CONSULTANDO PAGAMENTO:")
-        print(payment_id)
-        print(response)
-        print("==============================")
-
-
-        payment = response.get(
-            "response",
-            {}
-        )
-
+        sdk = PaymentService._get_platform_sdk()
+        response = sdk.payment().get(payment_id)
+        payment = response.get("response", {})
 
         if not payment:
-
-            raise Exception(
-                "Pagamento não encontrado"
-            )
-
+            raise Exception("Pagamento da assinatura não encontrado")
 
         return {
-
-            "payment_id":
-                payment.get(
-                    "id"
-                ),
-
-
-            "status":
-                payment.get(
-                    "status"
-                ),
-
-
-            "status_detail":
-                payment.get(
-                    "status_detail"
-                ),
-
-
-            "external_reference":
-                payment.get(
-                    "external_reference"
-                )
-
+            "payment_id": payment.get("id"),
+            "status": payment.get("status"),
+            "status_detail": payment.get("status_detail"),
+            "external_reference": payment.get("external_reference")
         }
+
+
+    # =========================================================
+    # CONSULTAR PAGAMENTO DA EMPRESA (Venda de Produto)
+    # =========================================================
+    @staticmethod
+    def get_company_payment(company_id, payment_id):
+        """
+        Consulta o status de uma venda de produto usando o SDK/Token
+        específico da empresa que realizou a venda.
+        """
+        sdk = PaymentService._get_company_sdk(company_id)
+        response = sdk.payment().get(payment_id)
+        payment = response.get("response", {})
+
+        if not payment:
+            raise Exception("Pagamento do produto não encontrado")
+
+        return {
+            "payment_id": payment.get("id"),
+            "status": payment.get("status"),
+            "status_detail": payment.get("status_detail"),
+            "external_reference": payment.get("external_reference")
+        }
+    
+
+    # =========================================================
+    # ASSINATURA DA PLATAFORMA (VIA CARTÃO DE CRÉDITO)
+    # =========================================================
+    @staticmethod
+    def create_platform_card_payment(data):
+        company_id = data.get("company_id")
+
+        if not company_id:
+            raise Exception("company_id é obrigatório")
+
+        company = db.session.get(Company, company_id)
+
+        if not company:
+            raise Exception("Empresa não encontrada")
+
+        sdk = PaymentService._get_platform_sdk()
+
+        payment_data = {
+            "transaction_amount": float(data.get("amount", 29.90)),
+            "description": data.get("description", "Assinatura Kromis"),
+            "token": data["token"],
+            "installments": int(data.get("installments", 1)),
+            "external_reference": f"company_{company.id}",
+            "payer": {
+                "email": data["email"],
+                "identification": {                 
+                    "type": data.get("doc_type", "CPF"), 
+                    "number": data.get("doc_number")    
+                }
+            }
+        }
+
+        # Configura cabeçalhos de antifraude específicos do Mercado Pago para a Assinatura
+        request_options = None
+        device_id = data.get("device_id") or data.get("deviceId")
+        if device_id:
+            # CORREÇÃO: Instancia vazio e atribui os custom_headers manualmente para evitar erros de construtor
+            request_options = RequestOptions()
+            request_options.custom_headers = {
+                "X-Melidata-Session-Id": str(device_id)
+            }
+
+        # Cria a transação enviando os cabeçalhos de antifraude nas opções adicionais
+        response = sdk.payment().create(payment_data, request_options)
+        payment = response.get("response", {})
+
+        if response.get("status", 200) >= 400 or not payment:
+            error_detail = payment.get("message") or "Erro ao processar assinatura com cartão"
+            raise Exception(error_detail)
+
+        payment_id = payment.get("id")
+        company.mercado_pago_payment_id = str(payment_id)
+        db.session.commit()
+
+        return {
+            "message": "Assinatura via cartão processada",
+            "payment_id": payment_id,
+            "status": payment.get("status"),
+            "status_detail": payment.get("status_detail")
+        }
+
+
+# =========================================================
+    # VENDA DE PRODUTOS DA EMPRESA (VIA CARTÃO DE CRÉDITO)
+    # =========================================================
+    @staticmethod
+    def create_company_card_payment(data):
+        """
+        Gera uma cobrança via Cartão de Crédito na conta do cliente parceiro (Marketplace),
+        utilizando o SDK específico da empresa (vendedor).
+        """
+        try:
+            company_id = data.get("company_id")
+            if not company_id:
+                raise Exception("company_id é obrigatório para cobrança de empresa")
+
+            # Busca o SDK autenticado com as credenciais da empresa dona do produto
+            sdk = PaymentService._get_company_sdk(company_id)
+
+            # Estrutura a requisição exigida pelo Mercado Pago
+            payment_request = {
+                "transaction_amount": float(data["amount"]),
+                "token": data["token"],  # Token seguro gerado pelo frontend
+                "description": data.get("description", "Venda de Produto - Kromis"),
+                "installments": int(data.get("installments", 1)),
+                "payment_method_id": data.get("payment_method_id"),  # ex: "visa", "master"
+                "notification_url": "https://agendapro-z63z.onrender.com/webhook/mercadopago",
+                "payer": {
+                    "email": data["email"],
+                    "identification": {
+                        "type": data.get("doc_type", "CPF"),
+                        "number": data.get("doc_number")
+                    }
+                },
+                "external_reference": data.get("external_reference") or f"sale_{data.get('sale_record_id')}",
+            }
+
+            # Configura cabeçalhos personalizados de antifraude (Melidata Device ID)
+            request_options = None
+            device_id = data.get("device_id") or data.get("deviceId")
+            if device_id:
+                request_options = RequestOptions()
+                request_options.custom_headers = {
+                    "X-Melidata-Session-Id": str(device_id)
+                }
+
+            # Envia a cobrança para o Mercado Pago usando a conta da empresa correspondente
+            payment_response = sdk.payment().create(payment_request, request_options)
+            payment = payment_response.get("response", {})
+
+            # Trata erros retornados pela API do Mercado Pago
+            if payment_response.get("status", 200) >= 400 or not payment:
+                error_detail = payment.get("message") or payment.get("description") or "Erro ao processar pagamento com cartão"
+                raise Exception(f"Mercado Pago Card Error: {error_detail}")
+
+            return {
+                "payment_id": payment.get("id"),
+                "status": payment.get("status"),         # "approved", "in_process", "rejected"
+                "status_detail": payment.get("status_detail")  # ex: "accredited"
+            }
+
+        except Exception as e:
+            print("ERRO NO PAYMENT_SERVICE (CARTÃO DA EMPRESA):", str(e))
+            raise e

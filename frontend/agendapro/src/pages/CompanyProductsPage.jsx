@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Plus, X, Loader2 } from "lucide-react";
+import { Plus, X, Loader2, CreditCard, QrCode } from "lucide-react";
 import { useParams } from "react-router-dom";
 
 import {
@@ -26,6 +26,23 @@ export default function CompanyProductsPage() {
 
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
+
+  // Estados para Cartão de Crédito
+  const [paymentMethod, setPaymentMethod] = useState("pix");
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardMonth, setCardMonth] = useState("");
+  const [cardYear, setCardYear] = useState("");
+  const [cardCVV, setCardCVV] = useState("");
+  const [cardHolderName, setCardHolderName] = useState("");
+  const [installments, setInstallments] = useState(1);
+  const [docNumber, setDocNumber] = useState("");
+
+  // Novos estados para parcelamento dinâmico
+  const [dynamicInstallments, setDynamicInstallments] = useState([]);
+  const [paymentMethodId, setPaymentMethodId] = useState("");
+  const [issuerId, setIssuerId] = useState("");
+
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [pixData, setPixData] = useState(null);
   const [showPixModal, setShowPixModal] = useState(false);
@@ -33,6 +50,20 @@ export default function CompanyProductsPage() {
 
   const [expandedDescriptions, setExpandedDescriptions] = useState({});
 
+  // 1. PRIMEIRO DECLARAMOS OS VALORES COMPUTADOS
+  const cartCount = useMemo(() => {
+    return cart.reduce((acc, item) => acc + (item.quantity || 1), 0);
+  }, [cart]);
+
+  const total = useMemo(() => {
+    return cart.reduce((acc, item) => {
+      const valueString = String(item.value || "0").replace(",", ".");
+      const cleanValue = parseFloat(valueString) || 0;
+      return acc + cleanValue * (item.quantity || 1);
+    }, 0);
+  }, [cart]);
+
+  // 2. AGORA DECLARAMOS OS USEEFFECTS
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -65,6 +96,7 @@ export default function CompanyProductsPage() {
     loadData();
   }, [slug]);
 
+  // Polling do Pix
   useEffect(() => {
     if (!showPixModal || !pixData?.orderId) return;
 
@@ -81,6 +113,7 @@ export default function CompanyProductsPage() {
           setCart([]);
           setCustomerName("");
           setCustomerPhone("");
+          setCustomerEmail("");
           setPixData(null);
         }
       } catch (err) {
@@ -91,6 +124,67 @@ export default function CompanyProductsPage() {
     return () => clearInterval(interval);
   }, [showPixModal, pixData]);
 
+  // Hook para monitorar os primeiros dígitos do cartão e buscar o parcelamento real no Mercado Pago
+  useEffect(() => {
+    if (
+      paymentMethod !== "card" ||
+      cardNumber.length < 6 ||
+      !total ||
+      total <= 0
+    ) {
+      setDynamicInstallments([]);
+      return;
+    }
+
+    const getInstallmentsList = async () => {
+      try {
+        if (typeof window.MercadoPago === "undefined") return;
+
+        const publicKey = import.meta.env.VITE_MP_PUBLIC_KEY;
+        if (!publicKey) {
+          console.warn(
+            "Chave pública do Mercado Pago (VITE_MP_PUBLIC_KEY) não encontrada."
+          );
+          return;
+        }
+
+        const mp = new window.MercadoPago(publicKey);
+        if (!mp) return;
+
+        const bin = cardNumber.substring(0, 6);
+
+        // 1. Descobre qual é a bandeira e os dados de emissão do cartão com base no BIN
+        const paymentMethodsData = await mp.getPaymentMethods({ bin });
+
+        if (paymentMethodsData && paymentMethodsData.results?.length > 0) {
+          const pmId = paymentMethodsData.results[0].id;
+          setPaymentMethodId(pmId);
+
+          // 2. Busca as regras de parcelamento direto na conta do Mercado Pago para este cartão e valor
+          const installmentsData = await mp.getInstallments({
+            amount: total.toFixed(2),
+            bin,
+            paymentTypeId: "credit_card",
+          });
+
+          if (installmentsData && installmentsData.length > 0) {
+            setIssuerId(installmentsData[0].issuer.id);
+            setDynamicInstallments(installmentsData[0].payer_costs || []);
+          }
+        }
+      } catch (err) {
+        console.error("Erro ao obter parcelas do Mercado Pago:", err);
+      }
+    };
+
+    const timer = setTimeout(() => {
+      getInstallmentsList();
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [cardNumber, paymentMethod, total]);
+
+  // 3. FUNÇÕES DE MANIPULAÇÃO
   const addToCart = (product) => {
     setCart((prev) => {
       const exists = prev.find((p) => p.id === product.id);
@@ -123,17 +217,6 @@ export default function CompanyProductsPage() {
     });
   };
 
-  const cartCount = useMemo(() => {
-    return cart.reduce((acc, item) => acc + (item.quantity || 1), 0);
-  }, [cart]);
-
-  const total = useMemo(() => {
-    return cart.reduce(
-      (acc, item) => acc + Number(item.value || 0) * (item.quantity || 1),
-      0
-    );
-  }, [cart]);
-
   const openCheckout = () => {
     if (!cart.length) {
       setError("Carrinho vazio");
@@ -150,6 +233,48 @@ export default function CompanyProductsPage() {
       ...prev,
       [id]: !prev[id],
     }));
+  };
+
+  const getCardToken = async (mp) => {
+    try {
+      if (
+        !cardNumber ||
+        !cardMonth ||
+        !cardYear ||
+        !cardCVV ||
+        !cardHolderName ||
+        !docNumber
+      ) {
+        throw new Error("Preencha todos os dados do cartão e do titular");
+      }
+
+      const documentType = docNumber.length > 11 ? "CNPJ" : "CPF";
+
+      // Usando o método nativo e correto do SDK v2
+      const tokenResponse = await mp.createCardToken({
+        cardNumber: cardNumber.replace(/\s/g, ""),
+        cardholderName: cardHolderName.trim(),
+        cardExpirationMonth: cardMonth.padStart(2, "0"),
+        cardExpirationYear: cardYear.length === 2 ? `20${cardYear}` : cardYear,
+        securityCode: cardCVV.replace(/\D/g, ""),
+        identificationType: documentType,
+        identificationNumber: docNumber.replace(/\D/g, ""),
+      });
+
+      if (!tokenResponse || !tokenResponse.id) {
+        throw new Error("Não foi possível gerar o token do cartão de crédito.");
+      }
+
+      console.log("Token Gerado via SDK v2:", tokenResponse.id);
+      return tokenResponse.id;
+    } catch (error) {
+      console.error("Erro ao gerar token do cartão:", error);
+      const errorMsg =
+        error?.cause?.[0]?.description ||
+        error.message ||
+        "Dados do cartão inválidos";
+      throw new Error(errorMsg);
+    }
   };
 
   const handleCheckout = async () => {
@@ -169,35 +294,90 @@ export default function CompanyProductsPage() {
       setCheckoutLoading(true);
       setError("");
 
+      const documentType = docNumber.length > 11 ? "CNPJ" : "CPF";
+
       const payload = {
         company_id: company.id,
-        amount: total,
-        items: cart.map((item) => ({
-          product_id: item.id,
-          quantity: item.quantity || 1,
-        })),
+        amount: parseFloat(total.toFixed(2)),
+        items: cart.map((item) => {
+          const itemValueString = String(item.value || "0").replace(",", ".");
+          return {
+            product_id: item.id,
+            quantity: item.quantity || 1,
+            price: parseFloat(parseFloat(itemValueString).toFixed(2)),
+          };
+        }),
         customer_name: customerName,
         phone: customerPhone,
-        payment_method: "pix",
+        payment_method: paymentMethod,
       };
+
+      if (paymentMethod === "card") {
+        if (!customerEmail) {
+          return setError("E-mail é obrigatório para pagamento com cartão");
+        }
+
+        if (typeof window.MercadoPago === "undefined") {
+          throw new Error("SDK do Mercado Pago não carregado.");
+        }
+
+        const mp = new window.MercadoPago(import.meta.env.VITE_MP_PUBLIC_KEY);
+        if (!mp) {
+          throw new Error("Erro ao carregar SDK do Mercado Pago");
+        }
+
+        const cardToken = await getCardToken(mp);
+
+        payload.email = customerEmail;
+        payload.card_token = cardToken;
+        payload.doc_number = docNumber;
+        payload.doc_type = documentType;
+        payload.installments = installments;
+        payload.payment_method_id = paymentMethodId;
+        payload.issuer_id = issuerId;
+        payload.description = `Compra na loja ${company.name} no Kromis`;
+      }
 
       const res = await createSale(payload);
 
-      console.log("PIX RESPONSE:", res);
+      console.log("CHECKOUT RESPONSE:", res);
 
-      if (!res?.pix_code) {
-        throw new Error("PIX não gerado");
+      if (paymentMethod === "card") {
+        // AJUSTE: Passou a aceitar "approved", "paid" ou "accredited" como confirmações válidas
+        if (
+          res.status === "approved" ||
+          res.status === "paid" ||
+          res.status === "accredited"
+        ) {
+          setPaymentConfirmed(true);
+          setCart([]);
+          setShowCustomerModal(false);
+        } else if (res.status === "in_process") {
+          setError(
+            "Pagamento em análise pelo Mercado Pago. Você receberá um e-mail com a confirmação."
+          );
+        } else {
+          setError(
+            `Pagamento recusado: ${
+              res.status_detail || "Verifique os dados do cartão."
+            }`
+          );
+        }
+      } else {
+        if (!res?.pix_code) {
+          throw new Error("PIX não gerado");
+        }
+
+        setPixData({
+          pixCode: res.pix_code,
+          qrCodeBase64: res.qr_code_base64,
+          paymentId: res.payment_id,
+          orderId: res.order_id,
+        });
+
+        setShowCustomerModal(false);
+        setShowPixModal(true);
       }
-
-      setPixData({
-        pixCode: res.pix_code,
-        qrCodeBase64: res.qr_code_base64,
-        paymentId: res.payment_id,
-        orderId: res.order_id,
-      });
-
-      setShowCustomerModal(false);
-      setShowPixModal(true);
     } catch (err) {
       console.error(err);
 
@@ -287,7 +467,9 @@ export default function CompanyProductsPage() {
                 <div className="flex flex-col gap-1.5 mt-auto">
                   <span className="text-[11px] sm:text-xs font-bold text-[var(--primary)] truncate">
                     R${" "}
-                    {Number(product.value || 0).toLocaleString("pt-BR", {
+                    {Number(
+                      String(product.value || 0).replace(",", ".")
+                    ).toLocaleString("pt-BR", {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })}
@@ -333,46 +515,51 @@ export default function CompanyProductsPage() {
                   Seu carrinho está vazio
                 </p>
               ) : (
-                cart.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex gap-3 bg-white/5 p-2.5 rounded-xl border border-white/5"
-                  >
-                    <img
-                      src={item.image_url}
-                      className="w-12 h-12 rounded-lg object-cover bg-black/20 shrink-0"
-                      alt={item.name}
-                    />
+                cart.map((item) => {
+                  const cleanItemValue = parseFloat(
+                    String(item.value || "0").replace(",", ".")
+                  );
+                  return (
+                    <div
+                      key={item.id}
+                      className="flex gap-3 bg-white/5 p-2.5 rounded-xl border border-white/5"
+                    >
+                      <img
+                        src={item.image_url}
+                        className="w-12 h-12 rounded-lg object-cover bg-black/20 shrink-0"
+                        alt={item.name}
+                      />
 
-                    <div className="flex-1 min-w-0 flex flex-col justify-between">
-                      <p className="text-xs font-medium text-white/90 truncate">
-                        {item.name}
-                      </p>
-                      <p className="text-[11px] font-semibold text-[var(--primary)]">
-                        R${" "}
-                        {(Number(item.value || 0) * item.quantity).toFixed(2)}
-                      </p>
+                      <div className="flex-1 min-w-0 flex flex-col justify-between">
+                        <p className="text-xs font-medium text-white/90 truncate">
+                          {item.name}
+                        </p>
+                        <p className="text-[11px] font-semibold text-[var(--primary)]">
+                          R${" "}
+                          {(cleanItemValue * (item.quantity || 1)).toFixed(2)}
+                        </p>
 
-                      <div className="flex gap-3 mt-1 items-center bg-black/20 w-fit px-2 py-0.5 rounded-lg border border-white/5 text-xs">
-                        <button
-                          className="text-white/50 hover:text-white"
-                          onClick={() => removeFromCart(item.id)}
-                        >
-                          -
-                        </button>
-                        <span className="font-bold text-[11px]">
-                          {item.quantity}
-                        </span>
-                        <button
-                          className="text-white/50 hover:text-white"
-                          onClick={() => addToCart(item)}
-                        >
-                          +
-                        </button>
+                        <div className="flex gap-3 mt-1 items-center bg-black/20 w-fit px-2 py-0.5 rounded-lg border border-white/5 text-xs">
+                          <button
+                            className="text-white/50 hover:text-white"
+                            onClick={() => removeFromCart(item.id)}
+                          >
+                            -
+                          </button>
+                          <span className="font-bold text-[11px]">
+                            {item.quantity}
+                          </span>
+                          <button
+                            className="text-white/50 hover:text-white"
+                            onClick={() => addToCart(item)}
+                          >
+                            +
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
 
@@ -397,40 +584,206 @@ export default function CompanyProductsPage() {
 
       {showCustomerModal && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[999] p-4 transform-gpu">
-          <div className="bg-[#0d0f14] p-5 rounded-2xl w-full max-w-sm border border-white/10 shadow-2xl">
-            <h2 className="text-base font-bold mb-3">Seus dados</h2>
+          <div className="bg-[#0d0f14] p-5 rounded-2xl w-full max-w-md border border-white/10 shadow-2xl overflow-y-auto max-h-[90vh] custom-scrollbar">
+            <h2 className="text-base font-bold mb-3">Dados e Pagamento</h2>
 
             <div className="space-y-3">
               <input
                 className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
-                placeholder="Nome"
+                placeholder="Nome completo"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
               />
 
-              <input
-                className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
-                placeholder="Telefone"
-                value={customerPhone}
-                onChange={(e) => setCustomerPhone(e.target.value)}
-              />
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
+                  placeholder="Telefone (WhatsApp)"
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                />
+                <input
+                  className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
+                  placeholder="E-mail"
+                  type="email"
+                  value={customerEmail}
+                  onChange={(e) => setCustomerEmail(e.target.value)}
+                />
+              </div>
             </div>
 
-            {error && <p className="text-red-400 text-[11px] mt-2">{error}</p>}
+            <div className="mt-4">
+              <p className="text-xs text-white/60 mb-2">
+                Selecione o método de pagamento:
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setPaymentMethod("pix")}
+                  className={`h-12 flex flex-col items-center justify-center border rounded-xl gap-1 transition-all ${
+                    paymentMethod === "pix"
+                      ? "border-[var(--primary)] bg-[var(--primary)]/10"
+                      : "border-white/5 bg-white/5 hover:border-white/10"
+                  }`}
+                >
+                  <QrCode
+                    size={18}
+                    className={
+                      paymentMethod === "pix"
+                        ? "text-[var(--primary)]"
+                        : "text-white/60"
+                    }
+                  />
+                  <span className="text-[10px] font-semibold">PIX</span>
+                </button>
+                <button
+                  onClick={() => setPaymentMethod("card")}
+                  className={`h-12 flex flex-col items-center justify-center border rounded-xl gap-1 transition-all ${
+                    paymentMethod === "card"
+                      ? "border-[var(--primary)] bg-[var(--primary)]/10"
+                      : "border-white/5 bg-white/5 hover:border-white/10"
+                  }`}
+                >
+                  <CreditCard
+                    size={18}
+                    className={
+                      paymentMethod === "card"
+                        ? "text-[var(--primary)]"
+                        : "text-white/60"
+                    }
+                  />
+                  <span className="text-[10px] font-semibold">
+                    Cartão de Crédito
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {paymentMethod === "card" && (
+              <div className="mt-4 space-y-2.5 border-t border-white/5 pt-4">
+                <input
+                  className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
+                  placeholder="Nome como está no cartão"
+                  value={cardHolderName}
+                  onChange={(e) =>
+                    setCardHolderName(e.target.value.toUpperCase())
+                  }
+                />
+                <input
+                  className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
+                  placeholder="Número do cartão (só números)"
+                  type="tel"
+                  maxLength={16}
+                  value={cardNumber}
+                  onChange={(e) =>
+                    setCardNumber(e.target.value.replace(/\D/g, ""))
+                  }
+                />
+                <div className="grid grid-cols-3 gap-2">
+                  <input
+                    className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
+                    placeholder="Mês (MM)"
+                    type="tel"
+                    maxLength={2}
+                    value={cardMonth}
+                    onChange={(e) =>
+                      setCardMonth(e.target.value.replace(/\D/g, ""))
+                    }
+                  />
+                  <input
+                    className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
+                    placeholder="Ano (AAAA)"
+                    type="tel"
+                    maxLength={4}
+                    value={cardYear}
+                    onChange={(e) =>
+                      setCardYear(e.target.value.replace(/\D/g, ""))
+                    }
+                  />
+                  <input
+                    className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
+                    placeholder="CVV"
+                    type="tel"
+                    maxLength={4}
+                    value={cardCVV}
+                    onChange={(e) =>
+                      setCardCVV(e.target.value.replace(/\D/g, ""))
+                    }
+                  />
+                </div>
+
+                {/* Campo de CPF/CNPJ ocupando a linha inteira */}
+                <input
+                  className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
+                  placeholder="CPF/CNPJ do Titular"
+                  type="tel"
+                  maxLength={14}
+                  value={docNumber}
+                  onChange={(e) =>
+                    setDocNumber(e.target.value.replace(/\D/g, ""))
+                  }
+                />
+
+                {/* Seletor de parcelas condicional: só aparece quando o usuário digita no campo do cartão */}
+                {cardNumber.length > 0 && (
+                  <div className="space-y-1.5 animate-fadeIn">
+                    <label className="text-[10px] text-white/50 px-1">
+                      Quantidade de parcelas:
+                    </label>
+                    <select
+                      value={installments}
+                      onChange={(e) => setInstallments(Number(e.target.value))}
+                      className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all text-white/90 appearance-none cursor-pointer"
+                    >
+                      {dynamicInstallments.length === 0 ? (
+                        <option
+                          className="bg-[#0d0f14] text-white py-2"
+                          value={1}
+                        >
+                          1x de R$ {total.toFixed(2)} (Sem juros)
+                        </option>
+                      ) : (
+                        dynamicInstallments.map((installment) => (
+                          <option
+                            key={installment.installments}
+                            value={installment.installments}
+                            className="bg-[#0d0f14] text-white py-2"
+                          >
+                            {installment.recommended_message}
+                          </option>
+                        ))
+                      )}
+                    </select>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {error && (
+              <p className="text-red-400 text-[11px] mt-2 bg-red-950/20 p-2 rounded-lg border border-red-800/30">
+                {error}
+              </p>
+            )}
 
             <div className="grid grid-cols-2 gap-2 mt-4">
               <button
                 onClick={() => setShowCustomerModal(false)}
-                className="h-10 border border-white/10 rounded-xl text-xs font-semibold"
+                className="h-10 border border-white/10 rounded-xl text-xs font-semibold hover:bg-white/5 transition-all"
               >
                 Cancelar
               </button>
               <button
                 disabled={checkoutLoading}
                 onClick={handleCheckout}
-                className="h-10 bg-[var(--primary)] rounded-xl text-xs font-bold hover:opacity-90 disabled:opacity-50"
+                className="h-10 bg-[var(--primary)] rounded-xl text-xs font-bold hover:opacity-90 disabled:opacity-50 transition-all flex items-center justify-center"
               >
-                {checkoutLoading ? "Processando..." : "Comprar"}
+                {checkoutLoading ? (
+                  <>
+                    <Loader2 className="animate-spin mr-1.5" size={12} />
+                    Processando...
+                  </>
+                ) : (
+                  `Pagar R$ ${total.toFixed(2)}`
+                )}
               </button>
             </div>
           </div>
@@ -444,15 +797,15 @@ export default function CompanyProductsPage() {
 
             <h2 className="text-xl font-bold">Pagamento confirmado!</h2>
 
-            <p className="text-white/60 mt-3 text-sm">
-              Recebemos seu pagamento com sucesso.
+            <p className="text-white/60 mt-3 text-sm leading-relaxed">
+              Recebemos seu pagamento com sucesso no Kromis.
               <br />
-              Seu pedido foi confirmado e enviado para a empresa.
+              Seu pedido foi confirmado e enviado para a empresa parceira.
             </p>
 
             <button
               onClick={() => setPaymentConfirmed(false)}
-              className="w-full mt-6 h-11 rounded-xl bg-[var(--primary)] font-bold"
+              className="w-full mt-6 h-11 rounded-xl bg-[var(--primary)] font-bold hover:opacity-90 transition-all"
             >
               Fechar
             </button>
@@ -477,7 +830,7 @@ export default function CompanyProductsPage() {
               readOnly
               value={pixData.pixCode}
               rows={3}
-              className="w-full p-2.5 rounded-xl bg-white/5 text-[10px] resize-none outline-none border border-white/5 text-white/60 select-all"
+              className="w-full p-2.5 rounded-xl bg-white/5 text-[10px] resize-none outline-none border border-white/5 text-white/60 select-all custom-scrollbar"
             />
 
             <button
@@ -486,14 +839,14 @@ export default function CompanyProductsPage() {
                 setToast("Código PIX copiado!");
                 setTimeout(() => setToast(""), 2000);
               }}
-              className="w-full mt-3 h-10 rounded-xl font-bold bg-[var(--primary)] text-xs hover:opacity-90"
+              className="w-full mt-3 h-10 rounded-xl font-bold bg-[var(--primary)] text-xs hover:opacity-90 transition-all"
             >
               Copiar código PIX
             </button>
 
             <button
               onClick={() => setShowPixModal(false)}
-              className="w-full mt-2 h-10 rounded-xl border border-white/10 text-xs font-semibold text-white/60"
+              className="w-full mt-2 h-10 rounded-xl border border-white/10 text-xs font-semibold text-white/60 hover:bg-white/5 transition-all"
             >
               Fechar
             </button>

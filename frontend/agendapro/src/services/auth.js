@@ -52,7 +52,7 @@ export const loginService = async (credentials) => {
 };
 
 // =========================================================
-// REGISTER
+// REGISTER (Configurado com deviceId para Antifraude)
 // =========================================================
 export const registerService = async (payload) => {
   const response = await fetch(`${API_URL}/auth/register`, {
@@ -68,6 +68,12 @@ export const registerService = async (payload) => {
       email: payload.email.trim(),
       password: payload.password,
       logo: payload.logo,
+      cardToken: payload.cardToken,
+      deviceId: payload.deviceId, // <--- ADICIONE ESTA LINHA AQUI!
+      installments: payload.installments,
+      description: payload.description,
+      docType: payload.docType,
+      docNumber: payload.docNumber,
     }),
   });
 
@@ -83,7 +89,7 @@ export const registerService = async (payload) => {
 };
 
 // =========================================================
-// PARSE RESPONSE (ROBUSTO)
+// PARSE RESPONSE (ROBUSTO) - ESSA FUNÇÃO RESOLVE O SEU ERRO!
 // =========================================================
 const parseResponse = async (response) => {
   const contentType = response.headers.get("content-type");

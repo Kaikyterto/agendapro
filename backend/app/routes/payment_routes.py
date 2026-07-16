@@ -8,13 +8,23 @@ payment_bp = Blueprint(
 )
 
 # =========================================================
-# PIX DA PLATAFORMA (ASSINATURA DO SAAS)
+# PIX DA PLATAFORMA (ASSINATURA DO KROMIS)
 # =========================================================
 payment_bp.route(
     "/payments/pix",
     methods=["POST"]
 )(
     PaymentController.create_platform_pix_payment
+)
+
+# =========================================================
+# CARTÃO DA PLATAFORMA (ASSINATURA DO KROMIS)
+# =========================================================
+payment_bp.route(
+    "/payments/card",
+    methods=["POST"]
+)(
+    PaymentController.create_platform_card_payment
 )
 
 # =========================================================

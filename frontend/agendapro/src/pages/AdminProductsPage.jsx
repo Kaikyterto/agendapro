@@ -12,6 +12,8 @@ import {
   Boxes,
   Loader2,
   Image as ImageIcon,
+  CreditCard,
+  QrCode,
 } from "lucide-react";
 
 import Button from "../components/Button";
@@ -23,6 +25,10 @@ import {
   deleteProduct,
   getProductsDashboard,
 } from "../services/products";
+
+// Configurações de Taxas do Mercado Pago (ajuste conforme o seu plano de recebimento)
+const PIX_FEE_PERCENT = 0.99; // Taxa de ~1% do Pix
+const CARD_FEE_PERCENT = 4.99; // Taxa média de crédito na hora do MP (ajustável)
 
 const initialForm = {
   name: "",
@@ -96,10 +102,8 @@ const AdminProductsPage = () => {
 
   // POLLING AUTOMÁTICO: Atualiza a lista e as métricas a cada 30 segundos
   useEffect(() => {
-    // Carregamento de tela cheia inicial
     loadData(false);
 
-    // Configura o pooling silencioso em background
     const interval = setInterval(() => {
       loadData(true);
     }, 30000);
@@ -157,6 +161,33 @@ const AdminProductsPage = () => {
     }));
   };
 
+  // CÁLCULOS DE SIMULAÇÃO DE TAXAS (Calculado em tempo de renderização)
+  const feeCalculations = useMemo(() => {
+    const rawValue = Number(form.value) || 0;
+    if (rawValue <= 0) return null;
+
+    // Cálculo Pix (Subtrai 1% do valor do produto)
+    const pixFeeValue = rawValue * (PIX_FEE_PERCENT / 100);
+    const pixNetValue = rawValue - pixFeeValue;
+
+    // Cálculo Cartão com REPASSE (Fórmula de cálculo por dentro)
+    // O cliente paga um valor maior para que o lojista receba o valor original cheio
+    const cardFinalValue = rawValue / (1 - CARD_FEE_PERCENT / 100);
+    const cardFeeValue = cardFinalValue - rawValue;
+
+    return {
+      pix: {
+        fee: pixFeeValue,
+        net: pixNetValue,
+      },
+      card: {
+        finalPrice: cardFinalValue,
+        fee: cardFeeValue,
+        net: rawValue, // Recebe o valor cheio original
+      },
+    };
+  }, [form.value]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -207,7 +238,6 @@ const AdminProductsPage = () => {
         setSuccess("Produto criado com sucesso!");
       }
 
-      // Força uma atualização imediata pós-salvamento
       await loadData(true);
 
       setTimeout(() => {
@@ -228,7 +258,6 @@ const AdminProductsPage = () => {
     try {
       await deleteProduct(id);
       setProducts((prev) => prev.filter((product) => product.id !== id));
-      // Opcional: Atualiza o painel de métricas após deleção silenciosamente
       loadData(true);
     } catch (err) {
       console.error(err);
@@ -273,7 +302,7 @@ const AdminProductsPage = () => {
           </Button>
         </div>
 
-        {/* DASHBOARD RESPONSIVO */}
+        {/* DASHBOARD */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
           <DashboardCard
             title="Faturamento"
@@ -309,7 +338,6 @@ const AdminProductsPage = () => {
         {/* SEARCH */}
         <div className="flex items-center gap-3 mb-8 bg-[#111827] border border-violet-500/10 rounded-3xl px-4 sm:px-5 h-14 sm:h-16 shadow-lg">
           <Search size={18} className="text-violet-300 shrink-0" />
-
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -504,6 +532,80 @@ const AdminProductsPage = () => {
                   </div>
                 </div>
 
+                {/* PAINEL DE TAXAS INTERATIVO (Exibe dinamicamente ao digitar o valor) */}
+                {feeCalculations && (
+                  <div className="rounded-2xl border border-violet-500/10 bg-[#111827] p-4 space-y-3">
+                    <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                      <span className="text-xs font-semibold text-violet-400 uppercase tracking-wider">
+                        Simulador de Recebíveis (Mercado Pago)
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {/* Simulação Pix */}
+                      <div className="bg-black/20 p-3 rounded-xl border border-emerald-500/10">
+                        <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm mb-1">
+                          <QrCode size={16} />
+                          <span>Venda por Pix</span>
+                        </div>
+                        <p className="text-xs text-white/50">
+                          Taxa de {PIX_FEE_PERCENT}%:{" "}
+                          <span className="text-red-400 font-medium">
+                            -R${" "}
+                            {feeCalculations.pix.fee
+                              .toFixed(2)
+                              .replace(".", ",")}
+                          </span>
+                        </p>
+                        <p className="text-xs font-bold text-white mt-1">
+                          Você recebe:{" "}
+                          <span className="text-emerald-400">
+                            R${" "}
+                            {feeCalculations.pix.net
+                              .toFixed(2)
+                              .replace(".", ",")}
+                          </span>
+                        </p>
+                      </div>
+
+                      {/* Simulação Crédito com Repasse */}
+                      <div className="bg-black/20 p-3 rounded-xl border border-indigo-500/10">
+                        <div className="flex items-center gap-2 text-indigo-400 font-bold text-sm mb-1">
+                          <CreditCard size={16} />
+                          <span>Venda por Cartão (Repasse)</span>
+                        </div>
+                        <p className="text-xs text-white/50">
+                          Preço final do cliente:{" "}
+                          <span className="text-indigo-300 font-semibold">
+                            R${" "}
+                            {feeCalculations.card.finalPrice
+                              .toFixed(2)
+                              .replace(".", ",")}
+                          </span>
+                        </p>
+                        <p className="text-xs text-white/50">
+                          Taxa de {CARD_FEE_PERCENT}%:{" "}
+                          <span className="text-red-400 font-medium">
+                            -R${" "}
+                            {feeCalculations.card.fee
+                              .toFixed(2)
+                              .replace(".", ",")}
+                          </span>
+                        </p>
+                        <p className="text-xs font-bold text-white mt-1">
+                          Você recebe:{" "}
+                          <span className="text-emerald-400">
+                            R${" "}
+                            {feeCalculations.card.net
+                              .toFixed(2)
+                              .replace(".", ",")}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {(previewUrl || form.image_url) && (
                   <div className="rounded-xl overflow-hidden border border-violet-500/20 max-h-40 w-full relative aspect-video bg-black/20 transform-gpu">
                     <img
@@ -523,7 +625,7 @@ const AdminProductsPage = () => {
                   <input
                     type="checkbox"
                     checked={form.active}
-                    onChange={(e) => handleChange("active", e.checked)}
+                    onChange={(e) => handleChange("active", e.target.checked)}
                     className="w-5 h-5 accent-violet-500 cursor-pointer"
                   />
                 </div>

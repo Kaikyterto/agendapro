@@ -131,7 +131,7 @@ class AuthController:
         }), 200
 
     # =========================================================
-    # REGISTER
+    # REGISTER (Pronto para Cartão e Pix com Antifraude)
     # =========================================================
     @staticmethod
     def register():
@@ -142,6 +142,11 @@ class AuthController:
         email = data.get("email")
         password = data.get("password")
         logo = data.get("logo")
+        
+        # Dados do pagamento via cartão e antifraude vindos do frontend
+        card_token = data.get("cardToken")
+        device_id = data.get("deviceId")  # <--- CAPTURA O DEVICE ID ENVIADO PELO FRONTEND
+        installments = data.get("installments", 1)
 
         if not company_name or not email or not password:
             return jsonify({
@@ -180,8 +185,6 @@ class AuthController:
             }), 400
 
         try:
-
-
             new_company = Company(
                 name=company_name,
                 slug=slug,
@@ -205,19 +208,40 @@ class AuthController:
             db.session.add(new_user)
 
             # =================================================
-            # PIX DA ASSINATURA
+            # PROCESSAMENTO DO PAGAMENTO (CARTÃO OU PIX)
             # =================================================
-            payment = (
-                PaymentService
-                .create_platform_pix_payment({
-                    "company_id": new_company.id,
-                    "amount": 29.90,
-                    "customer_name": company_name,
-                    "email": email,
-                    "description":
-                        "Assinatura AgendaPro"
-                })
-            )
+            if card_token:
+                # Se enviou cartão, cria o pagamento por cartão passando o device_id
+                payment = (
+                    PaymentService
+                    .create_platform_card_payment({
+                        "company_id": new_company.id,
+                        "amount": 29.90,
+                        "token": card_token,
+                        "deviceId": device_id,  # <--- REPASSA O DEVICE ID PARA O SERVIÇO DE PAGAMENTO
+                        "installments": installments,
+                        "email": email,
+                        "description": "Assinatura Kromis"
+                    })
+                )
+                
+                # Ativa o espaço se o pagamento retornar "approved" na resposta
+                if payment.get("status") == "approved":
+                    new_company.status = "active"
+                    from datetime import timedelta
+                    new_company.expires_at = datetime.utcnow() + timedelta(days=30)
+            else:
+                # Caso contrário, mantém o fallback gerando PIX
+                payment = (
+                    PaymentService
+                    .create_platform_pix_payment({
+                        "company_id": new_company.id,
+                        "amount": 29.90,
+                        "customer_name": company_name,
+                        "email": email,
+                        "description": "Assinatura Kromis"
+                    })
+                )
 
             new_company.mercado_pago_payment_id = str(
                 payment["payment_id"]
@@ -226,11 +250,8 @@ class AuthController:
             db.session.commit()
 
             return jsonify({
-                "msg":
-                    "Cadastro iniciado com sucesso",
-
+                "msg": "Cadastro realizado com sucesso",
                 "payment": payment,
-
                 "company": {
                     "id": new_company.id,
                     "name": new_company.name,
@@ -238,19 +259,15 @@ class AuthController:
                     "status": new_company.status,
                     "logo_url": new_company.logo_url
                 },
-
                 "user": {
                     "id": new_user.id,
                     "email": new_user.email,
-                    "company_id":
-                        new_user.company_id
+                    "company_id": new_user.company_id
                 }
             }), 201
 
         except Exception as e:
-
             db.session.rollback()
-
             return jsonify({
                 "msg": "Erro ao criar conta",
                 "error": str(e)
