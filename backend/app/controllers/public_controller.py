@@ -8,6 +8,8 @@ from app.models.worker import Worker
 from app.models.worker_schedule import WorkerSchedule
 from app.models.worker_service import WorkerService
 
+from zoneinfo import ZoneInfo
+
 
 class PublicController:
 
@@ -20,7 +22,7 @@ class PublicController:
     def generate_available_slots(company_id, worker, service, selected_date):
 
         try:
-            now = datetime.now()
+            now = datetime.now(ZoneInfo("America/Sao_Paulo")).replace(tzinfo=None)
 
             # =================================================
             # NÃO PERMITE DATAS PASSADAS
