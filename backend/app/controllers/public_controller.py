@@ -24,6 +24,10 @@ class PublicController:
         try:
             now = datetime.now(ZoneInfo("America/Sao_Paulo")).replace(tzinfo=None)
 
+            print("=" * 50)
+            print("NOW:", now)
+            print("SELECTED DATE:", selected_date)
+
             # =================================================
             # NÃO PERMITE DATAS PASSADAS
             # =================================================
