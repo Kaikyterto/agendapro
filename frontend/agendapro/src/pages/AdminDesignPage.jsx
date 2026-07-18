@@ -132,21 +132,18 @@ const AdminDesignPage = () => {
         }
       }
 
-      // AJUSTE AQUI: Formatando o payload combinando com a estrutura que a HomePage consome
       const payload = {
         name: form.name.trim(),
         about: form.about.trim(),
         logo_url: logoUrl || null,
-        colors: {
-          primary: form.primary_color,
-          secondary: form.secondary_color,
-          background: form.background_color,
-          text: form.text_color,
-        },
+        primary_color: form.primary_color,
+        secondary_color: form.secondary_color,
+        background_color: form.background_color,
+        text_color: form.text_color,
       };
 
       await updateDesignSettings(payload);
-      setSuccess("Identidade visual actualizada com sucesso!");
+      setSuccess("Identidade visual atualizada com sucesso!");
 
       setForm((prev) => ({ ...prev, logo_url: logoUrl }));
       setImageFile(null);
