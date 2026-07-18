@@ -225,7 +225,7 @@ class PublicController:
                 "image_url": p.image_url
             }
             for p in company.products
-            if p.is_active 
+            if p.active
         ]), 200
 
     # =====================================================

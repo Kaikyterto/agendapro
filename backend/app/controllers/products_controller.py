@@ -9,7 +9,7 @@ from app.models.sales_record import SalesRecord
 
 class ProductsController:
 
-    # =========================================================
+# =========================================================
     # LISTAR PRODUTOS
     # =========================================================
     @staticmethod
@@ -23,8 +23,10 @@ class ProductsController:
                     "error": "Empresa não identificada"
                 }), 401
 
+    
             products = Product.query.filter_by(
-                company_id=company_id
+                company_id=company_id,
+                active=True
             ).order_by(Product.id.desc()).all()
 
             response = []
