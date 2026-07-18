@@ -93,6 +93,9 @@ class PublicController:
                 base_start = datetime.combine(selected_date, ws.start_time)
                 base_end = datetime.combine(selected_date, ws.end_time)
 
+                print("BASE START:", base_start)
+                print("BASE END:", base_end)
+
                 current = base_start
 
                 while current + duration <= base_end:
