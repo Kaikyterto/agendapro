@@ -106,6 +106,7 @@ class PublicController:
                     # =================================================
                     # IGNORAR PASSADO (SÓ HOJE)
                     # =================================================
+                    print("TESTANDO SLOT:", slot_start)
                     if selected_date == now.date() and slot_start <= now:
                         current += slot_interval
                         continue
@@ -127,6 +128,15 @@ class PublicController:
                         })
 
                     current += slot_interval
+
+                    print("APPOINTMENTS:")
+                    for a in appointments:
+                        print(
+                            a.id,
+                            a.start_time,
+                            a.end_time,
+                            a.status
+                        )
 
             return available_slots
 
