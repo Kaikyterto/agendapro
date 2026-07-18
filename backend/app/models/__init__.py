@@ -9,3 +9,5 @@ from .service import Service
 from .worker import Worker
 from .worker_service import WorkerService
 from .worker_schedule import WorkerSchedule
+from .whatsappconfig import WhatsAppConfig
+from .whatsappaccount import WhatsAppAccount

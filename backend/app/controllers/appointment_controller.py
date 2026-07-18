@@ -9,12 +9,15 @@ from app.models.service import Service
 from app.models.worker import Worker
 from app.models.worker_schedule import WorkerSchedule
 
+from app.models.whatsappaccount import WhatsAppAccount
+from app.services.whatsapp_service import WhatsAppService
+
 
 class AppointmentController:
 
     SLOT_INTERVAL_MINUTES = 15
 
-    # =========================================================
+# =========================================================
     # CREATE APPOINTMENT
     # =========================================================
     @staticmethod
@@ -116,8 +119,10 @@ class AppointmentController:
             # =====================================================
             # CREATE SCHEDULE
             # =====================================================
+            final_company_id = worker.company_id or service.company_id
+
             schedule = Schedule(
-                company_id=worker.company_id or service.company_id,
+                company_id=final_company_id,
                 service_id=service.id,
                 worker_id=worker.id,
 
@@ -134,15 +139,46 @@ class AppointmentController:
             db.session.add(schedule)
             db.session.commit()
 
-            return jsonify({
-                "message": "Agendamento realizado com sucesso!",
-                "schedule": {
-                    "id": schedule.id,
-                    "start": schedule.start_time.isoformat(),
-                    "end": schedule.end_time.isoformat(),
-                    "status": schedule.status
-                }
-            }), 201
+            # =====================================================
+            # ENVIO DE MENSAGEM WHATSAPP
+            # =====================================================
+            try:
+                whatsapp = WhatsAppAccount.query.filter_by(
+                    company_id=final_company_id,
+                    is_connected=True
+                ).first()
+
+                if whatsapp:
+
+                    mensagem = (
+                        f"Olá, {customer_name}! 😊\n\n"
+                        f"Seu agendamento foi confirmado com sucesso!\n\n"
+                        f"📅 Data: {start_datetime_obj.strftime('%d/%m/%Y')}\n"
+                        f"⏰ Horário: {start_datetime_obj.strftime('%H:%M')}\n"
+                        f"💇 Serviço: {service.name}\n"
+                        f"👤 Profissional: {worker.name}"
+                    )
+
+                    if notes:
+                        mensagem += f"\n📝 Observações: {notes}"
+
+                    WhatsAppService(whatsapp).send_text(
+                        customer_phone,
+                        mensagem
+                    )
+
+            except Exception as e:
+                print(f"Erro ao enviar WhatsApp: {e}")
+
+                return jsonify({
+            "message": "Agendamento realizado com sucesso!",
+            "schedule": {
+                "id": schedule.id,
+                "start": schedule.start_time.isoformat(),
+                "end": schedule.end_time.isoformat(),
+                "status": schedule.status
+            }
+        }), 201
 
         except Exception as e:
             db.session.rollback()
@@ -150,7 +186,6 @@ class AppointmentController:
                 "error": "Erro ao criar agendamento",
                 "details": str(e)
             }), 500
-
     # =========================================================
     # LIST
     # =========================================================
