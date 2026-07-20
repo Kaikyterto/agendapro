@@ -28,10 +28,8 @@ class PublicController:
             if selected_date < now.date():
                 return []
 
-            # =================================================
-            # WEEKDAY (1 = segunda ... 7 = domingo)
-            # =================================================
-            weekday = selected_date.weekday() + 1
+
+            weekday = selected_date.weekday()
 
             # =================================================
             # VALIDAR VÍNCULO WORKER-SERVICE
