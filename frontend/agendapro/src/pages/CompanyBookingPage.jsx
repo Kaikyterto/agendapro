@@ -41,9 +41,14 @@ const CompanyBookingPage = () => {
 
   const [submitting, setSubmitting] = useState(false);
 
-  const [selectedDate, setSelectedDate] = useState(
-    new Date().toISOString().split("T")[0]
-  );
+  // CORREÇÃO 1: Inicializa com a data local do navegador, evitando virada de dia precoce pelo ISO UTC
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const d = new Date();
+    const ano = d.getFullYear();
+    const mes = String(d.getMonth() + 1).padStart(2, "0");
+    const dia = String(d.getDate()).padStart(2, "0");
+    return `${ano}-${mes}-${dia}`;
+  });
 
   const [showWorkersModal, setShowWorkersModal] = useState(false);
 
@@ -234,10 +239,17 @@ const CompanyBookingPage = () => {
     try {
       setSubmitting(true);
 
+      const rawDateTime = selectedSlot.datetime || selectedSlot.start;
+      // CORREÇÃO 2: Garante a remoção de 'Z' ou offsets residuais (+00:00) antes de enviar para a API
+      const cleanDateTime =
+        typeof rawDateTime === "string"
+          ? rawDateTime.replace(/Z|[-+]\d{2}:\d{2}$/g, "")
+          : rawDateTime;
+
       await createAppointment({
         service_id: selectedService.id,
         worker_id: selectedWorker.id,
-        start_datetime: selectedSlot.datetime || selectedSlot.start,
+        start_datetime: cleanDateTime,
         name: form.name.trim(),
         phone: form.phone.trim(),
         notes: form.notes?.trim() || null,
@@ -246,11 +258,7 @@ const CompanyBookingPage = () => {
       setSuccess("Agendamento realizado com sucesso!");
 
       setAvailableSlots((prev) =>
-        prev.filter(
-          (slot) =>
-            (slot.datetime || slot.start) !==
-            (selectedSlot.datetime || selectedSlot.start)
-        )
+        prev.filter((slot) => (slot.datetime || slot.start) !== rawDateTime)
       );
 
       setTimeout(() => {
