@@ -22,11 +22,7 @@ class PublicController:
     def generate_available_slots(company_id, worker, service, selected_date):
 
         try:
-            now = datetime.now(ZoneInfo("America/Sao_Paulo")).replace(tzinfo=None)
-
-            print("=" * 50)
-            print("NOW:", now)
-            print("SELECTED DATE:", selected_date)
+            now = datetime.now()
 
             # =================================================
             # NÃO PERMITE DATAS PASSADAS
@@ -37,7 +33,7 @@ class PublicController:
             # =================================================
             # WEEKDAY (1 = segunda ... 7 = domingo)
             # =================================================
-            weekday = selected_date.weekday() + 1
+            weekday = selected_date.weekday()
 
             # =================================================
             # VALIDAR VÍNCULO WORKER-SERVICE
@@ -93,9 +89,6 @@ class PublicController:
                 base_start = datetime.combine(selected_date, ws.start_time)
                 base_end = datetime.combine(selected_date, ws.end_time)
 
-                print("BASE START:", base_start)
-                print("BASE END:", base_end)
-
                 current = base_start
 
                 while current + duration <= base_end:
@@ -106,7 +99,6 @@ class PublicController:
                     # =================================================
                     # IGNORAR PASSADO (SÓ HOJE)
                     # =================================================
-                    print("TESTANDO SLOT:", slot_start)
                     if selected_date == now.date() and slot_start <= now:
                         current += slot_interval
                         continue
@@ -128,15 +120,6 @@ class PublicController:
                         })
 
                     current += slot_interval
-
-                    print("APPOINTMENTS:")
-                    for a in appointments:
-                        print(
-                            a.id,
-                            a.start_time,
-                            a.end_time,
-                            a.status
-                        )
 
             return available_slots
 

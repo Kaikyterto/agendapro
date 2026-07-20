@@ -65,11 +65,3 @@ class WorkerSchedule(db.Model):
             lazy=True
         )
     )
-
-    __table_args__ = (
-        db.UniqueConstraint(
-            "worker_id",
-            "weekday",
-            name="uq_worker_schedule_weekday"
-        ),
-    )
