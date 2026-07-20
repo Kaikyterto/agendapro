@@ -23,6 +23,10 @@ class PublicController:
 
         try:
             now = datetime.now()
+            print("======================================")
+            print("NOW:", now)
+            print("NOW DATE:", now.date())
+            print("======================================")
 
             # =================================================
             # NÃO PERMITE DATAS PASSADAS
@@ -30,9 +34,6 @@ class PublicController:
             if selected_date < now.date():
                 return []
 
-            # =================================================
-            # WEEKDAY (1 = segunda ... 7 = domingo)
-            # =================================================
             weekday = selected_date.weekday()
 
             # =================================================
@@ -45,6 +46,7 @@ class PublicController:
 
             if not worker_service:
                 return []
+            
 
             # =================================================
             # BUSCAR SCHEDULES DO WORKER
@@ -141,6 +143,7 @@ class PublicController:
                 return jsonify({"error": "date é obrigatório"}), 400
 
             selected_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+            print("SELECTED DATE:", selected_date)
 
             service = Service.query.filter_by(
                 id=service_id,
