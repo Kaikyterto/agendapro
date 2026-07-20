@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import pytz
 from sqlalchemy.orm import joinedload
 from flask import request, jsonify
 from flask_jwt_extended import get_jwt
@@ -41,9 +42,13 @@ class AppointmentController:
                 return jsonify({"error": "Nome e telefone são obrigatórios"}), 400
 
             try:
+                # Trata o sufixo Z e cria o objeto aware em UTC
                 start_datetime = start_datetime.replace("Z", "+00:00")
-                start_datetime_obj = datetime.fromisoformat(start_datetime)
-                start_datetime_obj = start_datetime_obj.replace(tzinfo=None)
+                utc_dt = datetime.fromisoformat(start_datetime)
+                
+                # Converte o fuso para o horário de Brasília e remove o tzinfo
+                fuso_brasil = pytz.timezone("America/Sao_Paulo")
+                start_datetime_obj = utc_dt.astimezone(fuso_brasil).replace(tzinfo=None)
             except ValueError:
                 return jsonify({"error": "Formato de data inválido"}), 400
 

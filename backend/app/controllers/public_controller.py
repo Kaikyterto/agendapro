@@ -20,7 +20,8 @@ class PublicController:
     def generate_available_slots(company_id, worker, service, selected_date):
 
         try:
-            now = datetime.now()
+            fuso_brasil = pytz.timezone("America/Sao_Paulo")
+            now = datetime.now(fuso_brasil).replace(tzinfo=None)
 
             # =================================================
             # NÃO PERMITE DATAS PASSADAS
