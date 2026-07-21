@@ -8,6 +8,8 @@ from app.models.worker import Worker
 from app.models.worker_schedule import WorkerSchedule
 from app.models.worker_service import WorkerService
 
+from zoneinfo import ZoneInfo
+
 
 class PublicController:
 
@@ -44,6 +46,7 @@ class PublicController:
 
             if not worker_service:
                 return []
+            
 
             # =================================================
             # BUSCAR SCHEDULES DO WORKER
@@ -140,6 +143,7 @@ class PublicController:
                 return jsonify({"error": "date é obrigatório"}), 400
 
             selected_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+            print("SELECTED DATE:", selected_date)
 
             service = Service.query.filter_by(
                 id=service_id,
