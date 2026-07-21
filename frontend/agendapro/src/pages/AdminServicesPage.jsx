@@ -350,16 +350,6 @@ const AdminServicesPage = () => {
                 </button>
               </div>
 
-              {/* AVISO AMIGÁVEL SOBRE CAMPOS OBRIGATÓRIOS */}
-              <div className="flex items-center gap-2 text-xs text-violet-400 bg-violet-500/10 border border-violet-500/20 p-3 rounded-xl mb-6">
-                <AlertCircle size={16} className="shrink-0" />
-                <span>
-                  Os campos marcados com{" "}
-                  <strong className="text-fuchsia-400">*</strong> são essenciais
-                  para cadastrar seu serviço.
-                </span>
-              </div>
-
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-white/70 ml-1">
