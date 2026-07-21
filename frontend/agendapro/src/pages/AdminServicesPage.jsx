@@ -11,6 +11,7 @@ import {
   DollarSign,
   Loader2,
   Image as ImageIcon,
+  AlertCircle, // Ícone importado para o aviso amigável
 } from "lucide-react";
 
 import Button from "../components/Button";
@@ -334,56 +335,97 @@ const AdminServicesPage = () => {
 
         {/* MODAL */}
         {openModal && (
-          <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4">
-            <div className="w-full max-w-2xl bg-[#0f172a] rounded-[32px] p-6">
-              <div className="flex justify-between mb-6">
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+            <div className="w-full max-w-2xl bg-[#0f172a] rounded-[32px] p-6 max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between mb-2">
                 <h2 className="text-2xl font-black">
                   {editingService ? "Editar Serviço" : "Novo Serviço"}
                 </h2>
 
-                <button onClick={handleCloseModal}>
+                <button
+                  onClick={handleCloseModal}
+                  className="text-white/70 hover:text-white"
+                >
                   <X />
                 </button>
               </div>
 
+              {/* AVISO AMIGÁVEL SOBRE CAMPOS OBRIGATÓRIOS */}
+              <div className="flex items-center gap-2 text-xs text-violet-400 bg-violet-500/10 border border-violet-500/20 p-3 rounded-xl mb-6">
+                <AlertCircle size={16} className="shrink-0" />
+                <span>
+                  Os campos marcados com{" "}
+                  <strong className="text-fuchsia-400">*</strong> são essenciais
+                  para cadastrar seu serviço.
+                </span>
+              </div>
+
               <form onSubmit={handleSubmit} className="space-y-4">
-                <input
-                  placeholder="Nome"
-                  value={form.name}
-                  onChange={(e) => handleChange("name", e.target.value)}
-                  className="w-full h-14 bg-[#111827] rounded-2xl px-4"
-                />
-
-                <textarea
-                  placeholder="Descrição"
-                  value={form.description}
-                  onChange={(e) => handleChange("description", e.target.value)}
-                  className="w-full h-28 bg-[#111827] rounded-2xl p-4"
-                />
-
-                <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-white/70 ml-1">
+                    Nome do Serviço <span className="text-fuchsia-400">*</span>
+                  </label>
                   <input
-                    type="number"
-                    placeholder="Duração (min)"
-                    value={form.duration}
-                    onChange={(e) => handleChange("duration", e.target.value)}
-                    className="h-14 bg-[#111827] rounded-2xl px-4"
-                  />
-
-                  <input
-                    type="number"
-                    placeholder="Valor"
-                    value={form.value}
-                    onChange={(e) => handleChange("value", e.target.value)}
-                    className="h-14 bg-[#111827] rounded-2xl px-4"
+                    placeholder="Ex: Corte de Cabelo Masculino"
+                    value={form.name}
+                    onChange={(e) => handleChange("name", e.target.value)}
+                    className="w-full h-14 bg-[#111827] border border-white/5 focus:border-violet-500/50 outline-none rounded-2xl px-4 transition-colors"
                   />
                 </div>
 
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setImageFile(e.target.files[0])}
-                />
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-white/70 ml-1">
+                    Descrição
+                  </label>
+                  <textarea
+                    placeholder="Conte um pouco mais sobre o que inclui este serviço..."
+                    value={form.description}
+                    onChange={(e) =>
+                      handleChange("description", e.target.value)
+                    }
+                    className="w-full h-28 bg-[#111827] border border-white/5 focus:border-violet-500/50 outline-none rounded-2xl p-4 transition-colors resize-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-white/70 ml-1">
+                      Duração (min) <span className="text-fuchsia-400">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="Ex: 45"
+                      value={form.duration}
+                      onChange={(e) => handleChange("duration", e.target.value)}
+                      className="w-full h-14 bg-[#111827] border border-white/5 focus:border-violet-500/50 outline-none rounded-2xl px-4 transition-colors"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-white/70 ml-1">
+                      Valor (R$) <span className="text-fuchsia-400">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="Ex: 50"
+                      value={form.value}
+                      onChange={(e) => handleChange("value", e.target.value)}
+                      className="w-full h-14 bg-[#111827] border border-white/5 focus:border-violet-500/50 outline-none rounded-2xl px-4 transition-colors"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-white/70 ml-1">
+                    Imagem de Capa
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setImageFile(e.target.files[0])}
+                    className="w-full text-sm text-white/60 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-violet-500/10 file:text-violet-300 hover:file:bg-violet-500/20 file:cursor-pointer cursor-pointer"
+                  />
+                </div>
 
                 {(imageFile || form.image_url) && (
                   <img
@@ -392,19 +434,27 @@ const AdminServicesPage = () => {
                         ? URL.createObjectURL(imageFile)
                         : form.image_url
                     }
-                    className="w-full h-52 object-cover rounded-2xl"
+                    className="w-full h-52 object-cover rounded-2xl border border-white/5"
                   />
                 )}
 
-                {error && <p className="text-red-400">{error}</p>}
-                {success && <p className="text-emerald-400">{success}</p>}
+                {error && (
+                  <p className="text-red-400 text-sm pl-1 font-medium">
+                    {error}
+                  </p>
+                )}
+                {success && (
+                  <p className="text-emerald-400 text-sm pl-1 font-medium">
+                    {success}
+                  </p>
+                )}
 
                 <Button
                   type="submit"
                   disabled={submitting || uploadingImage}
-                  className="w-full h-14 bg-gradient-to-r from-violet-500 to-fuchsia-500"
+                  className="w-full h-14 bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white font-bold rounded-2xl transition-opacity hover:opacity-90 disabled:opacity-50"
                 >
-                  {submitting ? "Salvando..." : "Salvar"}
+                  {submitting ? "Salvando..." : "Salvar Serviço"}
                 </Button>
               </form>
             </div>
