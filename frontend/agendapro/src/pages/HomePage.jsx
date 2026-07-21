@@ -9,6 +9,11 @@ import Nav from "../components/Nav";
 import { setupPWA } from "../utils/pwa";
 import { usePWAInstall } from "../hooks/usePWAInstall";
 
+import {
+  solicitarPermissaoDeNotificacao,
+  ouvirMensagensEmPrimeiroPlano,
+} from "../services/notificationService";
+
 const HomePage = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
@@ -29,6 +34,10 @@ const HomePage = () => {
 
         if (data) {
           setupPWA(data);
+
+          // ATIVAÇÃO DAS NOTIFICAÇÕES APÓS CARREGAR A EMPRESA
+          solicitarPermissaoDeNotificacao();
+          ouvirMensagensEmPrimeiroPlano();
         }
 
         if (data?.colors) {
@@ -173,18 +182,15 @@ const HomePage = () => {
             </div>
           </div>
 
-          {/* RIGHT COLUMN - HERO LOGO SHOWCASE (Ocupa 5 colunas no desktop) */}
+          {/* RIGHT COLUMN - HERO LOGO SHOWCASE */}
           <div className="lg:col-span-5 flex justify-center lg:justify-end order-1 lg:order-2">
             <div className="relative w-full max-w-[280px] sm:max-w-[340px] aspect-square flex items-center justify-center group">
-              {/* Glow Dinâmico de Fundo */}
               <div
                 className="absolute inset-0 blur-[80px] opacity-35 group-hover:opacity-50 transition-opacity duration-700 rounded-full"
                 style={{ backgroundColor: "var(--primary)" }}
               />
 
-              {/* Moldura Premium com efeito Glassmorphism */}
               <div className="absolute inset-0 bg-gradient-to-b from-white/[0.07] to-transparent border border-white/[0.08] backdrop-blur-xl rounded-[40px] sm:rounded-[48px] shadow-2xl p-8 flex items-center justify-center transform transition-transform duration-500 group-hover:scale-[1.02]">
-                {/* Container Interno da Logo */}
                 <div className="w-full h-full flex items-center justify-center">
                   {company?.logo ? (
                     <img
@@ -193,7 +199,6 @@ const HomePage = () => {
                       className="max-w-full max-h-full object-contain filter drop-shadow-[0_8px_24px_rgba(0,0,0,0.5)] transform transition-transform duration-500 group-hover:scale-105"
                     />
                   ) : (
-                    // Caso a empresa não tenha logo configurada, exibe uma inicial estilizada elegante
                     <div
                       className="w-24 h-24 sm:w-32 sm:h-32 rounded-3xl flex items-center justify-center text-4xl sm:text-5xl font-black shadow-inner"
                       style={{

@@ -14,6 +14,11 @@ import {
   ReceiptText,
 } from "lucide-react";
 
+import {
+  solicitarPermissaoDeNotificacao,
+  ouvirMensagensEmPrimeiroPlano,
+} from "../services/notificationService";
+
 const AdminHomePage = () => {
   const navigate = useNavigate();
   const { slug } = useParams();
@@ -21,12 +26,39 @@ const AdminHomePage = () => {
   useEffect(() => {
     async function validateToken() {
       try {
+        // 1. Verifica se a sessão/token existe no localStorage antes de chamar a API
+        const token = localStorage.getItem("token"); // Ajuste o nome da chave se usar outro (ex: 'auth_token')
+        const tokenExpiration = localStorage.getItem("token_expiration"); // Se você salva o timestamp de expiração
+
+        if (!token) {
+          console.log("Nenhum token encontrado. Redirecionando...");
+          navigate("/");
+          return;
+        }
+
+        // 2. Se o seu app salva a data de expiração no client, valida aqui
+        if (tokenExpiration && Date.now() > Number(tokenExpiration)) {
+          console.log("O link/token de acesso expirou!");
+          localStorage.removeItem("token");
+          localStorage.removeItem("token_expiration");
+          navigate("/");
+          return;
+        }
+
+        // 3. Valida a empresa e o token no backend
         const data = await getDesignSettings();
-
         console.log("Empresa validada:", data);
-      } catch (error) {
-        console.log("Sessão inválida:", error);
 
+        // ATIVAÇÃO DAS NOTIFICAÇÕES APÓS VALIDAR A SESSÃO DO ADMIN COM SUCESSO
+        solicitarPermissaoDeNotificacao();
+        ouvirMensagensEmPrimeiroPlano();
+      } catch (error) {
+        // 4. Se o backend responder com erro (401/403 - Expirado ou Inválido), limpa o lixo e manda pro login
+        console.log("Sessão inválida ou link expirado:", error);
+        localStorage.removeItem("token");
+        if (localStorage.getItem("token_expiration")) {
+          localStorage.removeItem("token_expiration");
+        }
         navigate("/");
       }
     }
@@ -43,46 +75,40 @@ const AdminHomePage = () => {
     },
     {
       title: "Histórico de vendas",
-      description: "Gerencie seu hisórico de vendas de produtos",
+      description: "Gerencie seu histórico de vendas de produtos",
       icon: ReceiptText,
       path: `/admin/${slug}/historico`,
     },
-
     {
       title: "Funcionários",
       description: "Cadastre funcionários e vincule serviços disponíveis.",
       icon: Users,
       path: `/admin/${slug}/funcionarios`,
     },
-
     {
       title: "Serviços",
       description: "Gerencie serviços, preços, duração e imagens.",
       icon: Briefcase,
       path: `/admin/${slug}/servicos`,
     },
-
     {
       title: "Produtos",
       description: "Cadastre, edite e organize os produtos da sua empresa.",
       icon: ShoppingBag,
       path: `/admin/${slug}/produtos`,
     },
-
     {
       title: "Vendas & Insights",
       description: "Acompanhe vendas, faturamento e métricas da empresa.",
       icon: BarChart3,
       path: `/admin/${slug}/vendas`,
     },
-
     {
       title: "Design",
       description: "Personalize cores, logo, aparência e identidade visual.",
       icon: Palette,
       path: `/admin/${slug}/design`,
     },
-
     {
       title: "Configurações",
       description:
