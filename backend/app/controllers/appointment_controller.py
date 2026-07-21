@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import pytz
 from sqlalchemy.orm import joinedload
 from flask import request, jsonify
 from flask_jwt_extended import get_jwt
@@ -41,9 +42,17 @@ class AppointmentController:
                 return jsonify({"error": "Nome e telefone são obrigatórios"}), 400
 
             try:
-                start_datetime = start_datetime.replace("Z", "+00:00")
+                # Se a string vier com o sufixo 'Z', removemos para ler o horário
+                # literal escolhido pelo usuário no frontend, evitando que a conversão
+                # de timezone subtraia 3 horas incorretamente.
+                if isinstance(start_datetime, str) and start_datetime.endswith("Z"):
+                    start_datetime = start_datetime.replace("Z", "")
+                
+                # Faz o parse da data e garante um objeto naive (sem tzinfo)
                 start_datetime_obj = datetime.fromisoformat(start_datetime)
-                start_datetime_obj = start_datetime_obj.replace(tzinfo=None)
+                if start_datetime_obj.tzinfo is not None:
+                    start_datetime_obj = start_datetime_obj.replace(tzinfo=None)
+                    
             except ValueError:
                 return jsonify({"error": "Formato de data inválido"}), 400
 
@@ -74,9 +83,6 @@ class AppointmentController:
             # =====================================================
             end_datetime_obj = start_datetime_obj + timedelta(minutes=service.duration)
 
-            appointment_start_time = start_datetime_obj.time()
-            appointment_end_time = end_datetime_obj.time()
-
             # =====================================================
             # WORKER SCHEDULE VALIDATION
             # =====================================================
@@ -91,11 +97,20 @@ class AppointmentController:
             if not worker_schedules:
                 return jsonify({"error": "Funcionário não atende neste dia"}), 400
 
-            valid = any(
-                ws.start_time <= appointment_start_time and
-                ws.end_time >= appointment_end_time
-                for ws in worker_schedules
-            )
+            # Validação utilizando a combinação da data escolhida com os horários de expediente
+            valid = False
+            for ws in worker_schedules:
+                if not ws.start_time or not ws.end_time:
+                    continue
+                
+                # Monta os objetos datetime completos para o limite do expediente naquele dia específico
+                base_start = datetime.combine(start_datetime_obj.date(), ws.start_time)
+                base_end = datetime.combine(start_datetime_obj.date(), ws.end_time)
+
+                # Verifica se o horário solicitado se encaixa perfeitamente dentro do expediente
+                if base_start <= start_datetime_obj and end_datetime_obj <= base_end:
+                    valid = True
+                    break
 
             if not valid:
                 return jsonify({"error": "Funcionário não atende neste horário"}), 400

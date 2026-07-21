@@ -72,11 +72,6 @@ class ServiceController:
                     "error": "Nome é obrigatório"
                 }), 400
 
-            if not description:
-                return jsonify({
-                    "error": "Descrição é obrigatória"
-                }), 400
-
             if duration is None:
                 return jsonify({
                     "error": "Duração é obrigatória"
