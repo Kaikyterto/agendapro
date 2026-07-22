@@ -11,6 +11,7 @@ import {
   DollarSign,
   Loader2,
   Image as ImageIcon,
+  AlertCircle,
 } from "lucide-react";
 
 import Button from "../components/Button";
@@ -58,20 +59,29 @@ const AdminServicesPage = () => {
     try {
       setLoading(true);
 
-      const servicesData = await getServices();
+      const response = await getServices();
 
-      // Normalização segura para produção aceitar qualquer variação de propriedade vinda da API
-      const normalizedServices = Array.isArray(servicesData)
-        ? servicesData.map((s) => ({
-            ...s,
-            id: s.id,
-            name: s.name || "",
-            description: s.description || "",
-            duration: s.duration || 0,
-            value: s.value ?? s.price ?? 0,
-            image_url: s.image_url || s.imageUrl || "", // Fallback para camelCase e snake_case
-          }))
+      // Garante a extração da lista mesmo se houver variações na API
+      const rawList = Array.isArray(response)
+        ? response
+        : Array.isArray(response?.data)
+        ? response.data
         : [];
+
+      // Normalização ultra segura contra formatações de chaves da API
+      const normalizedServices = rawList.map((s) => {
+        const img = s?.image_url || s?.imageUrl || "";
+
+        return {
+          ...s,
+          id: s?.id,
+          name: s?.name || "",
+          description: s?.description || "",
+          duration: s?.duration || 0,
+          value: s?.value ?? s?.price ?? 0,
+          image_url: img,
+        };
+      });
 
       setServices(normalizedServices);
     } catch (err) {
@@ -116,12 +126,14 @@ const AdminServicesPage = () => {
   const handleOpenEdit = (service) => {
     setEditingService(service);
 
+    const imgUrl = service?.image_url || service?.imageUrl || "";
+
     setForm({
       name: service?.name || "",
       description: service?.description || "",
       duration: service?.duration || "",
       value: service?.value || service?.price || "",
-      image_url: service?.image_url || "",
+      image_url: imgUrl,
     });
 
     setImageFile(null);
@@ -283,14 +295,16 @@ const AdminServicesPage = () => {
               key={service.id}
               className="rounded-[32px] border border-violet-500/10 bg-[#111827] overflow-hidden"
             >
-              <div className="aspect-video bg-black/30 overflow-hidden relative">
-                {service?.image_url && service.image_url.trim() !== "" ? (
+              {/* Container de imagem idêntico ao padrão de Produtos */}
+              <div className="aspect-video bg-black/30 overflow-hidden relative w-full shrink-0">
+                {service.image_url ? (
                   <img
                     src={service.image_url}
-                    alt={service.name || "Imagem do serviço"}
+                    alt={service.name}
                     loading="lazy"
+                    decoding="async"
                     crossOrigin="anonymous"
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-white/20">
@@ -298,6 +312,7 @@ const AdminServicesPage = () => {
                   </div>
                 )}
               </div>
+
               <div className="p-5">
                 <h3 className="text-xl font-black">{service.name}</h3>
 
