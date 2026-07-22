@@ -11,7 +11,6 @@ import {
   DollarSign,
   Loader2,
   Image as ImageIcon,
-  AlertCircle, // Ícone importado para o aviso amigável
 } from "lucide-react";
 
 import Button from "../components/Button";
@@ -61,7 +60,20 @@ const AdminServicesPage = () => {
 
       const servicesData = await getServices();
 
-      setServices(Array.isArray(servicesData) ? servicesData : []);
+      // Normalização segura para produção aceitar qualquer variação de propriedade vinda da API
+      const normalizedServices = Array.isArray(servicesData)
+        ? servicesData.map((s) => ({
+            ...s,
+            id: s.id,
+            name: s.name || "",
+            description: s.description || "",
+            duration: s.duration || 0,
+            value: s.value ?? s.price ?? 0,
+            image_url: s.image_url || s.imageUrl || "", // Fallback para camelCase e snake_case
+          }))
+        : [];
+
+      setServices(normalizedServices);
     } catch (err) {
       console.error(err);
       setError("Erro ao carregar serviços");
