@@ -271,10 +271,13 @@ const AdminServicesPage = () => {
               key={service.id}
               className="rounded-[32px] border border-violet-500/10 bg-[#111827] overflow-hidden"
             >
-              <div className="aspect-video bg-black/30">
-                {service.image_url ? (
+              <div className="aspect-video bg-black/30 overflow-hidden relative">
+                {service?.image_url && service.image_url.trim() !== "" ? (
                   <img
                     src={service.image_url}
+                    alt={service.name || "Imagem do serviço"}
+                    loading="lazy"
+                    crossOrigin="anonymous"
                     className="w-full h-full object-cover"
                   />
                 ) : (
@@ -283,7 +286,6 @@ const AdminServicesPage = () => {
                   </div>
                 )}
               </div>
-
               <div className="p-5">
                 <h3 className="text-xl font-black">{service.name}</h3>
 
