@@ -166,14 +166,13 @@ const AdminProductsPage = () => {
     const rawValue = Number(form.value) || 0;
     if (rawValue <= 0) return null;
 
-    // Cálculo Pix (Subtrai 1% do valor do produto)
+    // Cálculo Pix (Subtrai a taxa do valor do produto)
     const pixFeeValue = rawValue * (PIX_FEE_PERCENT / 100);
     const pixNetValue = rawValue - pixFeeValue;
 
-    // Cálculo Cartão com REPASSE (Fórmula de cálculo por dentro)
-    // O cliente paga um valor maior para que o lojista receba o valor original cheio
-    const cardFinalValue = rawValue / (1 - CARD_FEE_PERCENT / 100);
-    const cardFeeValue = cardFinalValue - rawValue;
+    // Cálculo Cartão igual ao Pix (Subtrai a taxa diretamente do valor do produto)
+    const cardFeeValue = rawValue * (CARD_FEE_PERCENT / 100);
+    const cardNetValue = rawValue - cardFeeValue;
 
     return {
       pix: {
@@ -181,9 +180,8 @@ const AdminProductsPage = () => {
         net: pixNetValue,
       },
       card: {
-        finalPrice: cardFinalValue,
         fee: cardFeeValue,
-        net: rawValue, // Recebe o valor cheio original
+        net: cardNetValue,
       },
     };
   }, [form.value]);
@@ -232,7 +230,7 @@ const AdminProductsPage = () => {
 
       if (editingProduct) {
         await updateProduct(editingProduct.id, payload);
-        setSuccess("Produto atualizado com sucesso!");
+        setSuccess("Produto updated com sucesso!");
       } else {
         await createProduct(payload);
         setSuccess("Produto criado com sucesso!");
@@ -568,21 +566,12 @@ const AdminProductsPage = () => {
                         </p>
                       </div>
 
-                      {/* Simulação Crédito com Repasse */}
+                      {/* Simulação Crédito Igual ao Pix */}
                       <div className="bg-black/20 p-3 rounded-xl border border-indigo-500/10">
                         <div className="flex items-center gap-2 text-indigo-400 font-bold text-sm mb-1">
                           <CreditCard size={16} />
-                          <span>Venda por Cartão (Repasse)</span>
+                          <span>Venda por Cartão</span>
                         </div>
-                        <p className="text-xs text-white/50">
-                          Preço final do cliente:{" "}
-                          <span className="text-indigo-300 font-semibold">
-                            R${" "}
-                            {feeCalculations.card.finalPrice
-                              .toFixed(2)
-                              .replace(".", ",")}
-                          </span>
-                        </p>
                         <p className="text-xs text-white/50">
                           Taxa de {CARD_FEE_PERCENT}%:{" "}
                           <span className="text-red-400 font-medium">
