@@ -29,7 +29,7 @@ const initialForm = {
   name: "",
   description: "",
   duration: "",
-  value: "",
+  price: "", // Alinhado com o backend
   image_url: "",
 };
 
@@ -61,7 +61,6 @@ const AdminServicesPage = () => {
 
       const response = await getServices();
 
-      // Extrai os dados independentemente de virem puros ou envelopados em .data
       const rawList = Array.isArray(response)
         ? response
         : Array.isArray(response?.data)
@@ -112,14 +111,13 @@ const AdminServicesPage = () => {
   const handleOpenEdit = (service) => {
     setEditingService(service);
 
-    const imgUrl = service?.image_url || service?.imageUrl || "";
-
+    // Mapeia estritamente o que vem do banco
     setForm({
       name: service?.name || "",
       description: service?.description || "",
       duration: service?.duration || "",
-      value: service?.price || service?.value || "",
-      image_url: imgUrl,
+      price: service?.price ?? "",
+      image_url: service?.image_url || "",
     });
 
     setImageFile(null);
@@ -159,20 +157,19 @@ const AdminServicesPage = () => {
         return;
       }
 
-      const valorFinal = form.value || form.price;
-      if (!valorFinal || Number(valorFinal) <= 0) {
+      if (!form.price || Number(form.price) <= 0) {
         setError("Valor inválido");
         return;
       }
 
-      let imageUrl = form.image_url;
+      let currentImageUrl = form.image_url;
 
       if (imageFile) {
         setUploadingImage(true);
 
         try {
           const upload = await uploadImage(imageFile, "services");
-          imageUrl = upload.url;
+          currentImageUrl = upload.url;
         } catch (err) {
           console.error(err);
           setError("Erro ao enviar imagem");
@@ -182,12 +179,13 @@ const AdminServicesPage = () => {
         }
       }
 
+      // Payload espelhado 1:1 com o request.get_json() do Flask
       const payload = {
         name: form.name.trim(),
         description: form.description.trim(),
         duration: Number(form.duration),
-        price: Number(valorFinal),
-        image_url: imageUrl || null,
+        price: Number(form.price),
+        image_url: currentImageUrl || null,
       };
 
       if (editingService) {
@@ -278,19 +276,13 @@ const AdminServicesPage = () => {
         {/* GRID */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {filteredServices.map((service) => {
-            // Varre todas as variações de chaves possíveis vindas do banco
-            const imgUrl =
-              service?.image_url || service?.imageUrl || service?.image || "";
-
-            // LOG DE DIAGNÓSTICO: Abra o F12 no navegador para checar o que está chegando aqui
-            console.log(`Serviço: ${service?.name} | URL Detectada:`, imgUrl);
+            const imgUrl = service?.image_url || "";
 
             return (
               <div
                 key={service.id}
                 className="rounded-[32px] border border-violet-500/10 bg-[#111827] overflow-hidden"
               >
-                {/* Container sem crossOrigin para evitar bloqueios de CORS do Supabase */}
                 <div className="aspect-video bg-black/30 overflow-hidden relative w-full shrink-0">
                   {imgUrl ? (
                     <img
@@ -318,8 +310,7 @@ const AdminServicesPage = () => {
                     <div>
                       <p className="text-white/40 text-xs">Preço</p>
                       <h4 className="text-violet-300 font-bold">
-                        R${" "}
-                        {Number(service.price || service.value || 0).toFixed(2)}
+                        R$ {Number(service.price || 0).toFixed(2)}
                       </h4>
                     </div>
 
@@ -422,8 +413,8 @@ const AdminServicesPage = () => {
                     <input
                       type="number"
                       placeholder="Ex: 50"
-                      value={form.value || form.price || ""}
-                      onChange={(e) => handleChange("value", e.target.value)}
+                      value={form.price}
+                      onChange={(e) => handleChange("price", e.target.value)}
                       className="w-full h-14 bg-[#111827] border border-white/5 focus:border-violet-500/50 outline-none rounded-2xl px-4 transition-colors"
                     />
                   </div>
