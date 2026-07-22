@@ -61,14 +61,12 @@ const AdminServicesPage = () => {
 
       const response = await getServices();
 
-      // Garante a extração da lista mesmo se houver variações na API
       const rawList = Array.isArray(response)
         ? response
         : Array.isArray(response?.data)
         ? response.data
         : [];
 
-      // Normalização ultra segura contra formatações de chaves da API
       const normalizedServices = rawList.map((s) => {
         const img = s?.image_url || s?.imageUrl || "";
 
@@ -290,69 +288,72 @@ const AdminServicesPage = () => {
 
         {/* GRID */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-          {filteredServices.map((service) => (
-            <div
-              key={service.id}
-              className="rounded-[32px] border border-violet-500/10 bg-[#111827] overflow-hidden"
-            >
-              {/* Container de imagem idêntico ao padrão de Produtos */}
-              <div className="aspect-video bg-black/30 overflow-hidden relative w-full shrink-0">
-                {service.image_url ? (
-                  <img
-                    src={service.image_url}
-                    alt={service.name}
-                    loading="lazy"
-                    decoding="async"
-                    crossOrigin="anonymous"
-                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-white/20">
-                    <ImageIcon size={40} />
-                  </div>
-                )}
-              </div>
+          {filteredServices.map((service) => {
+            const imgUrl = service.image_url || service.imageUrl || "";
 
-              <div className="p-5">
-                <h3 className="text-xl font-black">{service.name}</h3>
-
-                <p className="text-white/50 text-sm mt-1">
-                  {service.description || "Sem descrição"}
-                </p>
-
-                <div className="flex items-center justify-between mt-4">
-                  <div>
-                    <p className="text-white/40 text-xs">Preço</p>
-                    <h4 className="text-violet-300 font-bold">
-                      R${" "}
-                      {Number(service.value || service.price || 0).toFixed(2)}
-                    </h4>
-                  </div>
-
-                  <div>
-                    <p className="text-white/40 text-xs">Duração</p>
-                    <h4 className="font-bold">{service.duration} min</h4>
-                  </div>
+            return (
+              <div
+                key={service.id}
+                className="rounded-[32px] border border-violet-500/10 bg-[#111827] overflow-hidden"
+              >
+                {/* Container sem crossOrigin para evitar o bloqueio de CORS do Supabase */}
+                <div className="aspect-video bg-black/30 overflow-hidden relative w-full shrink-0">
+                  {imgUrl ? (
+                    <img
+                      src={imgUrl}
+                      alt={service.name}
+                      loading="lazy"
+                      decoding="async"
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-white/20">
+                      <ImageIcon size={40} />
+                    </div>
+                  )}
                 </div>
 
-                <div className="flex gap-3 mt-5">
-                  <Button
-                    onClick={() => handleOpenEdit(service)}
-                    className="flex-1 h-12 bg-violet-500/10 text-violet-300"
-                  >
-                    <Pencil size={16} />
-                  </Button>
+                <div className="p-5">
+                  <h3 className="text-xl font-black">{service.name}</h3>
 
-                  <Button
-                    onClick={() => handleDelete(service.id)}
-                    className="flex-1 h-12 bg-red-500/10 text-red-300"
-                  >
-                    <Trash2 size={16} />
-                  </Button>
+                  <p className="text-white/50 text-sm mt-1">
+                    {service.description || "Sem descrição"}
+                  </p>
+
+                  <div className="flex items-center justify-between mt-4">
+                    <div>
+                      <p className="text-white/40 text-xs">Preço</p>
+                      <h4 className="text-violet-300 font-bold">
+                        R${" "}
+                        {Number(service.value || service.price || 0).toFixed(2)}
+                      </h4>
+                    </div>
+
+                    <div>
+                      <p className="text-white/40 text-xs">Duração</p>
+                      <h4 className="font-bold">{service.duration} min</h4>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 mt-5">
+                    <Button
+                      onClick={() => handleOpenEdit(service)}
+                      className="flex-1 h-12 bg-violet-500/10 text-violet-300"
+                    >
+                      <Pencil size={16} />
+                    </Button>
+
+                    <Button
+                      onClick={() => handleDelete(service.id)}
+                      className="flex-1 h-12 bg-red-500/10 text-red-300"
+                    >
+                      <Trash2 size={16} />
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* EMPTY */}
