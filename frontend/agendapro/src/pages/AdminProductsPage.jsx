@@ -84,6 +84,10 @@ const AdminProductsPage = () => {
       const normalizedProducts = Array.isArray(productsData)
         ? productsData.map((product) => ({
             ...product,
+            id: product.id,
+            name: product.name || "",
+            description: product.description || "",
+            image_url: product.image_url || "",
             value: product.value ?? product.price ?? 0,
             active: typeof product.active === "boolean" ? product.active : true,
           }))
@@ -230,12 +234,15 @@ const AdminProductsPage = () => {
 
       if (editingProduct) {
         await updateProduct(editingProduct.id, payload);
-        setSuccess("Produto updated com sucesso!");
+        setSuccess("Produto atualizado com sucesso!");
       } else {
         await createProduct(payload);
         setSuccess("Produto criado com sucesso!");
       }
 
+      // Força recarregamento completo e limpa estados temporários locais de arquivo
+      setImageFile(null);
+      setPreviewUrl("");
       await loadData(true);
 
       setTimeout(() => {
@@ -530,7 +537,7 @@ const AdminProductsPage = () => {
                   </div>
                 </div>
 
-                {/* PAINEL DE TAXAS INTERATIVO (Exibe dinamicamente ao digitar o valor) */}
+                {/* PAINEL DE TAXAS INTERATIVO */}
                 {feeCalculations && (
                   <div className="rounded-2xl border border-violet-500/10 bg-[#111827] p-4 space-y-3">
                     <div className="flex items-center justify-between border-b border-white/5 pb-2">
