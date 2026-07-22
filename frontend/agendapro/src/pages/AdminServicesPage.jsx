@@ -61,27 +61,14 @@ const AdminServicesPage = () => {
 
       const response = await getServices();
 
+      // Extrai os dados independentemente de virem puros ou envelopados em .data
       const rawList = Array.isArray(response)
         ? response
         : Array.isArray(response?.data)
         ? response.data
         : [];
 
-      const normalizedServices = rawList.map((s) => {
-        const img = s?.image_url || s?.imageUrl || "";
-
-        return {
-          ...s,
-          id: s?.id,
-          name: s?.name || "",
-          description: s?.description || "",
-          duration: s?.duration || 0,
-          value: s?.value ?? s?.price ?? 0,
-          image_url: img,
-        };
-      });
-
-      setServices(normalizedServices);
+      setServices(rawList);
     } catch (err) {
       console.error(err);
       setError("Erro ao carregar serviços");
@@ -98,7 +85,8 @@ const AdminServicesPage = () => {
   // FILTER
   // =========================================================
   const filteredServices = useMemo(() => {
-    return [...services]
+    if (!Array.isArray(services)) return [];
+    return services
       .filter((s) =>
         s?.name?.toLowerCase().includes(search.trim().toLowerCase())
       )
@@ -130,7 +118,7 @@ const AdminServicesPage = () => {
       name: service?.name || "",
       description: service?.description || "",
       duration: service?.duration || "",
-      value: service?.value || service?.price || "",
+      value: service?.price || service?.value || "",
       image_url: imgUrl,
     });
 
@@ -171,7 +159,8 @@ const AdminServicesPage = () => {
         return;
       }
 
-      if (!form.value || Number(form.value) <= 0) {
+      const valorFinal = form.value || form.price;
+      if (!valorFinal || Number(valorFinal) <= 0) {
         setError("Valor inválido");
         return;
       }
@@ -197,7 +186,7 @@ const AdminServicesPage = () => {
         name: form.name.trim(),
         description: form.description.trim(),
         duration: Number(form.duration),
-        price: Number(form.value),
+        price: Number(valorFinal),
         image_url: imageUrl || null,
       };
 
@@ -289,14 +278,19 @@ const AdminServicesPage = () => {
         {/* GRID */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {filteredServices.map((service) => {
-            const imgUrl = service.image_url || service.imageUrl || "";
+            // Varre todas as variações de chaves possíveis vindas do banco
+            const imgUrl =
+              service?.image_url || service?.imageUrl || service?.image || "";
+
+            // LOG DE DIAGNÓSTICO: Abra o F12 no navegador para checar o que está chegando aqui
+            console.log(`Serviço: ${service?.name} | URL Detectada:`, imgUrl);
 
             return (
               <div
                 key={service.id}
                 className="rounded-[32px] border border-violet-500/10 bg-[#111827] overflow-hidden"
               >
-                {/* Container sem crossOrigin para evitar o bloqueio de CORS do Supabase */}
+                {/* Container sem crossOrigin para evitar bloqueios de CORS do Supabase */}
                 <div className="aspect-video bg-black/30 overflow-hidden relative w-full shrink-0">
                   {imgUrl ? (
                     <img
@@ -325,7 +319,7 @@ const AdminServicesPage = () => {
                       <p className="text-white/40 text-xs">Preço</p>
                       <h4 className="text-violet-300 font-bold">
                         R${" "}
-                        {Number(service.value || service.price || 0).toFixed(2)}
+                        {Number(service.price || service.value || 0).toFixed(2)}
                       </h4>
                     </div>
 
@@ -428,7 +422,7 @@ const AdminServicesPage = () => {
                     <input
                       type="number"
                       placeholder="Ex: 50"
-                      value={form.value}
+                      value={form.value || form.price || ""}
                       onChange={(e) => handleChange("value", e.target.value)}
                       className="w-full h-14 bg-[#111827] border border-white/5 focus:border-violet-500/50 outline-none rounded-2xl px-4 transition-colors"
                     />
