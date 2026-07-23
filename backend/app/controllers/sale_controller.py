@@ -1,13 +1,15 @@
 from flask import request, jsonify
 from decimal import Decimal
-from datetime import datetime, timedelta
+from datetime import datetime
 from sqlalchemy.orm import joinedload
 
 from app.database.db import db
 from app.models.sale import Sale
 from app.models.sales_record import SalesRecord
 from app.models.product import Product
+from app.models.company import Company  
 from app.services.payment_service import PaymentService
+from app.services.notification_service import NotificationService  
 
 
 class SaleController:
@@ -112,6 +114,19 @@ class SaleController:
 
                 db.session.commit()
 
+                # NOTIFICAÇÃO: Venda via Cartão Aprovada Instantaneamente
+                if order.status == "paid":
+                    try:
+                        company = Company.query.get(company_id)
+                        if company and company.fcm_token:
+                            NotificationService.send_push_notification(
+                                fcm_token=company.fcm_token,
+                                title=" Nova Venda Aprovada (Cartão)!",
+                                body=f"Pedido #{order.id} no valor de R$ {total:.2f} foi pago por {customer_name}."
+                            )
+                    except Exception as push_error:
+                        print(f"Aviso: Falha ao enviar push de cartão: {str(push_error)}")
+
                 return jsonify({
                     "order_id": order.id,
                     "status": order.status,
@@ -135,6 +150,18 @@ class SaleController:
                 order.external_reference = f"sale_{order.id}"
 
                 db.session.commit()
+
+               
+                try:
+                    company = Company.query.get(company_id)
+                    if company and company.fcm_token:
+                        NotificationService.send_push_notification(
+                            fcm_token=company.fcm_token,
+                            title=" Novo Pedido Gerado (PIX)!",
+                            body=f"Pedido #{order.id} de R$ {total:.2f} aguarda pagamento de {customer_name}."
+                        )
+                except Exception as push_error:
+                    print(f"Aviso: Falha ao enviar push de PIX criado: {str(push_error)}")
 
                 return jsonify({
                     "order_id": order.id,

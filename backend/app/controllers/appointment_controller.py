@@ -9,6 +9,8 @@ from app.models.schedule import Schedule
 from app.models.service import Service
 from app.models.worker import Worker
 from app.models.worker_schedule import WorkerSchedule
+from app.models.company import Company  
+from app.services.notification_service import NotificationService  
 
 
 class AppointmentController:
@@ -131,8 +133,10 @@ class AppointmentController:
             # =====================================================
             # CREATE SCHEDULE
             # =====================================================
+            target_company_id = worker.company_id or service.company_id
+
             schedule = Schedule(
-                company_id=worker.company_id or service.company_id,
+                company_id=target_company_id,
                 service_id=service.id,
                 worker_id=worker.id,
 
@@ -148,6 +152,25 @@ class AppointmentController:
 
             db.session.add(schedule)
             db.session.commit()
+
+            # =====================================================
+            # DISPARAR NOTIFICAÇÃO PUSH (FIREBASE FCM)
+            # =====================================================
+            try:
+                company = Company.query.get(target_company_id)
+                if company and company.fcm_token:
+                    # Formata a data para ficar bonita na mensagem (ex: 24/07 às 14:00)
+                    formatted_time = start_datetime_obj.strftime("%d/%m às %H:%M")
+                    
+                    NotificationService.send_push_notification(
+                        fcm_token=company.fcm_token,
+                        title="📅 Novo Agendamento Recebido!",
+                        body=f"{customer_name} agendou {service.name} para o dia {formatted_time}."
+                    )
+            except Exception as push_error:
+                # Captura erros do Firebase em um bloco separado para não quebrar 
+                # a resposta de sucesso do agendamento do cliente caso o push falhe
+                print(f"Aviso: Não foi possível disparar o push. Detalhes: {str(push_error)}")
 
             return jsonify({
                 "message": "Agendamento realizado com sucesso!",

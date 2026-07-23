@@ -7,6 +7,7 @@ import mercadopago
 from app.models.company import Company
 from app.models.sales_record import SalesRecord
 from app.database.db import db
+from app.services.notification_service import NotificationService
 
 
 class WebhookController:
@@ -71,6 +72,17 @@ class WebhookController:
                                 company.next_billing_at = company.expires_at
                                 db.session.commit()
                                 
+                                # NOTIFICAÇÃO: Renovação de Assinatura
+                                try:
+                                    if company.fcm_token:
+                                        NotificationService.send_push_notification(
+                                            fcm_token=company.fcm_token,
+                                            title="❤️ Assinatura Renovada!",
+                                            body="Sua mensalidade Kromis foi confirmada. Obrigado por continuar conosco!"
+                                        )
+                                except Exception as push_error:
+                                    print(f"Aviso: Falha ao enviar push de renovação SaaS: {str(push_error)}")
+
                                 return jsonify({"msg": "Mensalidade da assinatura confirmada e empresa renovada"}), 200
 
                 # Se for a criação ou cancelamento da assinatura em si
@@ -102,6 +114,18 @@ class WebhookController:
                                         company.expires_at = now + timedelta(days=30)
                                     company.next_billing_at = company.expires_at
                                     db.session.commit()
+                                    
+                                    # NOTIFICAÇÃO: Ativação inicial via Cartão
+                                    try:
+                                        if company.fcm_token:
+                                            NotificationService.send_push_notification(
+                                                fcm_token=company.fcm_token,
+                                                title="🚀 Conta Ativada com Sucesso!",
+                                                body="Parabéns! Sua assinatura foi autorizada e seu painel está pronto."
+                                            )
+                                    except Exception as push_error:
+                                        print(f"Aviso: Falha ao enviar push de ativação SaaS: {str(push_error)}")
+
                                     return jsonify({"msg": "Assinatura ativada com sucesso"}), 200
 
                 return jsonify({"msg": "Evento de assinatura processado"}), 200
@@ -165,6 +189,17 @@ class WebhookController:
                 company.next_billing_at = company.expires_at
                 db.session.commit()
 
+                # NOTIFICAÇÃO: Ativação via PIX
+                try:
+                    if company.fcm_token:
+                        NotificationService.send_push_notification(
+                            fcm_token=company.fcm_token,
+                            title="🚀 Assinatura Ativada via PIX!",
+                            body="Confirmamos seu pagamento. Sua empresa está totalmente ativa!"
+                        )
+                except Exception as push_error:
+                    print(f"Aviso: Falha ao enviar push de ativação PIX SaaS: {str(push_error)}")
+
                 return jsonify({
                     "msg": "Empresa ativada"
                 }), 200
@@ -185,8 +220,20 @@ class WebhookController:
                 if order.status != "paid":
                     order.status = "paid"
                     order.payment_id = str(payment_id)
-                    order.payment_date = datetime.now(UTC)  # Ajustado aqui para evitar aviso de depreciação
+                    order.payment_date = datetime.now(UTC)
                     db.session.commit()
+
+                    # NOTIFICAÇÃO: Venda de produto confirmada via PIX
+                    try:
+                        company = db.session.get(Company, order.company_id)
+                        if company and company.fcm_token:
+                            NotificationService.send_push_notification(
+                                fcm_token=company.fcm_token,
+                                title=" Nova Venda Aprovada (PIX)!",
+                                body=f"Pedido #{order.id} no valor de R$ {order.value:.2f} foi pago por {order.customer_name}."
+                            )
+                    except Exception as push_error:
+                        print(f"Aviso: Falha ao enviar push de venda aprovada: {str(push_error)}")
 
                 return jsonify({
                     "msg": "Pedido pago"

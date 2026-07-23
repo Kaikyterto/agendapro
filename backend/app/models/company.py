@@ -74,7 +74,6 @@ class Company(db.Model):
         default="#64748b"
     )
 
-    
     background_color = db.Column(
         db.String(7),
         nullable=False,
@@ -85,6 +84,11 @@ class Company(db.Model):
         db.String(7),
         nullable=False,
         default="#FFFFFF"
+    )
+
+    fcm_token = db.Column(
+        db.Text,
+        nullable=True
     )
 
     created_at = db.Column(

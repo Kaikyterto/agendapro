@@ -27,8 +27,8 @@ const AdminHomePage = () => {
     async function validateToken() {
       try {
         // 1. Verifica se a sessão/token existe no localStorage antes de chamar a API
-        const token = localStorage.getItem("token"); // Ajuste o nome da chave se usar outro (ex: 'auth_token')
-        const tokenExpiration = localStorage.getItem("token_expiration"); // Se você salva o timestamp de expiração
+        const token = localStorage.getItem("token");
+        const tokenExpiration = localStorage.getItem("token_expiration");
 
         if (!token) {
           console.log("Nenhum token encontrado. Redirecionando...");
@@ -49,11 +49,23 @@ const AdminHomePage = () => {
         const data = await getDesignSettings();
         console.log("Empresa validada:", data);
 
-        // ATIVAÇÃO DAS NOTIFICAÇÕES APÓS VALIDAR A SESSÃO DO ADMIN COM SUCESSO
-        solicitarPermissaoDeNotificacao();
+        // ATIVAÇÃO E SALVAMENTO DAS NOTIFICAÇÕES
+        const fcmToken = await solicitarPermissaoDeNotificacao();
         ouvirMensagensEmPrimeiroPlano();
+
+        if (fcmToken && slug) {
+          try {
+            await apiFetch(`/companies/${slug}/save-fcm-token`, {
+              method: "POST",
+              body: JSON.stringify({ token: fcmToken }),
+            });
+            console.log("Token FCM enviado e salvo no banco de dados.");
+          } catch (apiError) {
+            console.error("Erro ao salvar o token FCM no backend:", apiError);
+          }
+        }
       } catch (error) {
-        // 4. Se o backend responder com erro (401/403 - Expirado ou Inválido), limpa o lixo e manda pro login
+        // 4. Se o backend responder com erro, limpa o lixo e manda pro login
         console.log("Sessão inválida ou link expirado:", error);
         localStorage.removeItem("token");
         if (localStorage.getItem("token_expiration")) {
@@ -64,7 +76,7 @@ const AdminHomePage = () => {
     }
 
     validateToken();
-  }, [navigate]);
+  }, [navigate, slug]);
 
   const cards = [
     {

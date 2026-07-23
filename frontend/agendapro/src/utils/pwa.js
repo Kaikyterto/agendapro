@@ -18,9 +18,7 @@ export function setupPWA(company = null) {
       ? "#ffffff"
       : company?.colors?.secondary || "#ffffff",
 
-    theme_color: isKromis
-      ? "#000000"
-      : company?.colors?.primary || "#000000",
+    theme_color: isKromis ? "#000000" : company?.colors?.primary || "#000000",
 
     icons: [
       {
@@ -51,6 +49,4 @@ export function setupPWA(company = null) {
   }
 
   link.href = manifestURL;
-
-  console.log("PWA MANIFEST:", manifest);
 }

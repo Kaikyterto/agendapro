@@ -19,17 +19,22 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
+// Intercepta mensagens em segundo plano
 messaging.onBackgroundMessage((payload) => {
   console.log(
     "[firebase-messaging-sw.js] Notificação recebida em segundo plano: ",
     payload
   );
 
-  const notificationTitle = payload.notification.title;
-  const notificationOptions = {
-    body: payload.notification.body,
-    icon: "/logo-kromis.png",
-  };
+  // Se o payload não tiver a estrutura nativa de 'notification' mas tiver 'data',
+  // forçamos a exibição manual para garantir que o admin receba o aviso.
+  if (!payload.notification && payload.data) {
+    const notificationTitle = payload.data.title || "Nova atualização Kromis!";
+    const notificationOptions = {
+      body: payload.data.body || "",
+      icon: "/logo-kromis.png",
+    };
 
-  self.registration.showNotification(notificationTitle, notificationOptions);
+    self.registration.showNotification(notificationTitle, notificationOptions);
+  }
 });

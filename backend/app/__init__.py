@@ -83,15 +83,15 @@ def create_app():
 
         path = request.path
 
-        # =============================================
+        # =================================            
         # IGNORA PRE-FLIGHT (CORS)
-        # =============================================
+        # =================================            
         if request.method == "OPTIONS":
             return jsonify({}), 200
 
-        # =============================================
+        # =================================            
         # ROTAS PÚBLICAS (NÃO BLOQUEAR)
-        # =============================================
+        # =================================            
         public_paths = [
             "/auth",
             "/webhook",
@@ -120,6 +120,7 @@ def create_app():
     from app.routes.service_routes import services_bp
     from app.routes.design_routes import design_bp
     from app.routes.sale_routes import sales_bp
+    from app.routes.notification_routes import notification_bp
 
     # =====================================================
     # AUTH (PÚBLICO)
@@ -141,6 +142,7 @@ def create_app():
         services_bp,
         design_bp,
         sales_bp,
+        notification_bp,  # 👈 Blueprint adicionado ao laço da API
     ]
 
     for blueprint in api_blueprints:
