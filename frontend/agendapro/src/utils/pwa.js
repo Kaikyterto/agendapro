@@ -1,33 +1,33 @@
 export function setupPWA(company = null) {
   const baseURL = window.location.origin;
+  const path = window.location.pathname;
 
-  const isKromis =
-    company?.name?.toLowerCase() === "kromis" ||
-    company?.slug?.toLowerCase() === "kromis" ||
-    !company;
+  // Se estiver na raiz "/", usa o Kromis
+  const isKromis = path === "/" || path === "";
 
   const manifest = {
     name: isKromis ? "Kromis" : company?.name || "Kromis",
     short_name: isKromis ? "Kromis" : company?.name || "Kromis",
 
-    start_url: isKromis
-      ? `${baseURL}/kromis`
-      : company?.slug
-      ? `${baseURL}/${company.slug}`
-      : `${baseURL}/`,
+    start_url: `${baseURL}${path}`,
+    scope: isKromis ? "/" : `/${company?.slug || path.replace("/", "")}`,
 
     display: "standalone",
 
-    background_color: company?.colors?.secondary || "#ffffff",
+    background_color: isKromis
+      ? "#ffffff"
+      : company?.colors?.secondary || "#ffffff",
 
-    theme_color: company?.colors?.primary || "#000000",
+    theme_color: isKromis
+      ? "#000000"
+      : company?.colors?.primary || "#000000",
 
     icons: [
       {
         src: isKromis
           ? `${baseURL}/logo-kromis.png`
           : company?.logo || `${baseURL}/logo-kromis.png`,
-        sizes: "1024x1024",
+        sizes: "512x512",
         type: "image/png",
         purpose: "any maskable",
       },
@@ -52,5 +52,5 @@ export function setupPWA(company = null) {
 
   link.href = manifestURL;
 
-  console.log("MANIFEST:", manifest);
+  console.log("PWA MANIFEST:", manifest);
 }

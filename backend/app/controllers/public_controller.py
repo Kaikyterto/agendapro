@@ -15,24 +15,24 @@ class PublicController:
 
     SLOT_INTERVAL_MINUTES = 30
 
-    # =====================================================
+# =====================================================
     # GENERATE AVAILABLE SLOTS
     # =====================================================
     @staticmethod
     def generate_available_slots(company_id, worker, service, selected_date):
 
         try:
-            now = datetime.now()
-            print("======================================")
-            print("NOW:", now)
-            print("NOW DATE:", now.date())
-            print("======================================")
+            # CORREÇÃO AQUI: Importa o pytz e pega o 'now' com o fuso do Brasil
+            import pytz
+            fuso_brasil = pytz.timezone("America/Sao_Paulo")
+            now = datetime.now(fuso_brasil).replace(tzinfo=None)
 
             # =================================================
             # NÃO PERMITE DATAS PASSADAS
             # =================================================
             if selected_date < now.date():
                 return []
+
 
             weekday = selected_date.weekday()
 

@@ -11,7 +11,7 @@ import {
   DollarSign,
   Loader2,
   Image as ImageIcon,
-  AlertCircle, // Ícone importado para o aviso amigável
+  AlertCircle,
 } from "lucide-react";
 
 import Button from "../components/Button";
@@ -29,7 +29,7 @@ const initialForm = {
   name: "",
   description: "",
   duration: "",
-  value: "",
+  price: "", // Alinhado com o backend
   image_url: "",
 };
 
@@ -59,9 +59,15 @@ const AdminServicesPage = () => {
     try {
       setLoading(true);
 
-      const servicesData = await getServices();
+      const response = await getServices();
 
-      setServices(Array.isArray(servicesData) ? servicesData : []);
+      const rawList = Array.isArray(response)
+        ? response
+        : Array.isArray(response?.data)
+        ? response.data
+        : [];
+
+      setServices(rawList);
     } catch (err) {
       console.error(err);
       setError("Erro ao carregar serviços");
@@ -78,7 +84,8 @@ const AdminServicesPage = () => {
   // FILTER
   // =========================================================
   const filteredServices = useMemo(() => {
-    return [...services]
+    if (!Array.isArray(services)) return [];
+    return services
       .filter((s) =>
         s?.name?.toLowerCase().includes(search.trim().toLowerCase())
       )
@@ -104,11 +111,12 @@ const AdminServicesPage = () => {
   const handleOpenEdit = (service) => {
     setEditingService(service);
 
+    // Mapeia estritamente o que vem do banco
     setForm({
       name: service?.name || "",
       description: service?.description || "",
       duration: service?.duration || "",
-      value: service?.value || service?.price || "",
+      price: service?.price ?? "",
       image_url: service?.image_url || "",
     });
 
@@ -149,19 +157,19 @@ const AdminServicesPage = () => {
         return;
       }
 
-      if (!form.value || Number(form.value) <= 0) {
+      if (!form.price || Number(form.price) <= 0) {
         setError("Valor inválido");
         return;
       }
 
-      let imageUrl = form.image_url;
+      let currentImageUrl = form.image_url;
 
       if (imageFile) {
         setUploadingImage(true);
 
         try {
           const upload = await uploadImage(imageFile, "services");
-          imageUrl = upload.url;
+          currentImageUrl = upload.url;
         } catch (err) {
           console.error(err);
           setError("Erro ao enviar imagem");
@@ -171,12 +179,13 @@ const AdminServicesPage = () => {
         }
       }
 
+      // Payload espelhado 1:1 com o request.get_json() do Flask
       const payload = {
         name: form.name.trim(),
         description: form.description.trim(),
         duration: Number(form.duration),
-        price: Number(form.value),
-        image_url: imageUrl || null,
+        price: Number(form.price),
+        image_url: currentImageUrl || null,
       };
 
       if (editingService) {
@@ -266,64 +275,70 @@ const AdminServicesPage = () => {
 
         {/* GRID */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-          {filteredServices.map((service) => (
-            <div
-              key={service.id}
-              className="rounded-[32px] border border-violet-500/10 bg-[#111827] overflow-hidden"
-            >
-              <div className="aspect-video bg-black/30">
-                {service.image_url ? (
-                  <img
-                    src={service.image_url}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-white/20">
-                    <ImageIcon size={40} />
-                  </div>
-                )}
-              </div>
+          {filteredServices.map((service) => {
+            const imgUrl = service?.image_url || "";
 
-              <div className="p-5">
-                <h3 className="text-xl font-black">{service.name}</h3>
-
-                <p className="text-white/50 text-sm mt-1">
-                  {service.description || "Sem descrição"}
-                </p>
-
-                <div className="flex items-center justify-between mt-4">
-                  <div>
-                    <p className="text-white/40 text-xs">Preço</p>
-                    <h4 className="text-violet-300 font-bold">
-                      R${" "}
-                      {Number(service.value || service.price || 0).toFixed(2)}
-                    </h4>
-                  </div>
-
-                  <div>
-                    <p className="text-white/40 text-xs">Duração</p>
-                    <h4 className="font-bold">{service.duration} min</h4>
-                  </div>
+            return (
+              <div
+                key={service.id}
+                className="rounded-[32px] border border-violet-500/10 bg-[#111827] overflow-hidden"
+              >
+                <div className="aspect-video bg-black/30 overflow-hidden relative w-full shrink-0">
+                  {imgUrl ? (
+                    <img
+                      src={imgUrl}
+                      alt={service.name}
+                      loading="lazy"
+                      decoding="async"
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-white/20">
+                      <ImageIcon size={40} />
+                    </div>
+                  )}
                 </div>
 
-                <div className="flex gap-3 mt-5">
-                  <Button
-                    onClick={() => handleOpenEdit(service)}
-                    className="flex-1 h-12 bg-violet-500/10 text-violet-300"
-                  >
-                    <Pencil size={16} />
-                  </Button>
+                <div className="p-5">
+                  <h3 className="text-xl font-black">{service.name}</h3>
 
-                  <Button
-                    onClick={() => handleDelete(service.id)}
-                    className="flex-1 h-12 bg-red-500/10 text-red-300"
-                  >
-                    <Trash2 size={16} />
-                  </Button>
+                  <p className="text-white/50 text-sm mt-1">
+                    {service.description || "Sem descrição"}
+                  </p>
+
+                  <div className="flex items-center justify-between mt-4">
+                    <div>
+                      <p className="text-white/40 text-xs">Preço</p>
+                      <h4 className="text-violet-300 font-bold">
+                        R$ {Number(service.price || 0).toFixed(2)}
+                      </h4>
+                    </div>
+
+                    <div>
+                      <p className="text-white/40 text-xs">Duração</p>
+                      <h4 className="font-bold">{service.duration} min</h4>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 mt-5">
+                    <Button
+                      onClick={() => handleOpenEdit(service)}
+                      className="flex-1 h-12 bg-violet-500/10 text-violet-300"
+                    >
+                      <Pencil size={16} />
+                    </Button>
+
+                    <Button
+                      onClick={() => handleDelete(service.id)}
+                      className="flex-1 h-12 bg-red-500/10 text-red-300"
+                    >
+                      <Trash2 size={16} />
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* EMPTY */}
@@ -398,8 +413,8 @@ const AdminServicesPage = () => {
                     <input
                       type="number"
                       placeholder="Ex: 50"
-                      value={form.value}
-                      onChange={(e) => handleChange("value", e.target.value)}
+                      value={form.price}
+                      onChange={(e) => handleChange("price", e.target.value)}
                       className="w-full h-14 bg-[#111827] border border-white/5 focus:border-violet-500/50 outline-none rounded-2xl px-4 transition-colors"
                     />
                   </div>
