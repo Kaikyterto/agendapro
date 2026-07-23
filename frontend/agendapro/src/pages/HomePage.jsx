@@ -34,10 +34,6 @@ const HomePage = () => {
 
         if (data) {
           setupPWA(data);
-
-          // ATIVAÇÃO DAS NOTIFICAÇÕES APÓS CARREGAR A EMPRESA
-          solicitarPermissaoDeNotificacao();
-          ouvirMensagensEmPrimeiroPlano();
         }
 
         if (data?.colors) {
