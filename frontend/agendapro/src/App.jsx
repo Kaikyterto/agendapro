@@ -25,6 +25,7 @@ function initInstagramWarningGuard() {
   const isIOS = /iPad|iPhone|iPod/.test(userAgent) && !window.MSStream;
   const isInAppInstagram = isIOS && /Instagram/.test(userAgent);
 
+  // Se NÃO for o Instagram do iOS, nem faz nada (deixa o app e o PWA normais funcionarem)
   if (!isInAppInstagram) return;
 
   const currentFullUrl = window.location.href;
@@ -40,18 +41,18 @@ function initInstagramWarningGuard() {
         left: 0 !important;
         width: 100vw !important;
         height: 100vh !important;
-        background-color: rgba(0, 0, 0, 0.98) !important;
+        background-color: #18181b !important;
         z-index: 2147483647 !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        padding: 20px !important;
+        padding: 24px !important;
         box-sizing: border-box !important;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
         margin: 0 !important;
       }
       #kromis-instagram-warning-box {
-        background: #18181b !important;
+        background: #27272a !important;
         color: #fff !important;
         width: 100% !important;
         max-width: 360px !important;
@@ -59,7 +60,7 @@ function initInstagramWarningGuard() {
         padding: 24px !important;
         text-align: center !important;
         box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8) !important;
-        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
       }
       #kromis-instagram-warning-icon-box {
         width: 48px !important;
@@ -116,36 +117,33 @@ function initInstagramWarningGuard() {
   }
 
   const renderModal = () => {
-    if (document.getElementById("kromis-instagram-warning-overlay")) return;
+    // Limpa o conteúdo da página para evitar qualquer conflito de tela branca
+    document.body.innerHTML = `
+      <div id="kromis-instagram-warning-overlay">
+        <div id="kromis-instagram-warning-box">
+          <div id="kromis-instagram-warning-icon-box">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ec4899" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+          </div>
 
-    const overlay = document.createElement("div");
-    overlay.id = "kromis-instagram-warning-overlay";
-    overlay.innerHTML = `
-      <div id="kromis-instagram-warning-box">
-        <div id="kromis-instagram-warning-icon-box">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ec4899" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
-        </div>
+          <h3>Abra no Safari</h3>
+          <p>
+            O navegador do Instagram bloqueia os agendamentos. Toque no botão abaixo para abrir no Safari ou copie o link.
+          </p>
 
-        <h3>Abra no Safari</h3>
-        <p>
-          O navegador do Instagram bloqueia esta página. Toque no botão abaixo para abrir no Safari ou copie o link.
-        </p>
+          <a href="${currentFullUrl}" target="_blank" rel="noopener noreferrer" class="kromis-btn" id="kromis-open-btn">
+            Abrir no Safari
+          </a>
 
-        <a href="${currentFullUrl}" target="_blank" rel="noopener noreferrer" class="kromis-btn" id="kromis-open-btn">
-          Abrir no Navegador Externo
-        </a>
+          <button id="kromis-copy-btn" class="kromis-btn">
+            Copiar Link da Página
+          </button>
 
-        <button id="kromis-copy-btn" class="kromis-btn">
-          Copiar Link da Página
-        </button>
-
-        <div id="kromis-tip">
-          Dica: Você também pode tocar nos <strong>três pontinhos (...)</strong> acima e escolher "Abrir no Navegador".
+          <div id="kromis-tip">
+            Dica: Toque nos <strong>três pontinhos (...)</strong> acima e escolha "Abrir no Navegador".
+          </div>
         </div>
       </div>
     `;
-
-    document.body.appendChild(overlay);
 
     document
       .getElementById("kromis-copy-btn")
@@ -153,33 +151,22 @@ function initInstagramWarningGuard() {
         navigator.clipboard.writeText(currentFullUrl).then(() => {
           const btn = document.getElementById("kromis-copy-btn");
           const originalText = btn.textContent;
-          btn.textContent = "Link copiado com sucesso! ✅";
+          btn.textContent = "Link copiado! ✅";
           btn.style.color = "#4ade80";
-          btn.style.borderColor = "#4ade80";
           setTimeout(() => {
             btn.textContent = originalText;
             btn.style.color = "#d4d4d8";
-            btn.style.borderColor = "rgba(255, 255, 255, 0.2)";
           }, 3000);
         });
       });
   };
 
   if (document.body) renderModal();
-
-  const observer = new MutationObserver(() => {
-    if (!document.getElementById("kromis-instagram-warning-overlay")) {
-      renderModal();
-    }
-  });
-
-  if (document.body) {
-    observer.observe(document.body, { childList: true, subtree: true });
-  }
 }
 
 export default function App() {
   useEffect(() => {
+    // Se estiver no Instagram do iOS, trava a execução aqui e exibe o aviso limpo
     initInstagramWarningGuard();
   }, []);
 
