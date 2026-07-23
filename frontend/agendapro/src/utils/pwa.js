@@ -34,11 +34,10 @@ export function setupPWA(company = null) {
 
   const manifestJSON = JSON.stringify(manifest);
 
-  const blob = new Blob([manifestJSON], {
-    type: "application/manifest+json",
-  });
-
-  const manifestURL = URL.createObjectURL(blob);
+  // Substitui o Blob por uma Data URI (compatível com WebViews restritos do iOS/Instagram)
+  const manifestURL = `data:application/manifest+json;charset=utf-8,${encodeURIComponent(
+    manifestJSON
+  )}`;
 
   let link = document.querySelector('link[rel="manifest"]');
 
