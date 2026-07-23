@@ -14,6 +14,7 @@ import {
   ReceiptText,
 } from "lucide-react";
 
+// Adicionado: Importações do serviço de notificação
 import {
   solicitarPermissaoDeNotificacao,
   ouvirMensagensEmPrimeiroPlano,
@@ -26,32 +27,11 @@ const AdminHomePage = () => {
   useEffect(() => {
     async function validateToken() {
       try {
-        // 1. Busca utilizando as chaves prefixadas corretas do seu app
-        const token = localStorage.getItem("@AgendaPro:token");
-        const tokenExpiration = localStorage.getItem(
-          "@AgendaPro:token_expiration"
-        );
-
-        if (!token) {
-          console.log("Nenhum token encontrado. Redirecionando...");
-          navigate("/");
-          return;
-        }
-
-        // 2. Valida a expiração com a chave correta
-        if (tokenExpiration && Date.now() > Number(tokenExpiration)) {
-          console.log("O link/token de acesso expirou!");
-          localStorage.removeItem("@AgendaPro:token");
-          localStorage.removeItem("@AgendaPro:token_expiration");
-          navigate("/");
-          return;
-        }
-
-        // 3. Valida a empresa e o token no backend
         const data = await getDesignSettings();
+
         console.log("Empresa validada:", data);
 
-        // ATIVAÇÃO DAS NOTIFICAÇÕES (Envolvida em try/catch para nunca quebrar o dashboard)
+        // Adicionado: Inicialização segura das notificações Push
         try {
           const fcmToken = await solicitarPermissaoDeNotificacao();
           ouvirMensagensEmPrimeiroPlano();
@@ -64,19 +44,18 @@ const AdminHomePage = () => {
             console.log("Token FCM enviado e salvo no banco de dados.");
           }
         } catch (fbError) {
-          console.warn("Notificações Push não ativadas:", fbError);
+          // Captura erros internos de Firebase/permissão bloqueada sem deslogar o admin
+          console.warn("Notificações Push não ativadas nesta sessão:", fbError);
         }
       } catch (error) {
-        // 4. Limpeza correta usando as chaves do seu app se o backend rejeitar
-        console.log("Sessão inválida ou erro na requisição:", error);
-        localStorage.removeItem("@AgendaPro:token");
-        localStorage.removeItem("@AgendaPro:token_expiration");
+        console.log("Sessão inválida:", error);
+
         navigate("/");
       }
     }
 
     validateToken();
-  }, [navigate, slug]);
+  }, [navigate, slug]); // Adicionado 'slug' como dependência segura para o envio do token
 
   const cards = [
     {
