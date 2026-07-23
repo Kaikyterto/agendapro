@@ -44,7 +44,7 @@ const AdminHomePage = () => {
             await fetch(
               `${
                 import.meta.env.VITE_API_URL || "http://localhost:3000"
-              }api/companies/${slug}/save-fcm-token`,
+              }/api/companies/${slug}/save-fcm-token`,
               {
                 method: "POST",
                 headers: {
