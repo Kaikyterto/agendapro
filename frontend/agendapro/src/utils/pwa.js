@@ -1,3 +1,58 @@
+export function setupPWA(company = null) {
+  const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+  const isIOS = /iPad|iPhone|iPod/.test(userAgent) && !window.MSStream;
+  const isInAppInstagram = isIOS && /Instagram/.test(userAgent);
+
+  const baseURL = window.location.origin;
+  const path = window.location.pathname;
+  const currentFullUrl = window.location.href;
+
+  // Se estiver no Instagram do iOS, injeta o aviso visual na tela
+  if (isInAppInstagram) {
+    injectInstagramWarning(currentFullUrl);
+    return; // Para a execução do PWA para evitar erros no WebKit
+  }
+
+  const isKromis = path === "/" || path === "";
+
+  const manifest = {
+    name: isKromis ? "Kromis" : company?.name || "Kromis",
+    short_name: isKromis ? "Kromis" : company?.name || "Kromis",
+    start_url: `${baseURL}${path}`,
+    scope: isKromis ? "/" : `/${company?.slug || path.replace("/", "")}`,
+    display: "standalone",
+    background_color: isKromis
+      ? "#ffffff"
+      : company?.colors?.secondary || "#ffffff",
+    theme_color: isKromis ? "#000000" : company?.colors?.primary || "#000000",
+    icons: [
+      {
+        src: isKromis
+          ? `${baseURL}/logo-kromis.png`
+          : company?.logo || `${baseURL}/logo-kromis.png`,
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "any maskable",
+      },
+    ],
+  };
+
+  const manifestJSON = JSON.stringify(manifest);
+  const manifestURL = `data:application/manifest+json;charset=utf-8,${encodeURIComponent(
+    manifestJSON
+  )}`;
+
+  let link = document.querySelector('link[rel="manifest"]');
+
+  if (!link) {
+    link = document.createElement("link");
+    link.rel = "manifest";
+    document.head.appendChild(link);
+  }
+
+  link.href = manifestURL;
+}
+
 // Função auxiliar que cria e exibe o modal bonito com CSS Puro (sem depender do Tailwind na injeção)
 function injectInstagramWarning(url) {
   if (document.getElementById("kromis-instagram-warning")) return;
