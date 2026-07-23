@@ -26,9 +26,11 @@ const AdminHomePage = () => {
   useEffect(() => {
     async function validateToken() {
       try {
-        // 1. Verifica se a sessão/token existe no localStorage antes de chamar a API
-        const token = localStorage.getItem("token");
-        const tokenExpiration = localStorage.getItem("token_expiration");
+        // 1. Verifica se a sessão/token existe no localStorage usando a chave com o prefixo correto
+        const token = localStorage.getItem("@AgendaPro:token");
+        const tokenExpiration = localStorage.getItem(
+          "@AgendaPro:token_expiration"
+        );
 
         if (!token) {
           console.log("Nenhum token encontrado. Redirecionando...");
@@ -36,11 +38,11 @@ const AdminHomePage = () => {
           return;
         }
 
-        // 2. Se o seu app salva a data de expiração no client, valida aqui
+        // 2. Valida a data de expiração no client usando a chave correta
         if (tokenExpiration && Date.now() > Number(tokenExpiration)) {
           console.log("O link/token de acesso expirou!");
-          localStorage.removeItem("token");
-          localStorage.removeItem("token_expiration");
+          localStorage.removeItem("@AgendaPro:token");
+          localStorage.removeItem("@AgendaPro:token_expiration");
           navigate("/");
           return;
         }
@@ -66,11 +68,11 @@ const AdminHomePage = () => {
           console.warn("Notificações Push não ativadas nesta sessão:", fbError);
         }
       } catch (error) {
-        // 4. Se o backend responder com erro, limpa o lixo e manda pro login
+        // 4. Se o backend responder com erro, limpa o lixo usando as chaves corretas e manda pro login
         console.log("Sessão inválida ou link expirado:", error);
-        localStorage.removeItem("token");
-        if (localStorage.getItem("token_expiration")) {
-          localStorage.removeItem("token_expiration");
+        localStorage.removeItem("@AgendaPro:token");
+        if (localStorage.getItem("@AgendaPro:token_expiration")) {
+          localStorage.removeItem("@AgendaPro:token_expiration");
         }
         navigate("/");
       }
