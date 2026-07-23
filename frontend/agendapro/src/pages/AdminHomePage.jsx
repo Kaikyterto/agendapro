@@ -49,20 +49,21 @@ const AdminHomePage = () => {
         const data = await getDesignSettings();
         console.log("Empresa validada:", data);
 
-        // ATIVAÇÃO E SALVAMENTO DAS NOTIFICAÇÕES
-        const fcmToken = await solicitarPermissaoDeNotificacao();
-        ouvirMensagensEmPrimeiroPlano();
+        // ATIVAÇÃO E SALVAMENTO DAS NOTIFICAÇÕES (Isolado para segurança do Login)
+        try {
+          const fcmToken = await solicitarPermissaoDeNotificacao();
+          ouvirMensagensEmPrimeiroPlano();
 
-        if (fcmToken && slug) {
-          try {
+          if (fcmToken && slug) {
             await apiFetch(`/companies/${slug}/save-fcm-token`, {
               method: "POST",
               body: JSON.stringify({ token: fcmToken }),
             });
             console.log("Token FCM enviado e salvo no banco de dados.");
-          } catch (apiError) {
-            console.error("Erro ao salvar o token FCM no backend:", apiError);
           }
+        } catch (fbError) {
+          // Se o Firebase falhar ou a permissão for negada, exibe o aviso, mas não quebra o login
+          console.warn("Notificações Push não ativadas nesta sessão:", fbError);
         }
       } catch (error) {
         // 4. Se o backend responder com erro, limpa o lixo e manda pro login
