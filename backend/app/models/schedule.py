@@ -33,7 +33,7 @@ class Schedule(db.Model):
 
    
     name = db.Column(db.String(120), nullable=False)
-    phone = db.Column(db.String(30), nullable=False)
+    phone = db.Column(db.String(30), nullable=True)
 
     notes = db.Column(db.Text, nullable=True)
 

@@ -231,10 +231,7 @@ const CompanyBookingPage = () => {
       return;
     }
 
-    if (!form.phone?.trim()) {
-      setError("Informe seu telefone");
-      return;
-    }
+    // Validação do telefone removida para torná-lo opcional
 
     try {
       setSubmitting(true);
@@ -251,7 +248,7 @@ const CompanyBookingPage = () => {
         worker_id: selectedWorker.id,
         start_datetime: cleanDateTime,
         name: form.name.trim(),
-        phone: form.phone.trim(),
+        phone: form.phone?.trim() || null, // Envia null caso esteja vazio
         notes: form.notes?.trim() || null,
       });
 
@@ -537,7 +534,8 @@ const CompanyBookingPage = () => {
 
                 <div>
                   <label className="text-sm text-white/60 mb-2 block">
-                    Telefone
+                    Telefone{" "}
+                    <span className="text-white/40 text-xs">(Opcional)</span>
                   </label>
 
                   <input

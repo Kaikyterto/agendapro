@@ -27,12 +27,11 @@ const AdminHomePage = () => {
     async function validateToken() {
       try {
         const data = await getDesignSettings();
-        console.log("Empresa validada:", data);
 
         // Chamada do Firebase totalmente isolada com fetch nativo para não ativar interceptors de logout
         try {
           const fcmToken = await solicitarPermissaoDeNotificacao();
-          console.log("Token gerado pelo navegador:", fcmToken);
+
           ouvirMensagensEmPrimeiroPlano();
 
           if (fcmToken && slug) {
@@ -54,7 +53,6 @@ const AdminHomePage = () => {
                 body: JSON.stringify({ token: fcmToken }),
               }
             );
-            console.log("Token FCM enviado com sucesso.");
           }
         } catch (fbError) {
           console.warn("Falha silenciosa no Firebase interceptada:", fbError);
