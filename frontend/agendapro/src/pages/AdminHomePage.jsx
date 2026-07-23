@@ -32,6 +32,7 @@ const AdminHomePage = () => {
         // Chamada do Firebase totalmente isolada com fetch nativo para não ativar interceptors de logout
         try {
           const fcmToken = await solicitarPermissaoDeNotificacao();
+          console.log("Token gerado pelo navegador:", fcmToken);
           ouvirMensagensEmPrimeiroPlano();
 
           if (fcmToken && slug) {
