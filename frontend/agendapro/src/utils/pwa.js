@@ -1,13 +1,4 @@
 export function setupPWA(company = null) {
-  // Garante que o código só vai rodar quando a página estiver totalmente carregada no celular
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => executePWA(company));
-  } else {
-    executePWA(company);
-  }
-}
-
-function executePWA(company) {
   const userAgent = navigator.userAgent || navigator.vendor || window.opera;
   const isIOS = /iPad|iPhone|iPod/.test(userAgent) && !window.MSStream;
   const isInAppInstagram = isIOS && /Instagram/.test(userAgent);
@@ -16,9 +7,9 @@ function executePWA(company) {
   const path = window.location.pathname;
   const currentFullUrl = window.location.href;
 
-  // Se estiver no Instagram do iOS, injeta o aviso visual na tela de forma segura
+  // Se estiver no Instagram do iOS, bloqueia o PWA e ativa o observador do modal
   if (isInAppInstagram) {
-    injectInstagramWarning(currentFullUrl);
+    initInstagramWarningGuard(currentFullUrl);
     return;
   }
 
@@ -62,10 +53,8 @@ function executePWA(company) {
   link.href = manifestURL;
 }
 
-function injectInstagramWarning(url) {
-  if (document.getElementById("kromis-instagram-warning-overlay")) return;
-
-  // 1. Injetar o CSS no HEAD
+function initInstagramWarningGuard(url) {
+  // Injeta o estilo global no Head de forma permanente
   const styleId = "kromis-instagram-styles";
   if (!document.getElementById(styleId)) {
     const styleSheet = document.createElement("style");
@@ -77,7 +66,7 @@ function injectInstagramWarning(url) {
         left: 0 !important;
         width: 100vw !important;
         height: 100vh !important;
-        background-color: rgba(0, 0, 0, 0.95) !important;
+        background-color: rgba(0, 0, 0, 0.98) !important;
         z-index: 2147483647 !important;
         display: flex !important;
         align-items: center !important;
@@ -85,7 +74,6 @@ function injectInstagramWarning(url) {
         padding: 20px !important;
         box-sizing: border-box !important;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
-        backdrop-filter: blur(5px) !important;
         margin: 0 !important;
       }
 
@@ -97,7 +85,7 @@ function injectInstagramWarning(url) {
         border-radius: 16px !important;
         padding: 24px !important;
         text-align: center !important;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8) !important;
         border: 1px solid rgba(255, 255, 255, 0.15) !important;
       }
 
@@ -161,49 +149,72 @@ function injectInstagramWarning(url) {
     document.head.appendChild(styleSheet);
   }
 
-  // 2. Criar e Injetar o HTML diretamente após o carregamento seguro
-  const overlay = document.createElement("div");
-  overlay.id = "kromis-instagram-warning-overlay";
-  overlay.innerHTML = `
-    <div id="kromis-instagram-warning-box">
-      <div id="kromis-instagram-warning-icon-box">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ec4899" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+  // Função que cria e garante o modal no DOM
+  const renderModal = () => {
+    if (document.getElementById("kromis-instagram-warning-overlay")) return;
+
+    const overlay = document.createElement("div");
+    overlay.id = "kromis-instagram-warning-overlay";
+    overlay.innerHTML = `
+      <div id="kromis-instagram-warning-box">
+        <div id="kromis-instagram-warning-icon-box">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ec4899" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+        </div>
+
+        <h3>Abra no Safari</h3>
+        <p>
+          O navegador do Instagram bloqueia esta página. Toque no botão abaixo para abrir no Safari ou copie o link.
+        </p>
+
+        <a href="${url}" target="_blank" rel="noopener noreferrer" class="kromis-btn" id="kromis-open-btn">
+          Abrir no Navegador Externo
+        </a>
+
+        <button id="kromis-copy-btn" class="kromis-btn">
+          Copiar Link da Página
+        </button>
+
+        <div id="kromis-tip">
+          Dica: Você também pode tocar nos <strong>três pontinhos (...)</strong> acima e escolher "Abrir no Navegador".
+        </div>
       </div>
+    `;
 
-      <h3>Abra no Safari</h3>
-      <p>
-        O navegador do Instagram bloqueia esta página. Toque no botão abaixo para abrir no Safari ou copie o link.
-      </p>
+    document.body.appendChild(overlay);
 
-      <a href="${url}" target="_blank" rel="noopener noreferrer" class="kromis-btn" id="kromis-open-btn">
-        Abrir no Navegador Externo
-      </a>
+    document
+      .getElementById("kromis-copy-btn")
+      ?.addEventListener("click", () => {
+        navigator.clipboard.writeText(url).then(() => {
+          const btn = document.getElementById("kromis-copy-btn");
+          const originalText = btn.textContent;
+          btn.textContent = "Link copiado com sucesso! ✅";
+          btn.style.color = "#4ade80";
+          btn.style.borderColor = "#4ade80";
+          setTimeout(() => {
+            btn.textContent = originalText;
+            btn.style.color = "#d4d4d8";
+            btn.style.borderColor = "rgba(255, 255, 255, 0.2)";
+          }, 3000);
+        });
+      });
+  };
 
-      <button id="kromis-copy-btn" class="kromis-btn">
-        Copiar Link da Página
-      </button>
+  // Tenta renderizar imediatamente
+  if (document.body) {
+    renderModal();
+  } else {
+    document.addEventListener("DOMContentLoaded", renderModal);
+  }
 
-      <div id="kromis-tip">
-        Dica: Você também pode tocar nos <strong>três pontinhos (...)</strong> acima e escolher "Abrir no Navegador".
-      </div>
-    </div>
-  `;
-
-  document.body.appendChild(overlay);
-
-  // 3. Ação do botão de copiar
-  document.getElementById("kromis-copy-btn").addEventListener("click", () => {
-    navigator.clipboard.writeText(url).then(() => {
-      const btn = document.getElementById("kromis-copy-btn");
-      const originalText = btn.textContent;
-      btn.textContent = "Link copiado com sucesso! ✅";
-      btn.style.color = "#4ade80";
-      btn.style.borderColor = "#4ade80";
-      setTimeout(() => {
-        btn.textContent = originalText;
-        btn.style.color = "#d4d4d8";
-        btn.style.borderColor = "rgba(255, 255, 255, 0.2)";
-      }, 3000);
-    });
+  // Vigia o DOM: se o React/Vite carregar e tentar apagar o nosso aviso, ele recria na mesma hora
+  const observer = new MutationObserver(() => {
+    if (!document.getElementById("kromis-instagram-warning-overlay")) {
+      renderModal();
+    }
   });
+
+  if (document.body) {
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
 }
