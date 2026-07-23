@@ -14,7 +14,6 @@ import {
   ReceiptText,
 } from "lucide-react";
 
-// Adicionado: Importações do serviço de notificação
 import {
   solicitarPermissaoDeNotificacao,
   ouvirMensagensEmPrimeiroPlano,
@@ -28,34 +27,45 @@ const AdminHomePage = () => {
     async function validateToken() {
       try {
         const data = await getDesignSettings();
-
         console.log("Empresa validada:", data);
 
-        // Adicionado: Inicialização segura das notificações Push
+        // Chamada do Firebase totalmente isolada com fetch nativo para não ativar interceptors de logout
         try {
           const fcmToken = await solicitarPermissaoDeNotificacao();
           ouvirMensagensEmPrimeiroPlano();
 
           if (fcmToken && slug) {
-            await apiFetch(`/companies/${slug}/save-fcm-token`, {
-              method: "POST",
-              body: JSON.stringify({ token: fcmToken }),
-            });
-            console.log("Token FCM enviado e salvo no banco de dados.");
+            const authToken =
+              localStorage.getItem("@AgendaPro:token") ||
+              localStorage.getItem("token");
+
+            // Usando fetch padrão da web para evitar que erros aqui limpem o localStorage do app
+            await fetch(
+              `${
+                import.meta.env.VITE_API_URL || "http://localhost:3000"
+              }/companies/${slug}/save-fcm-token`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${authToken}`,
+                },
+                body: JSON.stringify({ token: fcmToken }),
+              }
+            );
+            console.log("Token FCM enviado com sucesso.");
           }
         } catch (fbError) {
-          // Captura erros internos de Firebase/permissão bloqueada sem deslogar o admin
-          console.warn("Notificações Push não ativadas nesta sessão:", fbError);
+          console.warn("Falha silenciosa no Firebase interceptada:", fbError);
         }
       } catch (error) {
         console.log("Sessão inválida:", error);
-
         navigate("/");
       }
     }
 
     validateToken();
-  }, [navigate, slug]); // Adicionado 'slug' como dependência segura para o envio do token
+  }, [navigate, slug]);
 
   const cards = [
     {
