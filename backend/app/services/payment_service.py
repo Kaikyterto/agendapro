@@ -134,8 +134,9 @@ class PaymentService:
         response = sdk.payment().create(payment_data)
         payment = response.get("response", {})
 
-        if not payment:
-            raise Exception("Erro ao gerar PIX para a venda do produto")
+        if response.get("status", 200) >= 400 or not payment:
+            error_detail = payment.get("message") or payment.get("description") or "Erro ao gerar PIX para a venda do produto"
+            raise Exception(f"Mercado Pago Pix Error: {error_detail}")
 
         transaction_data = (
             payment
