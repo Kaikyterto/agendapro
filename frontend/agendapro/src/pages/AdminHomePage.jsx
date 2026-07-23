@@ -26,7 +26,7 @@ const AdminHomePage = () => {
   useEffect(() => {
     async function validateToken() {
       try {
-        // 1. Verifica se a sessão/token existe no localStorage usando a chave com o prefixo correto
+        // 1. Busca utilizando as chaves prefixadas corretas do seu app
         const token = localStorage.getItem("@AgendaPro:token");
         const tokenExpiration = localStorage.getItem(
           "@AgendaPro:token_expiration"
@@ -38,7 +38,7 @@ const AdminHomePage = () => {
           return;
         }
 
-        // 2. Valida a data de expiração no client usando a chave correta
+        // 2. Valida a expiração com a chave correta
         if (tokenExpiration && Date.now() > Number(tokenExpiration)) {
           console.log("O link/token de acesso expirou!");
           localStorage.removeItem("@AgendaPro:token");
@@ -51,7 +51,7 @@ const AdminHomePage = () => {
         const data = await getDesignSettings();
         console.log("Empresa validada:", data);
 
-        // ATIVAÇÃO E SALVAMENTO DAS NOTIFICAÇÕES (Isolado para segurança do Login)
+        // ATIVAÇÃO DAS NOTIFICAÇÕES (Envolvida em try/catch para nunca quebrar o dashboard)
         try {
           const fcmToken = await solicitarPermissaoDeNotificacao();
           ouvirMensagensEmPrimeiroPlano();
@@ -64,16 +64,13 @@ const AdminHomePage = () => {
             console.log("Token FCM enviado e salvo no banco de dados.");
           }
         } catch (fbError) {
-          // Se o Firebase falhar ou a permissão for negada, exibe o aviso, mas não quebra o login
-          console.warn("Notificações Push não ativadas nesta sessão:", fbError);
+          console.warn("Notificações Push não ativadas:", fbError);
         }
       } catch (error) {
-        // 4. Se o backend responder com erro, limpa o lixo usando as chaves corretas e manda pro login
-        console.log("Sessão inválida ou link expirado:", error);
+        // 4. Limpeza correta usando as chaves do seu app se o backend rejeitar
+        console.log("Sessão inválida ou erro na requisição:", error);
         localStorage.removeItem("@AgendaPro:token");
-        if (localStorage.getItem("@AgendaPro:token_expiration")) {
-          localStorage.removeItem("@AgendaPro:token_expiration");
-        }
+        localStorage.removeItem("@AgendaPro:token_expiration");
         navigate("/");
       }
     }
