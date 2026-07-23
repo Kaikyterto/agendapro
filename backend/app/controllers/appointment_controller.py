@@ -40,8 +40,8 @@ class AppointmentController:
             if not all([service_id, worker_id, start_datetime]):
                 return jsonify({"error": "Dados obrigatórios faltando"}), 400
 
-            if not customer_name or not customer_phone:
-                return jsonify({"error": "Nome e telefone são obrigatórios"}), 400
+            if not customer_name :
+                return jsonify({"error": "Nome é obrigatório"}), 400
 
             try:
                 # Se a string vier com o sufixo 'Z', removemos para ler o horário
