@@ -32,6 +32,7 @@ const AdminBookingPage = () => {
   const [orderDirection, setOrderDirection] = useState("desc");
 
   const [actionLoading, setActionLoading] = useState(null);
+  const [cancelModalId, setCancelModalId] = useState(null);
 
   // Envolver loadAppointments em useCallback para evitar loops no useEffect
   const loadAppointments = useCallback(
@@ -97,12 +98,14 @@ const AdminBookingPage = () => {
     }
   };
 
-  const handleCancel = async (id) => {
-    const confirmed = window.confirm(
-      "Deseja realmente cancelar este agendamento?"
-    );
-    if (!confirmed) return;
+  const promptCancel = (id) => {
+    setCancelModalId(id);
+  };
 
+  const handleConfirmCancel = async () => {
+    if (!cancelModalId) return;
+
+    const id = cancelModalId;
     try {
       setActionLoading(id);
       await apiFetch(`/appointments/${id}/cancel`, {
@@ -113,6 +116,7 @@ const AdminBookingPage = () => {
       setAppointments((prev) =>
         prev.map((a) => (a.id === id ? { ...a, status: "cancelled" } : a))
       );
+      setCancelModalId(null);
     } catch (err) {
       console.error(err);
       setError(err?.response?.data?.message || "Erro ao cancelar agendamento");
@@ -407,7 +411,7 @@ const AdminBookingPage = () => {
                     </Button>
 
                     <Button
-                      onClick={() => handleCancel(a.id)}
+                      onClick={() => promptCancel(a.id)}
                       disabled={actionLoading === a.id}
                       className="bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/20 h-11 px-4 rounded-2xl justify-center"
                     >
@@ -491,7 +495,7 @@ const AdminBookingPage = () => {
                   </Button>
 
                   <Button
-                    onClick={() => handleCancel(a.id)}
+                    onClick={() => promptCancel(a.id)}
                     disabled={actionLoading === a.id}
                     className="bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/20 h-12 rounded-xl justify-center"
                   >
@@ -509,6 +513,40 @@ const AdminBookingPage = () => {
           )}
         </div>
       </div>
+
+      {/* MODAL DE CONFIRMAÇÃO DE CANCELAMENTO */}
+      {cancelModalId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-[#111827] border border-white/10 rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
+            <h3 className="text-lg font-bold text-white">
+              Cancelar Agendamento
+            </h3>
+            <p className="text-white/60 text-sm">
+              Deseja realmente cancelar este agendamento? Esta ação não poderá
+              ser desfeita.
+            </p>
+            <div className="flex gap-3 pt-2">
+              <Button
+                onClick={() => setCancelModalId(null)}
+                className="flex-1 bg-white/5 hover:bg-white/10 text-white border border-white/10 h-11 rounded-xl justify-center"
+              >
+                Voltar
+              </Button>
+              <Button
+                onClick={handleConfirmCancel}
+                disabled={actionLoading === cancelModalId}
+                className="flex-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/30 h-11 rounded-xl justify-center"
+              >
+                {actionLoading === cancelModalId ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  "Sim, cancelar"
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
