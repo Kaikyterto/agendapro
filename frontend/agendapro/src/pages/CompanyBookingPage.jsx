@@ -360,7 +360,13 @@ const CompanyBookingPage = () => {
                           color: "var(--primary)",
                         }}
                       >
-                        R$ {service.price}
+                        {Number(service.price) === 0 ? (
+                          <span className="text-[11px] text-white/70 font-normal">
+                            Valor a ser consultado
+                          </span>
+                        ) : (
+                          `R$ ${service.price}`
+                        )}
                       </span>
 
                       <span className="text-[11px] text-white/50">

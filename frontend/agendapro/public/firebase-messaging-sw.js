@@ -26,15 +26,22 @@ messaging.onBackgroundMessage((payload) => {
     payload
   );
 
-  // Se o payload não tiver a estrutura nativa de 'notification' mas tiver 'data',
-  // forçamos a exibição manual para garantir que o admin receba o aviso.
-  if (!payload.notification && payload.data) {
-    const notificationTitle = payload.data.title || "Nova atualização Kromis!";
-    const notificationOptions = {
-      body: payload.data.body || "",
-      icon: "/logo-kromis.png",
-    };
+  let notificationTitle = "Nova atualização Kromis!";
+  let notificationOptions = {
+    body: "",
+    icon: "/logo-kromis.png",
+  };
 
-    self.registration.showNotification(notificationTitle, notificationOptions);
+  // Trata se o payload vier no formato padrão do Firebase (.notification)
+  if (payload.notification) {
+    notificationTitle = payload.notification.title || notificationTitle;
+    notificationOptions.body = payload.notification.body || "";
   }
+  // Trata se o payload vier customizado via dados (.data)
+  else if (payload.data) {
+    notificationTitle = payload.data.title || notificationTitle;
+    notificationOptions.body = payload.data.body || "";
+  }
+
+  self.registration.showNotification(notificationTitle, notificationOptions);
 });
