@@ -8,6 +8,8 @@ import {
   MessageSquare,
   ArrowLeft,
   X,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 
 import {
@@ -40,6 +42,9 @@ const CompanyBookingPage = () => {
   const [selectedSlot, setSelectedSlot] = useState(null);
 
   const [submitting, setSubmitting] = useState(false);
+
+  // Estado para controlar quais descrições de serviços estão expandidas (IDs)
+  const [expandedDescriptions, setExpandedDescriptions] = useState(new Set());
 
   // CORREÇÃO 1: Inicializa com a data local do navegador, evitando virada de dia precoce pelo ISO UTC
   const [selectedDate, setSelectedDate] = useState(() => {
@@ -131,9 +136,6 @@ const CompanyBookingPage = () => {
 
         const slots = response?.slots || [];
 
-        console.log("SLOTS RESPONSE:", response);
-        console.log("NEW SLOTS:", slots);
-
         setAvailableSlots(slots);
 
         setSelectedSlot(null);
@@ -152,12 +154,21 @@ const CompanyBookingPage = () => {
   }, [slug, selectedDate, selectedWorker, selectedService]);
 
   // =========================================================
-  // DEBUG AVAILABLE SLOTS
+  // TOGGLE DESCRIPTION
   // =========================================================
 
-  useEffect(() => {
-    console.log("UPDATED availableSlots:", availableSlots);
-  }, [availableSlots]);
+  const toggleDescription = (serviceId) => {
+    setExpandedDescriptions((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(serviceId)) {
+        newSet.delete(serviceId);
+      } else {
+        newSet.add(serviceId);
+      }
+      return newSet;
+    });
+  };
+
   // =========================================================
   // FORM
   // =========================================================
@@ -231,8 +242,6 @@ const CompanyBookingPage = () => {
       return;
     }
 
-    // Validação do telefone removida para torná-lo opcional
-
     try {
       setSubmitting(true);
 
@@ -248,7 +257,7 @@ const CompanyBookingPage = () => {
         worker_id: selectedWorker.id,
         start_datetime: cleanDateTime,
         name: form.name.trim(),
-        phone: form.phone?.trim() || null, // Envia null caso esteja vazio
+        phone: form.phone?.trim() || null,
         notes: form.notes?.trim() || null,
       });
 
@@ -333,74 +342,114 @@ const CompanyBookingPage = () => {
           <div className="mt-12">
             <h2 className="text-2xl font-bold mb-6">Escolha um serviço</h2>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-              {services.map((service) => (
-                <div
-                  key={service.id}
-                  className="rounded-2xl overflow-hidden border border-white/10 bg-white/5 backdrop-blur-xl"
-                >
-                  {service.image_url && (
-                    <img
-                      src={service.image_url}
-                      alt={service.name}
-                      loading="lazy"
-                      className="w-full aspect-square object-cover"
-                    />
-                  )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {services.map((service) => {
+                const isExpanded = expandedDescriptions.has(service.id);
+                const hasDescription = Boolean(
+                  service.description && service.description.trim() !== ""
+                );
 
-                  <div className="p-3">
-                    <h3 className="font-semibold text-sm line-clamp-2 min-h-[40px]">
-                      {service.name}
-                    </h3>
+                return (
+                  <div
+                    key={service.id}
+                    className="rounded-2xl overflow-hidden border border-white/10 bg-white/5 backdrop-blur-xl flex flex-col justify-between"
+                  >
+                    <div>
+                      {service.image_url && (
+                        <img
+                          src={service.image_url}
+                          alt={service.name}
+                          loading="lazy"
+                          className="w-full aspect-square object-cover"
+                        />
+                      )}
 
-                    <div className="flex items-center justify-between mt-2">
-                      <span
-                        className="text-xs font-bold"
-                        style={{
-                          color: "var(--primary)",
-                        }}
-                      >
-                        {Number(service.price) === 0 ? (
-                          <span className="text-[11px] text-white/70 font-normal">
-                            Valor a ser consultado
-                          </span>
-                        ) : (
-                          `R$ ${service.price}`
+                      <div className="p-3">
+                        <h3 className="font-semibold text-sm line-clamp-2 min-h-[40px]">
+                          {service.name}
+                        </h3>
+
+                        {/* Descrição com suporte a "Ler mais" */}
+                        {hasDescription && (
+                          <div className="mt-2 text-xs text-white/60">
+                            <p
+                              className={
+                                isExpanded ? "" : "line-clamp-2 leading-relaxed"
+                              }
+                            >
+                              {service.description}
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => toggleDescription(service.id)}
+                              className="mt-1 font-medium flex items-center gap-1 transition-colors hover:opacity-80"
+                              style={{ color: "var(--primary)" }}
+                            >
+                              {isExpanded ? (
+                                <>
+                                  Ler menos <ChevronUp size={14} />
+                                </>
+                              ) : (
+                                <>
+                                  Ler mais <ChevronDown size={14} />
+                                </>
+                              )}
+                            </button>
+                          </div>
                         )}
-                      </span>
-
-                      <span className="text-[11px] text-white/50">
-                        {service.duration} min
-                      </span>
+                      </div>
                     </div>
 
-                    <Button
-                      onClick={async () => {
-                        try {
-                          resetBookingState();
+                    <div className="p-3 pt-0 mt-auto">
+                      <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/5">
+                        <span
+                          className="text-xs font-bold"
+                          style={{
+                            color: "var(--primary)",
+                          }}
+                        >
+                          {Number(service.price) === 0 ? (
+                            <span className="text-[11px] text-white/70 font-normal">
+                              Valor a ser consultado
+                            </span>
+                          ) : (
+                            `R$ ${service.price}`
+                          )}
+                        </span>
 
-                          const workersData = await getServiceWorkers(
-                            slug,
-                            service.id
-                          );
+                        <span className="text-[11px] text-white/50">
+                          {service.duration} min
+                        </span>
+                      </div>
 
-                          setSelectedService(service);
-                          setWorkers(workersData);
-                          setShowWorkersModal(true);
-                        } catch (err) {
-                          console.error(err);
-                        }
-                      }}
-                      className="w-full mt-3 h-9 text-xs"
-                      style={{
-                        backgroundColor: "var(--primary)",
-                      }}
-                    >
-                      Agendar
-                    </Button>
+                      <Button
+                        onClick={async () => {
+                          try {
+                            resetBookingState();
+
+                            const workersData = await getServiceWorkers(
+                              slug,
+                              service.id
+                            );
+
+                            setSelectedService(service);
+                            setWorkers(workersData);
+                            setShowWorkersModal(true);
+                          } catch (err) {
+                            console.error(err);
+                          }
+                        }}
+                        className="w-full mt-3 h-9 text-xs"
+                        style={{
+                          backgroundColor: "var(--primary)",
+                        }}
+                      >
+                        Agendar
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
@@ -464,9 +513,7 @@ const CompanyBookingPage = () => {
                     <Button
                       onClick={() => {
                         setSelectedWorker(worker);
-
                         setShowWorkersModal(false);
-
                         setShowBookingModal(true);
                       }}
                       className="w-full sm:w-auto"
@@ -491,9 +538,7 @@ const CompanyBookingPage = () => {
               <button
                 onClick={() => {
                   setShowBookingModal(false);
-
                   setError("");
-
                   setSuccess("");
                 }}
                 className="absolute top-4 right-4 sm:top-5 sm:right-5 w-10 h-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition"
@@ -565,7 +610,6 @@ const CompanyBookingPage = () => {
                     min={new Date().toISOString().split("T")[0]}
                     onChange={(e) => {
                       setSelectedDate(e.target.value);
-
                       setSelectedSlot(null);
                     }}
                     className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 px-4 outline-none focus:border-[var(--primary)] transition-all"
