@@ -157,7 +157,7 @@ const AdminServicesPage = () => {
         return;
       }
 
-      if (!form.price || Number(form.price) <= 0) {
+      if (!form.price || Number(form.price) < 0) {
         setError("Valor inválido");
         return;
       }
