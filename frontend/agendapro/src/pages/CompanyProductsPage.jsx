@@ -478,7 +478,7 @@ export default function CompanyProductsPage() {
                     onClick={() => addToCart(product)}
                     className="h-7 sm:h-8 w-full flex items-center justify-center bg-[var(--primary)] hover:opacity-90 active:scale-[0.98] transition-all rounded-lg text-white"
                   >
-                    <Plus size={13} />
+                    Adicionar ao carrinho
                   </button>
                 </div>
               </div>
@@ -487,7 +487,6 @@ export default function CompanyProductsPage() {
         </div>
       </main>
 
-      {/* CARRINHO CORRIGIDO */}
       {isCartOpen && (
         <div className="fixed inset-0 z-50 flex justify-end transform-gpu">
           <div
@@ -555,7 +554,7 @@ export default function CompanyProductsPage() {
                             className="text-white/50 hover:text-white"
                             onClick={() => addToCart(item)}
                           >
-                            Adicionar ao carrinho
+                            +
                           </button>
                         </div>
                       </div>
