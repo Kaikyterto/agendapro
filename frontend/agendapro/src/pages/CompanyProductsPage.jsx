@@ -21,7 +21,6 @@ export default function CompanyProductsPage() {
   const [isCartOpen, setIsCartOpen] = useState(false);
 
   const [toast, setToast] = useState("");
-  // Estado para controlar a mensagem embaixo de cada botão de produto
   const [productFeedback, setProductFeedback] = useState({});
 
   const [checkoutLoading, setCheckoutLoading] = useState(false);
@@ -31,7 +30,6 @@ export default function CompanyProductsPage() {
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
 
-  // Estados para Cartão de Crédito
   const [paymentMethod, setPaymentMethod] = useState("pix");
   const [cardNumber, setCardNumber] = useState("");
   const [cardMonth, setCardMonth] = useState("");
@@ -41,7 +39,6 @@ export default function CompanyProductsPage() {
   const [installments, setInstallments] = useState(1);
   const [docNumber, setDocNumber] = useState("");
 
-  // Novos estados para parcelamento dinâmico
   const [dynamicInstallments, setDynamicInstallments] = useState([]);
   const [paymentMethodId, setPaymentMethodId] = useState("");
   const [issuerId, setIssuerId] = useState("");
@@ -53,7 +50,6 @@ export default function CompanyProductsPage() {
 
   const [expandedDescriptions, setExpandedDescriptions] = useState({});
 
-  // 1. PRIMEIRO DECLARAMOS OS VALORES COMPUTADOS
   const cartCount = useMemo(() => {
     return cart.reduce((acc, item) => acc + (item.quantity || 1), 0);
   }, [cart]);
@@ -66,7 +62,6 @@ export default function CompanyProductsPage() {
     }, 0);
   }, [cart]);
 
-  // 2. AGORA DECLARAMOS OS USEEFFECTS
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -99,7 +94,6 @@ export default function CompanyProductsPage() {
     loadData();
   }, [slug]);
 
-  // Polling do Pix
   useEffect(() => {
     if (!showPixModal || !pixData?.orderId) return;
 
@@ -127,7 +121,6 @@ export default function CompanyProductsPage() {
     return () => clearInterval(interval);
   }, [showPixModal, pixData]);
 
-  // Hook para monitorar os primeiros dígitos do cartão e buscar o parcelamento real no Mercado Pago
   useEffect(() => {
     if (
       paymentMethod !== "card" ||
@@ -144,26 +137,19 @@ export default function CompanyProductsPage() {
         if (typeof window.MercadoPago === "undefined") return;
 
         const publicKey = import.meta.env.VITE_MP_PUBLIC_KEY;
-        if (!publicKey) {
-          console.warn(
-            "Chave pública do Mercado Pago (VITE_MP_PUBLIC_KEY) não encontrada."
-          );
-          return;
-        }
+        if (!publicKey) return;
 
         const mp = new window.MercadoPago(publicKey);
         if (!mp) return;
 
         const bin = cardNumber.substring(0, 6);
 
-        // 1. Descobre qual é a bandeira e os dados de emissão do cartão com base no BIN
         const paymentMethodsData = await mp.getPaymentMethods({ bin });
 
         if (paymentMethodsData && paymentMethodsData.results?.length > 0) {
           const pmId = paymentMethodsData.results[0].id;
           setPaymentMethodId(pmId);
 
-          // 2. Busca as regras de parcelamento direto na conta do Mercado Pago para este cartão e valor
           const installmentsData = await mp.getInstallments({
             amount: total.toFixed(2),
             bin,
@@ -187,7 +173,6 @@ export default function CompanyProductsPage() {
     return () => clearTimeout(timer);
   }, [cardNumber, paymentMethod, total]);
 
-  // 3. FUNÇÕES DE MANIPULAÇÃO
   const addToCart = (product) => {
     let currentQty = 1;
 
@@ -207,7 +192,6 @@ export default function CompanyProductsPage() {
     setToast(`${currentQty}x ${product.name} adicionado ao carrinho`);
     setTimeout(() => setToast(""), 2500);
 
-    // Atualiza a quantidade específica do produto logo abaixo do botão e limpa após 2 segundos
     setProductFeedback((prev) => ({
       ...prev,
       [product.id]: currentQty,
@@ -270,7 +254,6 @@ export default function CompanyProductsPage() {
 
       const documentType = docNumber.length > 11 ? "CNPJ" : "CPF";
 
-      // Usando o método nativo e correto do SDK v2
       const tokenResponse = await mp.createCardToken({
         cardNumber: cardNumber.replace(/\s/g, ""),
         cardholderName: cardHolderName.trim(),
@@ -285,10 +268,8 @@ export default function CompanyProductsPage() {
         throw new Error("Não foi possível gerar o token do cartão de crédito.");
       }
 
-      console.log("Token Gerado via SDK v2:", tokenResponse.id);
       return tokenResponse.id;
     } catch (error) {
-      console.error("Erro ao gerar token do cartão:", error);
       const errorMsg =
         error?.cause?.[0]?.description ||
         error.message ||
@@ -360,8 +341,6 @@ export default function CompanyProductsPage() {
 
       const res = await createSale(payload);
 
-      console.log("CHECKOUT RESPONSE:", res);
-
       if (paymentMethod === "card") {
         if (
           res.status === "approved" ||
@@ -399,7 +378,6 @@ export default function CompanyProductsPage() {
       }
     } catch (err) {
       console.error(err);
-
       setError(
         err?.response?.data?.error ||
           err?.message ||
@@ -419,7 +397,8 @@ export default function CompanyProductsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#07090d] text-white transform-gpu">
+    // FIX AQUI: O 'transform-gpu' foi removido deste container principal
+    <div className="min-h-screen bg-[#07090d] text-white">
       {toast && (
         <div className="fixed top-24 left-1/2 -translate-x-1/2 bg-neutral-900 border border-white/15 px-5 py-3 rounded-2xl text-xs sm:text-sm font-semibold z-[99999] shadow-2xl animate-bounce">
           {toast}
@@ -443,7 +422,7 @@ export default function CompanyProductsPage() {
           {products.map((product) => (
             <div
               key={product.id}
-              className="bg-[#111827]/60 border border-white/5 rounded-xl overflow-hidden flex flex-col justify-between h-full shadow-lg transform-gpu"
+              className="bg-[#111827]/60 border border-white/5 rounded-xl overflow-hidden flex flex-col justify-between h-full shadow-lg"
             >
               <div className="w-full aspect-square bg-black/20 overflow-hidden relative">
                 <img
@@ -514,14 +493,14 @@ export default function CompanyProductsPage() {
       </main>
 
       {isCartOpen && (
-        <div className="fixed inset-0 z-50 flex justify-end transform-gpu">
+        <div className="fixed inset-0 z-50 flex justify-end">
           <div
             className="absolute inset-0 bg-black/70"
             onClick={() => setIsCartOpen(false)}
           />
 
           <aside
-            className="relative z-10 w-full max-w-md bg-[#0d0f14] h-[100dvh] flex flex-col shadow-2xl transform-gpu"
+            className="relative z-10 w-full max-w-md bg-[#0d0f14] h-[100dvh] flex flex-col shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center p-4 sm:p-5 border-b border-white/5 shrink-0">
@@ -608,12 +587,13 @@ export default function CompanyProductsPage() {
       )}
 
       {showCustomerModal && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[999] p-3 sm:p-4 transform-gpu overflow-y-auto">
-          <div className="bg-[#0d0f14] p-4 sm:p-6 rounded-2xl w-full max-w-md border border-white/10 shadow-2xl my-auto max-h-[90vh] flex flex-col">
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[999] p-3 sm:p-4">
+          <div className="bg-[#0d0f14] p-4 sm:p-5 rounded-2xl w-full max-w-md border border-white/10 shadow-2xl flex flex-col max-h-[90dvh]">
             <h2 className="text-base font-bold mb-3 shrink-0">
               Dados e Pagamento
             </h2>
 
+            {/* Apenas esta div rola, mantendo título em cima e botões embaixo sempre visíveis */}
             <div className="flex-1 overflow-y-auto space-y-3 pr-1 custom-scrollbar">
               <div className="space-y-3">
                 <input
@@ -793,7 +773,7 @@ export default function CompanyProductsPage() {
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-2 mt-4 shrink-0 pt-2 border-t border-white/5">
+            <div className="grid grid-cols-2 gap-2 mt-4 shrink-0 pt-3 border-t border-white/5">
               <button
                 onClick={() => setShowCustomerModal(false)}
                 className="h-10 border border-white/10 rounded-xl text-xs font-semibold hover:bg-white/5 transition-all"
@@ -843,7 +823,7 @@ export default function CompanyProductsPage() {
       )}
 
       {showPixModal && pixData && (
-        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-[1000] p-4 transform-gpu">
+        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-[1000] p-4">
           <div className="bg-[#0d0f14] w-full max-w-sm rounded-2xl p-5 border border-white/10 text-center shadow-2xl">
             <h2 className="text-base font-bold mb-4">Pagamento via PIX</h2>
 
