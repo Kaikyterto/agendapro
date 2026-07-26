@@ -186,20 +186,23 @@ export default function CompanyProductsPage() {
 
   // 3. FUNÇÕES DE MANIPULAÇÃO
   const addToCart = (product) => {
+    let currentQty = 1;
+
     setCart((prev) => {
       const exists = prev.find((p) => p.id === product.id);
 
       if (exists) {
+        currentQty = (exists.quantity || 1) + 1;
         return prev.map((p) =>
-          p.id === product.id ? { ...p, quantity: (p.quantity || 1) + 1 } : p
+          p.id === product.id ? { ...p, quantity: currentQty } : p
         );
       }
 
       return [...prev, { ...product, quantity: 1 }];
     });
 
-    setToast("Item adicionado ao carrinho");
-    setTimeout(() => setToast(""), 2000);
+    setToast(`${currentQty}x ${product.name} adicionado(s) ao carrinho`);
+    setTimeout(() => setToast(""), 2500);
   };
 
   const removeFromCart = (id) => {
@@ -401,7 +404,7 @@ export default function CompanyProductsPage() {
   return (
     <div className="min-h-screen bg-[#07090d] text-white transform-gpu">
       {toast && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-neutral-900 border border-white/10 px-4 py-2 rounded-xl text-xs font-semibold z-[9999] shadow-2xl">
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 bg-neutral-900 border border-white/15 px-5 py-3 rounded-2xl text-xs sm:text-sm font-semibold z-[9999] shadow-2xl animate-bounce">
           {toast}
         </div>
       )}
