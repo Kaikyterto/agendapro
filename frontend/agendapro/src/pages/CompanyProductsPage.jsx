@@ -501,7 +501,6 @@ export default function CompanyProductsPage() {
                     Adicionar ao carrinho
                   </button>
 
-                  {/* Mensagem exibida logo abaixo do botão com animação de fade */}
                   {productFeedback[product.id] !== undefined && (
                     <span className="text-[10px] text-center font-medium text-[var(--primary)] animate-fade-in">
                       {productFeedback[product.id]}x adicionado(s)
@@ -525,7 +524,6 @@ export default function CompanyProductsPage() {
             className="relative z-10 w-full max-w-md bg-[#0d0f14] h-[100dvh] flex flex-col shadow-2xl transform-gpu"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header fixo */}
             <div className="flex justify-between items-center p-4 sm:p-5 border-b border-white/5 shrink-0">
               <h2 className="text-lg font-bold">Carrinho</h2>
               <button
@@ -536,7 +534,6 @@ export default function CompanyProductsPage() {
               </button>
             </div>
 
-            {/* Lista com scroll isolado (min-h-0 evita estouro) */}
             <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 space-y-3 custom-scrollbar">
               {cart.length === 0 ? (
                 <p className="text-white/40 text-xs text-center py-10">
@@ -591,7 +588,6 @@ export default function CompanyProductsPage() {
               )}
             </div>
 
-            {/* Rodapé fixo do carrinho com o botão sempre visível */}
             <div className="border-t border-white/10 p-4 sm:p-5 shrink-0 bg-[#0d0f14]">
               <div className="flex justify-between mb-3 text-sm">
                 <span className="text-white/60">Total</span>
@@ -612,186 +608,192 @@ export default function CompanyProductsPage() {
       )}
 
       {showCustomerModal && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[999] p-4 transform-gpu">
-          <div className="bg-[#0d0f14] p-5 rounded-2xl w-full max-w-md border border-white/10 shadow-2xl overflow-y-auto max-h-[90vh] custom-scrollbar">
-            <h2 className="text-base font-bold mb-3">Dados e Pagamento</h2>
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[999] p-3 sm:p-4 transform-gpu overflow-y-auto">
+          <div className="bg-[#0d0f14] p-4 sm:p-6 rounded-2xl w-full max-w-md border border-white/10 shadow-2xl my-auto max-h-[90vh] flex flex-col">
+            <h2 className="text-base font-bold mb-3 shrink-0">
+              Dados e Pagamento
+            </h2>
 
-            <div className="space-y-3">
-              <input
-                className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
-                placeholder="Nome completo"
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-              />
-
-              <div className="grid grid-cols-2 gap-2">
+            <div className="flex-1 overflow-y-auto space-y-3 pr-1 custom-scrollbar">
+              <div className="space-y-3">
                 <input
                   className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
-                  placeholder="Telefone (WhatsApp)"
-                  value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  placeholder="Nome completo"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
                 />
-                <input
-                  className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
-                  placeholder="E-mail"
-                  type="email"
-                  value={customerEmail}
-                  onChange={(e) => setCustomerEmail(e.target.value)}
-                />
-              </div>
-            </div>
 
-            <div className="mt-4">
-              <p className="text-xs text-white/60 mb-2">
-                Selecione o método de pagamento:
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => setPaymentMethod("pix")}
-                  className={`h-12 flex flex-col items-center justify-center border rounded-xl gap-1 transition-all ${
-                    paymentMethod === "pix"
-                      ? "border-[var(--primary)] bg-[var(--primary)]/10"
-                      : "border-white/5 bg-white/5 hover:border-white/10"
-                  }`}
-                >
-                  <QrCode
-                    size={18}
-                    className={
-                      paymentMethod === "pix"
-                        ? "text-[var(--primary)]"
-                        : "text-white/60"
-                    }
-                  />
-                  <span className="text-[10px] font-semibold">PIX</span>
-                </button>
-                <button
-                  onClick={() => setPaymentMethod("card")}
-                  className={`h-12 flex flex-col items-center justify-center border rounded-xl gap-1 transition-all ${
-                    paymentMethod === "card"
-                      ? "border-[var(--primary)] bg-[var(--primary)]/10"
-                      : "border-white/5 bg-white/5 hover:border-white/10"
-                  }`}
-                >
-                  <CreditCard
-                    size={18}
-                    className={
-                      paymentMethod === "card"
-                        ? "text-[var(--primary)]"
-                        : "text-white/60"
-                    }
-                  />
-                  <span className="text-[10px] font-semibold">
-                    Cartão de Crédito
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            {paymentMethod === "card" && (
-              <div className="mt-4 space-y-2.5 border-t border-white/5 pt-4">
-                <input
-                  className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
-                  placeholder="Nome como está no cartão"
-                  value={cardHolderName}
-                  onChange={(e) =>
-                    setCardHolderName(e.target.value.toUpperCase())
-                  }
-                />
-                <input
-                  className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
-                  placeholder="Número do cartão (só números)"
-                  type="tel"
-                  maxLength={16}
-                  value={cardNumber}
-                  onChange={(e) =>
-                    setCardNumber(e.target.value.replace(/\D/g, ""))
-                  }
-                />
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <input
                     className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
-                    placeholder="Mês (MM)"
-                    type="tel"
-                    maxLength={2}
-                    value={cardMonth}
-                    onChange={(e) =>
-                      setCardMonth(e.target.value.replace(/\D/g, ""))
-                    }
+                    placeholder="Telefone (WhatsApp)"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
                   />
                   <input
                     className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
-                    placeholder="Ano (AAAA)"
-                    type="tel"
-                    maxLength={4}
-                    value={cardYear}
-                    onChange={(e) =>
-                      setCardYear(e.target.value.replace(/\D/g, ""))
-                    }
-                  />
-                  <input
-                    className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
-                    placeholder="CVV"
-                    type="tel"
-                    maxLength={4}
-                    value={cardCVV}
-                    onChange={(e) =>
-                      setCardCVV(e.target.value.replace(/\D/g, ""))
-                    }
+                    placeholder="E-mail"
+                    type="email"
+                    value={customerEmail}
+                    onChange={(e) => setCustomerEmail(e.target.value)}
                   />
                 </div>
-
-                <input
-                  className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
-                  placeholder="CPF/CNPJ do Titular"
-                  type="tel"
-                  maxLength={14}
-                  value={docNumber}
-                  onChange={(e) =>
-                    setDocNumber(e.target.value.replace(/\D/g, ""))
-                  }
-                />
-
-                {cardNumber.length > 0 && (
-                  <div className="space-y-1.5 animate-fadeIn">
-                    <label className="text-[10px] text-white/50 px-1">
-                      Quantidade de parcelas:
-                    </label>
-                    <select
-                      value={installments}
-                      onChange={(e) => setInstallments(Number(e.target.value))}
-                      className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all text-white/90 appearance-none cursor-pointer"
-                    >
-                      {dynamicInstallments.length === 0 ? (
-                        <option
-                          className="bg-[#0d0f14] text-white py-2"
-                          value={1}
-                        >
-                          1x de R$ {total.toFixed(2)} (Sem juros)
-                        </option>
-                      ) : (
-                        dynamicInstallments.map((installment) => (
-                          <option
-                            key={installment.installments}
-                            value={installment.installments}
-                            className="bg-[#0d0f14] text-white py-2"
-                          >
-                            {installment.recommended_message}
-                          </option>
-                        ))
-                      )}
-                    </select>
-                  </div>
-                )}
               </div>
-            )}
 
-            {error && (
-              <p className="text-red-400 text-[11px] mt-2 bg-red-950/20 p-2 rounded-lg border border-red-800/30">
-                {error}
-              </p>
-            )}
+              <div className="mt-4">
+                <p className="text-xs text-white/60 mb-2">
+                  Selecione o método de pagamento:
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setPaymentMethod("pix")}
+                    className={`h-12 flex flex-col items-center justify-center border rounded-xl gap-1 transition-all ${
+                      paymentMethod === "pix"
+                        ? "border-[var(--primary)] bg-[var(--primary)]/10"
+                        : "border-white/5 bg-white/5 hover:border-white/10"
+                    }`}
+                  >
+                    <QrCode
+                      size={18}
+                      className={
+                        paymentMethod === "pix"
+                          ? "text-[var(--primary)]"
+                          : "text-white/60"
+                      }
+                    />
+                    <span className="text-[10px] font-semibold">PIX</span>
+                  </button>
+                  <button
+                    onClick={() => setPaymentMethod("card")}
+                    className={`h-12 flex flex-col items-center justify-center border rounded-xl gap-1 transition-all ${
+                      paymentMethod === "card"
+                        ? "border-[var(--primary)] bg-[var(--primary)]/10"
+                        : "border-white/5 bg-white/5 hover:border-white/10"
+                    }`}
+                  >
+                    <CreditCard
+                      size={18}
+                      className={
+                        paymentMethod === "card"
+                          ? "text-[var(--primary)]"
+                          : "text-white/60"
+                      }
+                    />
+                    <span className="text-[10px] font-semibold">
+                      Cartão de Crédito
+                    </span>
+                  </button>
+                </div>
+              </div>
 
-            <div className="grid grid-cols-2 gap-2 mt-4">
+              {paymentMethod === "card" && (
+                <div className="mt-4 space-y-2.5 border-t border-white/5 pt-4">
+                  <input
+                    className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
+                    placeholder="Nome como está no cartão"
+                    value={cardHolderName}
+                    onChange={(e) =>
+                      setCardHolderName(e.target.value.toUpperCase())
+                    }
+                  />
+                  <input
+                    className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
+                    placeholder="Número do cartão (só números)"
+                    type="tel"
+                    maxLength={16}
+                    value={cardNumber}
+                    onChange={(e) =>
+                      setCardNumber(e.target.value.replace(/\D/g, ""))
+                    }
+                  />
+                  <div className="grid grid-cols-3 gap-2">
+                    <input
+                      className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
+                      placeholder="Mês (MM)"
+                      type="tel"
+                      maxLength={2}
+                      value={cardMonth}
+                      onChange={(e) =>
+                        setCardMonth(e.target.value.replace(/\D/g, ""))
+                      }
+                    />
+                    <input
+                      className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
+                      placeholder="Ano (AAAA)"
+                      type="tel"
+                      maxLength={4}
+                      value={cardYear}
+                      onChange={(e) =>
+                        setCardYear(e.target.value.replace(/\D/g, ""))
+                      }
+                    />
+                    <input
+                      className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
+                      placeholder="CVV"
+                      type="tel"
+                      maxLength={4}
+                      value={cardCVV}
+                      onChange={(e) =>
+                        setCardCVV(e.target.value.replace(/\D/g, ""))
+                      }
+                    />
+                  </div>
+
+                  <input
+                    className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
+                    placeholder="CPF/CNPJ do Titular"
+                    type="tel"
+                    maxLength={14}
+                    value={docNumber}
+                    onChange={(e) =>
+                      setDocNumber(e.target.value.replace(/\D/g, ""))
+                    }
+                  />
+
+                  {cardNumber.length > 0 && (
+                    <div className="space-y-1.5 animate-fadeIn">
+                      <label className="text-[10px] text-white/50 px-1">
+                        Quantidade de parcelas:
+                      </label>
+                      <select
+                        value={installments}
+                        onChange={(e) =>
+                          setInstallments(Number(e.target.value))
+                        }
+                        className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all text-white/90 appearance-none cursor-pointer"
+                      >
+                        {dynamicInstallments.length === 0 ? (
+                          <option
+                            className="bg-[#0d0f14] text-white py-2"
+                            value={1}
+                          >
+                            1x de R$ {total.toFixed(2)} (Sem juros)
+                          </option>
+                        ) : (
+                          dynamicInstallments.map((installment) => (
+                            <option
+                              key={installment.installments}
+                              value={installment.installments}
+                              className="bg-[#0d0f14] text-white py-2"
+                            >
+                              {installment.recommended_message}
+                            </option>
+                          ))
+                        )}
+                      </select>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {error && (
+                <p className="text-red-400 text-[11px] mt-2 bg-red-950/20 p-2 rounded-lg border border-red-800/30">
+                  {error}
+                </p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 mt-4 shrink-0 pt-2 border-t border-white/5">
               <button
                 onClick={() => setShowCustomerModal(false)}
                 className="h-10 border border-white/10 rounded-xl text-xs font-semibold hover:bg-white/5 transition-all"
@@ -869,13 +871,6 @@ export default function CompanyProductsPage() {
               className="w-full mt-3 h-10 rounded-xl font-bold bg-[var(--primary)] text-xs hover:opacity-90 transition-all"
             >
               Copiar código PIX
-            </button>
-
-            <button
-              onClick={() => setShowPixModal(false)}
-              className="w-full mt-2 h-10 rounded-xl border border-white/10 text-xs font-semibold text-white/60 hover:bg-white/5 transition-all"
-            >
-              Fechar
             </button>
           </div>
         </div>
