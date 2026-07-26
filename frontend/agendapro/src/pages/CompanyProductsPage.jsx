@@ -201,7 +201,7 @@ export default function CompanyProductsPage() {
       return [...prev, { ...product, quantity: 1 }];
     });
 
-    setToast(`${currentQty}x ${product.name} adicionado(s) ao carrinho`);
+    setToast(`${currentQty}x ${product.name} adicionado ao carrinho`);
     setTimeout(() => setToast(""), 2500);
   };
 
@@ -404,7 +404,7 @@ export default function CompanyProductsPage() {
   return (
     <div className="min-h-screen bg-[#07090d] text-white transform-gpu">
       {toast && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 bg-neutral-900 border border-white/15 px-5 py-3 rounded-2xl text-xs sm:text-sm font-semibold z-[9999] shadow-2xl animate-bounce">
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 bg-neutral-900 border border-white/15 px-5 py-3 rounded-2xl text-xs sm:text-sm font-semibold z-[99999] shadow-2xl animate-bounce">
           {toast}
         </div>
       )}
