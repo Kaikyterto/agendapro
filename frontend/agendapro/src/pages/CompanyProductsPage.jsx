@@ -198,7 +198,7 @@ export default function CompanyProductsPage() {
       return [...prev, { ...product, quantity: 1 }];
     });
 
-    setToast(`${product.name} adicionado`);
+    setToast("Item adicionado ao carrinho");
     setTimeout(() => setToast(""), 2000);
   };
 
