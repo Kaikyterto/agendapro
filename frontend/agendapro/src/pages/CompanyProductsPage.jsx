@@ -21,6 +21,9 @@ export default function CompanyProductsPage() {
   const [isCartOpen, setIsCartOpen] = useState(false);
 
   const [toast, setToast] = useState("");
+  // Estado para controlar a mensagem embaixo de cada botão de produto
+  const [productFeedback, setProductFeedback] = useState({});
+
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -203,6 +206,20 @@ export default function CompanyProductsPage() {
 
     setToast(`${currentQty}x ${product.name} adicionado ao carrinho`);
     setTimeout(() => setToast(""), 2500);
+
+    // Atualiza a quantidade específica do produto logo abaixo do botão e limpa após 2 segundos
+    setProductFeedback((prev) => ({
+      ...prev,
+      [product.id]: currentQty,
+    }));
+
+    setTimeout(() => {
+      setProductFeedback((prev) => {
+        const updated = { ...prev };
+        delete updated[product.id];
+        return updated;
+      });
+    }, 2000);
   };
 
   const removeFromCart = (id) => {
@@ -483,6 +500,13 @@ export default function CompanyProductsPage() {
                   >
                     Adicionar ao carrinho
                   </button>
+
+                  {/* Mensagem exibida logo abaixo do botão com animação de fade */}
+                  {productFeedback[product.id] !== undefined && (
+                    <span className="text-[10px] text-center font-medium text-[var(--primary)] animate-fade-in">
+                      {productFeedback[product.id]}x adicionado(s)
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -578,7 +602,7 @@ export default function CompanyProductsPage() {
 
               <button
                 onClick={openCheckout}
-                className="w-full bg-[var(--primary)] h-11 text-sm rounded-xl font-bold hover:opacity-90 transition-all shadow-lg"
+                className="w-full bg-[var(--primary)] h-11 text-sm rounded-xl font-bold hover:opacity-95 transition-all shadow-lg"
               >
                 Finalizar compra
               </button>
@@ -716,7 +740,6 @@ export default function CompanyProductsPage() {
                   />
                 </div>
 
-                {/* Campo de CPF/CNPJ ocupando a linha inteira */}
                 <input
                   className="w-full p-2.5 bg-white/5 rounded-xl border border-white/5 outline-none text-xs focus:border-[var(--primary)] transition-all"
                   placeholder="CPF/CNPJ do Titular"
@@ -728,7 +751,6 @@ export default function CompanyProductsPage() {
                   }
                 />
 
-                {/* Seletor de parcelas condicional: só aparece quando o usuário digita no campo do cartão */}
                 {cardNumber.length > 0 && (
                   <div className="space-y-1.5 animate-fadeIn">
                     <label className="text-[10px] text-white/50 px-1">
