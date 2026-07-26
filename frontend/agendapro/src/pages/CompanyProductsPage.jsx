@@ -343,7 +343,6 @@ export default function CompanyProductsPage() {
       console.log("CHECKOUT RESPONSE:", res);
 
       if (paymentMethod === "card") {
-        // AJUSTE: Passou a aceitar "approved", "paid" ou "accredited" como confirmações válidas
         if (
           res.status === "approved" ||
           res.status === "paid" ||
@@ -488,6 +487,7 @@ export default function CompanyProductsPage() {
         </div>
       </main>
 
+      {/* CARRINHO CORRIGIDO */}
       {isCartOpen && (
         <div className="fixed inset-0 z-50 flex justify-end transform-gpu">
           <div
@@ -496,10 +496,11 @@ export default function CompanyProductsPage() {
           />
 
           <aside
-            className="relative z-10 w-full max-w-md bg-[#0d0f14] h-full p-5 flex flex-col shadow-2xl transform-gpu"
+            className="relative z-10 w-full max-w-md bg-[#0d0f14] h-[100dvh] flex flex-col shadow-2xl transform-gpu"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex justify-between items-center mb-5">
+            {/* Header fixo */}
+            <div className="flex justify-between items-center p-4 sm:p-5 border-b border-white/5 shrink-0">
               <h2 className="text-lg font-bold">Carrinho</h2>
               <button
                 onClick={() => setIsCartOpen(false)}
@@ -509,7 +510,8 @@ export default function CompanyProductsPage() {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto space-y-3 pr-1 custom-scrollbar">
+            {/* Lista com scroll isolado (min-h-0 evita estouro) */}
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 space-y-3 custom-scrollbar">
               {cart.length === 0 ? (
                 <p className="text-white/40 text-xs text-center py-10">
                   Seu carrinho está vazio
@@ -522,7 +524,7 @@ export default function CompanyProductsPage() {
                   return (
                     <div
                       key={item.id}
-                      className="flex gap-3 bg-white/5 p-2.5 rounded-xl border border-white/5"
+                      className="flex gap-3 bg-white/5 p-2.5 rounded-xl border border-white/5 items-center"
                     >
                       <img
                         src={item.image_url}
@@ -531,7 +533,7 @@ export default function CompanyProductsPage() {
                       />
 
                       <div className="flex-1 min-w-0 flex flex-col justify-between">
-                        <p className="text-xs font-medium text-white/90 truncate">
+                        <p className="text-xs font-medium text-white/95 truncate">
                           {item.name}
                         </p>
                         <p className="text-[11px] font-semibold text-[var(--primary)]">
@@ -553,7 +555,7 @@ export default function CompanyProductsPage() {
                             className="text-white/50 hover:text-white"
                             onClick={() => addToCart(item)}
                           >
-                            +
+                            Adicionar ao carrinho
                           </button>
                         </div>
                       </div>
@@ -563,7 +565,8 @@ export default function CompanyProductsPage() {
               )}
             </div>
 
-            <div className="border-t border-white/10 pt-4 mt-4">
+            {/* Rodapé fixo do carrinho com o botão sempre visível */}
+            <div className="border-t border-white/10 p-4 sm:p-5 shrink-0 bg-[#0d0f14]">
               <div className="flex justify-between mb-3 text-sm">
                 <span className="text-white/60">Total</span>
                 <span className="font-bold text-base">
@@ -573,7 +576,7 @@ export default function CompanyProductsPage() {
 
               <button
                 onClick={openCheckout}
-                className="w-full bg-[var(--primary)] h-11 text-sm rounded-xl font-bold hover:opacity-90 transition-all"
+                className="w-full bg-[var(--primary)] h-11 text-sm rounded-xl font-bold hover:opacity-90 transition-all shadow-lg"
               >
                 Finalizar compra
               </button>
