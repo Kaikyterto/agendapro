@@ -6,7 +6,7 @@ const Nav = ({ logo, showCart, cartCount = 0, onCartClick, style }) => {
 
   return (
     <header
-      className="w-full flex items-center justify-between px-4 py-3 border-b border-white/10"
+      className="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-4 py-3 border-b border-white/10"
       style={style}
     >
       <button
