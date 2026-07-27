@@ -20,7 +20,7 @@ const Nav = ({ logo, showCart, cartCount = 0, onCartClick, style }) => {
         {logo ? (
           <img src={logo} alt="logo" className="h-8 object-contain" />
         ) : (
-          <span className="text-white font-bold text-lg">AgendApp</span>
+          <span className="text-white font-bold text-lg">Kromis</span>
         )}
       </div>
 

@@ -45,12 +45,15 @@ def create_app():
         resources={
             r"/*": {
                 "origins": [
+                    "https://kromis.com.br",
+                    "https://www.kromis.com.br",
                     "https://kromis.vercel.app",
                     "http://localhost:5173",
                     "https://kromis-develop.vercel.app",
                 ]
             }
         },
+
         supports_credentials=True,
         allow_headers=["Content-Type", "Authorization"],
         methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
