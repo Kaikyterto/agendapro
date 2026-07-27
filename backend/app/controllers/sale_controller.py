@@ -32,7 +32,6 @@ class SaleController:
             if not customer_name or not phone:
                 return jsonify({"error": "Nome e telefone são obrigatórios"}), 400
 
-            # Cria o registro do pedido pendente com o método correto selecionado
             order = SalesRecord(
                 company_id=company_id,
                 value=Decimal("0.00"),
@@ -43,7 +42,7 @@ class SaleController:
             )
 
             db.session.add(order)
-            db.session.flush()  # Gera o ID do pedido no banco
+            db.session.flush()  
 
             total = Decimal("0.00")
             items_added = 0
@@ -81,11 +80,7 @@ class SaleController:
 
             order.value = total
 
-            # =========================================================
-            # DIVISÃO DE FLUXO DE PAGAMENTO: PIX VS CARTÃO
-            # =========================================================
             if payment_method == "card":
-                # Executa pagamento por Cartão na conta do cliente parceiro
                 payment = PaymentService.create_company_card_payment({
                     "company_id": company_id,
                     "sale_record_id": order.id,
@@ -103,7 +98,6 @@ class SaleController:
                 order.payment_id = str(payment["payment_id"])
                 order.external_reference = f"sale_{order.id}"
                 
-                # Se o cartão for aprovado na hora, muda status do pedido local
                 if payment.get("status") == "approved":
                     order.status = "paid"
                     order.payment_date = datetime.utcnow()
@@ -114,7 +108,6 @@ class SaleController:
 
                 db.session.commit()
 
-                # NOTIFICAÇÃO: Venda via Cartão Aprovada Instantaneamente
                 if order.status == "paid":
                     try:
                         company = Company.query.get(company_id)
@@ -136,7 +129,6 @@ class SaleController:
                 }), 201
 
             else:
-                # Executa o fluxo padrão de PIX
                 payment = PaymentService.create_company_pix_payment({
                     "company_id": company_id,
                     "sale_record_id": order.id,
@@ -150,7 +142,6 @@ class SaleController:
                 order.external_reference = f"sale_{order.id}"
 
                 db.session.commit()
-
                
                 try:
                     company = Company.query.get(company_id)
@@ -174,4 +165,68 @@ class SaleController:
 
         except Exception as e:
             db.session.rollback()
+            return jsonify({"error": str(e)}), 500
+
+    @staticmethod
+    def get_sales_history():
+        try:
+            company_id = request.args.get("company_id")
+            if not company_id:
+                return jsonify({"error": "company_id é obrigatório"}), 400
+
+            # Busca os registros de vendas da empresa ordenados pelos mais recentes
+            records = SalesRecord.query.filter_by(company_id=company_id).order_by(SalesRecord.id.desc()).all()
+
+            result = []
+            for record in records:
+                result.append({
+                    "id": record.id,
+                    "total": str(record.value),
+                    "status": record.status,
+                    "payment_method": record.payment_method,
+                    "customer": {
+                        "name": record.customer_name,
+                        "phone": record.phone
+                    },
+                    "created_at": record.created_at.isoformat() if hasattr(record, 'created_at') and record.created_at else None
+                })
+
+            return jsonify(result), 200
+
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @staticmethod
+    def get_sale(sale_id):
+        try:
+            # Busca o registro principal do pedido unindo com os itens e os produtos correspondentes
+            record = SalesRecord.query.options(
+                joinedload(SalesRecord.items).joinedload(Sale.product)
+            ).filter_by(id=sale_id).first()
+
+            if not record:
+                return jsonify({"error": "Pedido não encontrado"}), 404
+
+            products_list = []
+            for item in record.items:
+                products_list.append({
+                    "id": item.id,
+                    "product_id": item.product_id,
+                    "name": item.product.name if item.product else "Produto removido",
+                    "quantity": item.quantity,
+                    "unit_price": str(item.unit_price),
+                    "total_price": str(item.total_price)
+                })
+
+            return jsonify({
+                "id": record.id,
+                "customer_name": record.customer_name,
+                "phone": record.phone,
+                "status": record.status,
+                "payment_method": record.payment_method,
+                "total": str(record.value),
+                "products": products_list
+            }), 200
+
+        except Exception as e:
             return jsonify({"error": str(e)}), 500
