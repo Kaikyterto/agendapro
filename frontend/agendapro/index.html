@@ -22,6 +22,7 @@
 
         if (isInAppInstagram) {
           var currentFullUrl = window.location.href;
+          var cleanUrl = currentFullUrl.replace(/^https?:\/\//, "");
 
           document.write(`
             <style>
@@ -86,8 +87,6 @@
                 text-align: center !important;
                 cursor: pointer !important;
                 border: none !important;
-              }
-              #kromis-open-btn {
                 background: #2563eb !important;
                 color: #fff !important;
               }
@@ -105,30 +104,17 @@
                 </div>
                 <h3>Abra no Safari</h3>
                 <p>O navegador do Instagram bloqueia os agendamentos. Toque no botão abaixo para continuar com segurança.</p>
-                <button class="kromis-btn" id="kromis-open-btn">
+                
+                <a href="x-safari-https://${cleanUrl}" class="kromis-btn" id="kromis-open-btn">
                   Abrir no Safari
-                </button>
+                </a>
+
                 <div id="kromis-tip">
-                  Dica: Se preferir, toque nos <strong>três pontinhos (...)</strong> acima e escolha "Abrir no Navegador".
+                  Dica: Se o botão não abrir sozinho, toque nos <strong>três pontinhos (...)</strong> acima e escolha "Abrir no Navegador".
                 </div>
               </div>
             </div>
           `);
-
-          window.addEventListener("DOMContentLoaded", function () {
-            var openBtn = document.getElementById("kromis-open-btn");
-
-            if (openBtn) {
-              openBtn.addEventListener("click", function () {
-                var cleanUrl = currentFullUrl.replace(/^https?:\/\//, "");
-                window.location.href = "x-safari-https://" + cleanUrl;
-
-                setTimeout(function () {
-                  window.open(currentFullUrl, "_system");
-                }, 500);
-              });
-            }
-          });
         }
       })();
     </script>

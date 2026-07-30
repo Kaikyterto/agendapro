@@ -7,17 +7,26 @@ import App from "./App";
 import "./index.css";
 
 // ===============================
+// DETECTA NAVEGADORES INTEGRADOS
+// ===============================
+const userAgent = navigator.userAgent;
+
+const isInAppBrowser = /Instagram|FBAN|FBAV/i.test(userAgent);
+
+// ===============================
 // PWA SERVICE WORKER
 // ===============================
-registerSW({
-  onNeedRefresh() {
-    console.log("Nova versão do Kromis disponível");
-  },
+if (!isInAppBrowser) {
+  registerSW({
+    onNeedRefresh() {
+      console.log("Nova versão do Kromis disponível");
+    },
 
-  onOfflineReady() {
-    console.log("Kromis pronto para funcionar offline");
-  },
-});
+    onOfflineReady() {
+      console.log("Kromis pronto para funcionar offline");
+    },
+  });
+}
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <BrowserRouter>
