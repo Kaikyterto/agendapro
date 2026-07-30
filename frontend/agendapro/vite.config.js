@@ -11,11 +11,12 @@ export default defineConfig({
 
       manifest: false,
 
-      injectRegister: "auto",
+      injectRegister: false,
 
-      workbox: {
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2}"],
-      },
+      strategies: "injectManifest",
+
+      srcDir: "src",
+      filename: "sw.js",
     }),
   ],
 });
