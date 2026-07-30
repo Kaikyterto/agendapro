@@ -110,9 +110,9 @@
                 </div>
                 <h3>Abra no Safari</h3>
                 <p>O navegador do Instagram bloqueia os agendamentos. Toque no botão abaixo para abrir no Safari ou copie o link.</p>
-                <a href="${currentFullUrl}" target="_blank" rel="noopener noreferrer" class="kromis-btn" id="kromis-open-btn">
+                <button class="kromis-btn" id="kromis-open-btn">
                   Abrir no Safari
-                </a>
+                </button>
                 <button id="kromis-copy-btn" class="kromis-btn">
                   Copiar Link da Página
                 </button>
@@ -123,9 +123,23 @@
             </div>
           `);
 
-          // Evento do botão de copiar link sem depender do React
           window.addEventListener("DOMContentLoaded", function () {
+            var openBtn = document.getElementById("kromis-open-btn");
             var copyBtn = document.getElementById("kromis-copy-btn");
+
+            if (openBtn) {
+              openBtn.addEventListener("click", function () {
+                // Tenta forçar o esquema de URL do Safari no iOS
+                var cleanUrl = currentFullUrl.replace(/^https?:\/\//, "");
+                window.location.href = "x-safari-https://" + cleanUrl;
+
+                // Plano B caso o esquema customizado não dispare de imediato
+                setTimeout(function () {
+                  window.open(currentFullUrl, "_system");
+                }, 500);
+              });
+            }
+
             if (copyBtn) {
               copyBtn.addEventListener("click", function () {
                 navigator.clipboard.writeText(currentFullUrl).then(function () {
