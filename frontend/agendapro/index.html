@@ -79,10 +79,9 @@
                 width: 100% !important;
                 font-weight: 600 !important;
                 font-size: 14px !important;
-                padding: 12px 16px !important;
+                padding: 14px 16px !important;
                 border-radius: 8px !important;
                 text-decoration: none !important;
-                margin-bottom: 10px !important;
                 box-sizing: border-box !important;
                 text-align: center !important;
                 cursor: pointer !important;
@@ -92,15 +91,11 @@
                 background: #2563eb !important;
                 color: #fff !important;
               }
-              #kromis-copy-btn {
-                background: transparent !important;
-                color: #d4d4d8 !important;
-                border: 1px solid rgba(255, 255, 255, 0.2) !important;
-              }
               #kromis-tip {
                 margin-top: 16px !important;
                 font-size: 12px !important;
                 color: #71717a !important;
+                line-height: 1.4 !important;
               }
             </style>
             <div id="kromis-instagram-warning-overlay">
@@ -109,15 +104,12 @@
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ec4899" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
                 </div>
                 <h3>Abra no Safari</h3>
-                <p>O navegador do Instagram bloqueia os agendamentos. Toque no botão abaixo para abrir no Safari ou copie o link.</p>
+                <p>O navegador do Instagram bloqueia os agendamentos. Toque no botão abaixo para continuar com segurança.</p>
                 <button class="kromis-btn" id="kromis-open-btn">
                   Abrir no Safari
                 </button>
-                <button id="kromis-copy-btn" class="kromis-btn">
-                  Copiar Link da Página
-                </button>
                 <div id="kromis-tip">
-                  Dica: Toque nos <strong>três pontinhos (...)</strong> acima e escolha "Abrir no Navegador".
+                  Dica: Se preferir, toque nos <strong>três pontinhos (...)</strong> acima e escolha "Abrir no Navegador".
                 </div>
               </div>
             </div>
@@ -125,31 +117,15 @@
 
           window.addEventListener("DOMContentLoaded", function () {
             var openBtn = document.getElementById("kromis-open-btn");
-            var copyBtn = document.getElementById("kromis-copy-btn");
 
             if (openBtn) {
               openBtn.addEventListener("click", function () {
-                // Tenta forçar o esquema de URL do Safari no iOS
                 var cleanUrl = currentFullUrl.replace(/^https?:\/\//, "");
                 window.location.href = "x-safari-https://" + cleanUrl;
 
-                // Plano B caso o esquema customizado não dispare de imediato
                 setTimeout(function () {
                   window.open(currentFullUrl, "_system");
                 }, 500);
-              });
-            }
-
-            if (copyBtn) {
-              copyBtn.addEventListener("click", function () {
-                navigator.clipboard.writeText(currentFullUrl).then(function () {
-                  copyBtn.textContent = "Link copiado! ✅";
-                  copyBtn.style.color = "#4ade80";
-                  setTimeout(function () {
-                    copyBtn.textContent = "Copiar Link da Página";
-                    copyBtn.style.color = "#d4d4d8";
-                  }, 3000);
-                });
               });
             }
           });
