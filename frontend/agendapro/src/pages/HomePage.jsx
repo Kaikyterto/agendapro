@@ -9,11 +9,6 @@ import Nav from "../components/Nav";
 import { setupPWA } from "../utils/pwa";
 import { usePWAInstall } from "../hooks/usePWAInstall";
 
-import {
-  solicitarPermissaoDeNotificacao,
-  ouvirMensagensEmPrimeiroPlano,
-} from "../services/notificationService";
-
 const HomePage = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
@@ -32,7 +27,15 @@ const HomePage = () => {
 
         setCompany(data || null);
 
-        if (data) {
+        const ua = navigator.userAgent;
+
+        const isIOS =
+          /iPad|iPhone|iPod/.test(ua) ||
+          (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+        const isInstagram = /Instagram/i.test(ua);
+
+        if (data && !(isIOS && isInstagram)) {
           setupPWA(data);
         }
 

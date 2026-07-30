@@ -10,15 +10,25 @@ import AppLogo from "../assets/logo-kromis-transparente.png";
 
 const LoginPage = () => {
   useEffect(() => {
-    setupPWA({
-      name: "Kromis",
-      slug: "kromis",
-      colors: {
-        primary: "#000000",
-        secondary: "#ffffff",
-      },
-      logo: "/kromis-logo.png",
-    });
+    const ua = navigator.userAgent;
+
+    const isIOS =
+      /iPad|iPhone|iPod/.test(ua) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+    const isInstagram = /Instagram/i.test(ua);
+
+    if (!(isIOS && isInstagram)) {
+      setupPWA({
+        name: "Kromis",
+        slug: "kromis",
+        colors: {
+          primary: "#000000",
+          secondary: "#ffffff",
+        },
+        logo: "/kromis-logo.png",
+      });
+    }
   }, []);
 
   const { canInstall, installApp } = usePWAInstall();
@@ -33,10 +43,6 @@ const LoginPage = () => {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
-  useEffect(() => {
-    setupPWA();
-  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();

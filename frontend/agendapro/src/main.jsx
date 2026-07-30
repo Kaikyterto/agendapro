@@ -7,16 +7,18 @@ import App from "./App";
 import "./index.css";
 
 // ===============================
-// DETECTA NAVEGADORES INTEGRADOS
+// REGISTRA O PWA APENAS FORA DO
+// INSTAGRAM NO IOS
 // ===============================
-const userAgent = navigator.userAgent;
+const ua = navigator.userAgent;
 
-const isInAppBrowser = /Instagram|FBAN|FBAV/i.test(userAgent);
+const isIOS =
+  /iPad|iPhone|iPod/.test(ua) ||
+  (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
-// ===============================
-// PWA SERVICE WORKER
-// ===============================
-if (!isInAppBrowser) {
+const isInstagram = /Instagram/i.test(ua);
+
+if (!(isIOS && isInstagram)) {
   registerSW({
     onNeedRefresh() {
       console.log("Nova versão do Kromis disponível");

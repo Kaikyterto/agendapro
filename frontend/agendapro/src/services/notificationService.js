@@ -14,7 +14,21 @@ const firebaseConfig = {
 
 // Inicializa o Firebase
 const app = initializeApp(firebaseConfig);
-const messaging = getMessaging(app);
+
+function getMessagingInstance() {
+  if (!("serviceWorker" in navigator)) {
+    return null;
+  }
+
+  try {
+    return getMessaging(app);
+  } catch {
+    return null;
+  }
+}
+const messaging = getMessagingInstance();
+
+if (!messaging) return;
 
 // Função para pedir permissão e pegar o token
 export const solicitarPermissaoDeNotificacao = async () => {
