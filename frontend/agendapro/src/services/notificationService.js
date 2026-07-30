@@ -1,7 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getMessaging, getToken, onMessage } from "firebase/messaging";
 
-// Configurações do seu app Kromis
 const firebaseConfig = {
   apiKey: "AIzaSyAGXuuHZ4Sic2rUUfMJLqIzuS7E38lntbE",
   authDomain: "kromis.firebaseapp.com",
@@ -12,57 +11,88 @@ const firebaseConfig = {
   measurementId: "G-LS3W9THCPN",
 };
 
-// Inicializa o Firebase
 const app = initializeApp(firebaseConfig);
 
 function getMessagingInstance() {
-  if (!("serviceWorker" in navigator)) {
-    return null;
-  }
-
   try {
+    // Verifica suporte básico do navegador
+    if (typeof window === "undefined") {
+      return null;
+    }
+
+    if (!("serviceWorker" in navigator)) {
+      console.warn("Service Worker não suportado.");
+      return null;
+    }
+
+    if (!("Notification" in window)) {
+      console.warn("Notificações não suportadas.");
+      return null;
+    }
+
     return getMessaging(app);
-  } catch {
+  } catch (error) {
+    console.warn("Firebase Messaging indisponível:", error);
     return null;
   }
 }
+
 const messaging = getMessagingInstance();
 
-if (!messaging) return;
-
-// Função para pedir permissão e pegar o token
+// Solicita permissão e gera token
 export const solicitarPermissaoDeNotificacao = async () => {
   try {
+    if (!messaging) {
+      console.warn("Messaging não disponível neste dispositivo.");
+      return null;
+    }
+
     const permission = await Notification.requestPermission();
 
-    if (permission === "granted") {
-      console.log("Permissão concedida pelo usuário!");
-
-      const tokenAtual = await getToken(messaging, {
-        vapidKey:
-          "BA6r91YkTPPMDZploWfX54i6t70XWJTL6Y1rYBGwI0xcT2GKri_mIQcWf6Sdg3wiqBXsNuqBb2w2CSWxgesGuhw",
-      });
-
-      if (tokenAtual) {
-        console.log("Token do usuário gerado com sucesso:", tokenAtual);
-        return tokenAtual;
-      } else {
-        console.log("Nenhum token disponível. Verifique as configurações.");
-      }
-    } else {
-      console.log("O usuário recusou as notificações.");
+    if (permission !== "granted") {
+      console.log("Usuário recusou notificações.");
+      return null;
     }
+
+    const tokenAtual = await getToken(messaging, {
+      vapidKey:
+        "BA6r91YkTPPMDZploWfX54i6t70XWJTL6Y1rYBGwI0xcT2GKri_mIQcWf6Sdg3wiqBXsNuqBb2w2CSWxgesGuhw",
+    });
+
+    if (tokenAtual) {
+      console.log("Token Kromis gerado:", tokenAtual);
+      return tokenAtual;
+    }
+
+    console.log("Nenhum token retornado.");
+    return null;
   } catch (error) {
-    console.error("Erro ao obter permissão ou token:", error);
+    console.error("Erro ao solicitar notificações:", error);
+    return null;
   }
 };
 
-// Ouvir mensagens com o app aberto na tela
+// Recebe mensagens com app aberto
 export const ouvirMensagensEmPrimeiroPlano = () => {
-  onMessage(messaging, (payload) => {
-    console.log("Mensagem em primeiro plano: ", payload);
-    alert(
-      `Notificação Kromis: ${payload.notification.title}\n${payload.notification.body}`
-    );
-  });
+  try {
+    if (!messaging) {
+      console.warn("Messaging não disponível.");
+      return;
+    }
+
+    onMessage(messaging, (payload) => {
+      console.log("Mensagem recebida:", payload);
+
+      const titulo = payload?.notification?.title || "Kromis";
+      const corpo = payload?.notification?.body || "";
+
+      if ("Notification" in window && Notification.permission === "granted") {
+        new Notification(titulo, {
+          body: corpo,
+        });
+      }
+    });
+  } catch (error) {
+    console.error("Erro ao ouvir mensagens:", error);
+  }
 };
