@@ -633,10 +633,6 @@ const AdminWorkersPage = () => {
                       >
                         Adicionar
                       </button>
-
-                      <h3 className="font-bold text-sm text-white/70">
-                        Seus horários abaixo ↓
-                      </h3>
                     </div>
                   </div>
 
@@ -682,6 +678,10 @@ const AdminWorkersPage = () => {
                       className="h-12 bg-[#0b1220] rounded-xl px-3"
                     />
                   </div>
+
+                  <h3 className="font-bold text-sm text-white/70">
+                    Seus horários abaixo ↓
+                  </h3>
 
                   <div className="space-y-3">
                     {schedules.map((schedule, index) => (
