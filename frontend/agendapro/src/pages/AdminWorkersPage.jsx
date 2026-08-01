@@ -68,6 +68,7 @@ const AdminWorkersPage = () => {
 
   const [schedules, setSchedules] = useState([]);
   const [newSchedule, setNewSchedule] = useState(initialSchedule);
+  const [scheduleSuccess, setScheduleSuccess] = useState("");
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -136,6 +137,7 @@ const AdminWorkersPage = () => {
     setEditingWorker(null);
     setError("");
     setSuccess("");
+    setScheduleSuccess("");
   };
 
   const handleOpenCreate = () => {
@@ -203,6 +205,10 @@ const AdminWorkersPage = () => {
     ]);
 
     setNewSchedule(initialSchedule);
+    setScheduleSuccess("Horário adicionado");
+    setTimeout(() => {
+      setScheduleSuccess("");
+    }, 2500);
   };
 
   const removeSchedule = async (schedule) => {
@@ -407,7 +413,7 @@ const AdminWorkersPage = () => {
               icon={Clock}
               className="bg-white/10 hover:bg-white/20 text-white"
             >
-              Intervalo ({companySlotInterval} min)
+              Gerar horário a cada ({companySlotInterval} min)
             </Button>
 
             <Button onClick={handleOpenCreate} icon={Plus}>
@@ -613,16 +619,23 @@ const AdminWorkersPage = () => {
 
                 {/* SCHEDULES */}
                 <div className="bg-[#111827] rounded-2xl p-4 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-bold">Horários</h3>
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <h3 className="font-bold">Horários do Funcionário</h3>
 
-                    <button
-                      type="button"
-                      onClick={addSchedule}
-                      className="bg-violet-500 px-3 py-2 rounded-xl text-sm"
-                    >
-                      Adicionar
-                    </button>
+                    <div className="flex items-center gap-3">
+                      {scheduleSuccess && (
+                        <span className="text-green-400 text-xs font-medium whitespace-nowrap">
+                          {scheduleSuccess}
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={addSchedule}
+                        className="bg-violet-500 px-3 py-2 rounded-xl text-sm whitespace-nowrap"
+                      >
+                        Adicionar
+                      </button>
+                    </div>
                   </div>
 
                   <div className="grid md:grid-cols-3 gap-3">
@@ -720,13 +733,16 @@ const AdminWorkersPage = () => {
                           />
                         </div>
 
-                        <button
-                          type="button"
-                          onClick={() => removeSchedule(schedule)}
-                          className="text-red-400"
-                        >
-                          <Trash2 size={18} />
-                        </button>
+                        <div className="flex justify-end md:justify-center">
+                          <button
+                            type="button"
+                            onClick={() => removeSchedule(schedule)}
+                            className="text-red-400 p-2 -m-2 flex items-center justify-center"
+                            aria-label="Remover horário"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
