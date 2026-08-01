@@ -25,9 +25,10 @@ import {
   createWorkerSchedule,
   updateWorkerSchedule,
   deleteWorkerSchedule,
-  getCompanySlotInterval,
   updateCompanySlotInterval,
 } from "../services/workers";
+
+import getCompanySlotInterval from "../services/slotInterval";
 
 const initialForm = {
   name: "",
