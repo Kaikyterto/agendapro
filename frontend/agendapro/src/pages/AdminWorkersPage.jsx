@@ -1,6 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 
-import { User, Plus, Search, Pencil, Trash2, X, Loader2 } from "lucide-react";
+import {
+  User,
+  Plus,
+  Search,
+  Pencil,
+  Trash2,
+  X,
+  Loader2,
+  Clock,
+} from "lucide-react";
 
 import Button from "../components/Button";
 
@@ -16,6 +25,8 @@ import {
   createWorkerSchedule,
   updateWorkerSchedule,
   deleteWorkerSchedule,
+  getCompanySlotInterval,
+  updateCompanySlotInterval,
 } from "../services/workers";
 
 const initialForm = {
@@ -65,6 +76,13 @@ const AdminWorkersPage = () => {
   const [avatarFile, setAvatarFile] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
 
+  // Slot Interval da Empresa
+  const [companySlotInterval, setCompanySlotInterval] = useState(30);
+  const [openIntervalModal, setOpenIntervalModal] = useState(false);
+  const [savingInterval, setSavingInterval] = useState(false);
+  const [intervalSuccess, setIntervalSuccess] = useState("");
+  const [intervalError, setIntervalError] = useState("");
+
   // =========================================================
   // LOAD DATA
   // =========================================================
@@ -72,13 +90,17 @@ const AdminWorkersPage = () => {
     try {
       setLoading(true);
 
-      const [workersRes, servicesRes] = await Promise.all([
+      const [workersRes, servicesRes, intervalRes] = await Promise.all([
         getWorkers(),
         getServices(),
+        getCompanySlotInterval(),
       ]);
 
       setWorkers(Array.isArray(workersRes) ? workersRes : []);
       setServices(Array.isArray(servicesRes) ? servicesRes : []);
+      if (intervalRes?.slot_interval) {
+        setCompanySlotInterval(intervalRes.slot_interval);
+      }
     } catch (err) {
       console.error(err);
 
@@ -205,7 +227,7 @@ const AdminWorkersPage = () => {
       );
     } catch (err) {
       console.error(err);
-      alert("Erro ao remover horário");
+      window.alert("Erro ao remover horário");
     }
   };
 
@@ -334,7 +356,40 @@ const AdminWorkersPage = () => {
     } catch (err) {
       console.error(err);
 
-      alert(err?.message || "Erro ao deletar");
+      window.alert(err?.message || "Erro ao deletar");
+    }
+  };
+
+  // =========================================================
+  // SLOT INTERVAL SUBMIT
+  // =========================================================
+  const handleSaveInterval = async (e) => {
+    e.preventDefault();
+    try {
+      setSavingInterval(true);
+      setIntervalError("");
+      setIntervalSuccess("");
+
+      const res = await updateCompanySlotInterval({
+        slot_interval: Number(companySlotInterval),
+      });
+
+      if (res?.slot_interval) {
+        setCompanySlotInterval(res.slot_interval);
+      }
+
+      setIntervalSuccess("Intervalo atualizado com sucesso!");
+      setTimeout(() => {
+        setOpenIntervalModal(false);
+        setIntervalSuccess("");
+      }, 1000);
+    } catch (err) {
+      console.error(err);
+      setIntervalError(
+        err?.response?.data?.error || "Erro ao atualizar intervalo"
+      );
+    } finally {
+      setSavingInterval(false);
     }
   };
 
@@ -353,7 +408,7 @@ const AdminWorkersPage = () => {
     <div className="min-h-screen bg-[#07090d] text-white p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
         {/* HEADER */}
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
           <div className="flex items-center gap-4">
             <User size={32} />
 
@@ -364,9 +419,23 @@ const AdminWorkersPage = () => {
             </div>
           </div>
 
-          <Button onClick={handleOpenCreate} icon={Plus}>
-            Novo Funcionário
-          </Button>
+          <div className="flex items-center gap-3 w-full md:w-auto">
+            <Button
+              onClick={() => {
+                setIntervalError("");
+                setIntervalSuccess("");
+                setOpenIntervalModal(true);
+              }}
+              icon={Clock}
+              className="bg-white/10 hover:bg-white/20 text-white"
+            >
+              Intervalo ({companySlotInterval} min)
+            </Button>
+
+            <Button onClick={handleOpenCreate} icon={Plus}>
+              Novo Funcionário
+            </Button>
+          </div>
         </div>
 
         {/* SEARCH */}
@@ -430,6 +499,59 @@ const AdminWorkersPage = () => {
             </div>
           ))}
         </div>
+
+        {/* MODAL INTERVALO DA EMPRESA */}
+        {openIntervalModal && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
+            <div className="bg-[#0f172a] w-full max-w-md p-6 rounded-3xl">
+              <div className="flex justify-between mb-6">
+                <h2 className="text-2xl font-bold">Intervalo de Slots</h2>
+
+                <button onClick={() => setOpenIntervalModal(false)}>
+                  <X />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveInterval} className="space-y-5">
+                <div>
+                  <label className="block mb-2 text-sm text-white/70">
+                    Selecione o intervalo padrão (minutos)
+                  </label>
+                  <select
+                    value={companySlotInterval}
+                    onChange={(e) =>
+                      setCompanySlotInterval(Number(e.target.value))
+                    }
+                    className="w-full h-12 bg-[#111827] rounded-xl px-4 text-white outline-none"
+                  >
+                    <option value={5}>5 minutos</option>
+                    <option value={10}>10 minutos</option>
+                    <option value={15}>15 minutos</option>
+                    <option value={20}>20 minutos</option>
+                    <option value={30}>30 minutos</option>
+                    <option value={45}>45 minutos</option>
+                    <option value={60}>60 minutos</option>
+                  </select>
+                </div>
+
+                {intervalError && (
+                  <p className="text-red-400 text-sm">{intervalError}</p>
+                )}
+                {intervalSuccess && (
+                  <p className="text-green-400 text-sm">{intervalSuccess}</p>
+                )}
+
+                <Button
+                  type="submit"
+                  disabled={savingInterval}
+                  className="w-full"
+                >
+                  {savingInterval ? "Salvando..." : "Salvar Intervalo"}
+                </Button>
+              </form>
+            </div>
+          </div>
+        )}
 
         {/* MODAL */}
         {openModal && (

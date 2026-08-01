@@ -15,8 +15,6 @@ from app.services.notification_service import NotificationService
 
 class AppointmentController:
 
-    SLOT_INTERVAL_MINUTES = 15
-
     # =========================================================
     # CREATE APPOINTMENT
     # =========================================================
@@ -58,27 +56,30 @@ class AppointmentController:
             except ValueError:
                 return jsonify({"error": "Formato de data inválido"}), 400
 
-            if start_datetime_obj.minute % AppointmentController.SLOT_INTERVAL_MINUTES != 0:
-                return jsonify({
-                    "error": f"Horário deve ser múltiplo de {AppointmentController.SLOT_INTERVAL_MINUTES} minutos"
-                }), 400
-
             # =====================================================
-            # SERVICE
+            # SERVICE & WORKER (Buscados antes para validar o intervalo)
             # =====================================================
             service = Service.query.get(service_id)
             if not service or not service.company_id:
                 return jsonify({"error": "Serviço inválido"}), 404
 
-            # =====================================================
-            # WORKER
-            # =====================================================
             worker = Worker.query.get(worker_id)
             if not worker or not worker.is_active:
                 return jsonify({"error": "Funcionário inválido"}), 404
 
             if worker not in service.workers:
                 return jsonify({"error": "Funcionário não pertence ao serviço"}), 400
+
+            # Busca a empresa associada para pegar o slot_interval dinâmico (fallback para 30)
+            target_company_id = worker.company_id or service.company_id
+            company = Company.query.get(target_company_id)
+            
+            slot_interval_minutes = company.slot_interval if company and company.slot_interval else 30
+
+            if start_datetime_obj.minute % slot_interval_minutes != 0:
+                return jsonify({
+                    "error": f"Horário deve ser múltiplo de {slot_interval_minutes} minutos"
+                }), 400
 
             # =====================================================
             # TIME CALC
@@ -133,8 +134,6 @@ class AppointmentController:
             # =====================================================
             # CREATE SCHEDULE
             # =====================================================
-            target_company_id = worker.company_id or service.company_id
-
             schedule = Schedule(
                 company_id=target_company_id,
                 service_id=service.id,
@@ -157,7 +156,6 @@ class AppointmentController:
             # DISPARAR NOTIFICAÇÃO PUSH (FIREBASE FCM)
             # =====================================================
             try:
-                company = Company.query.get(target_company_id)
                 if company and company.fcm_token:
                     # Formata a data para ficar bonita na mensagem (ex: 24/07 às 14:00)
                     formatted_time = start_datetime_obj.strftime("%d/%m às %H:%M")

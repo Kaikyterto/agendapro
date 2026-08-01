@@ -60,6 +60,15 @@ class Company(db.Model):
         nullable=True
     )
 
+    # =====================================================
+    # NOVO: Intervalo de slots da empresa (em minutos)
+    # =====================================================
+    slot_interval = db.Column(
+        db.Integer,
+        nullable=False,
+        default=30
+    )
+
     # Cor principal da empresa
     primary_color = db.Column(
         db.String(7),

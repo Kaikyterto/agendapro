@@ -13,13 +13,11 @@ from zoneinfo import ZoneInfo
 
 class PublicController:
 
-    SLOT_INTERVAL_MINUTES = 30
-
-# =====================================================
+    # =====================================================
     # GENERATE AVAILABLE SLOTS
     # =====================================================
     @staticmethod
-    def generate_available_slots(company_id, worker, service, selected_date):
+    def generate_available_slots(company, worker, service, selected_date):
 
         try:
             # CORREÇÃO AQUI: Importa o pytz e pega o 'now' com o fuso do Brasil
@@ -52,7 +50,7 @@ class PublicController:
             # BUSCAR SCHEDULES DO WORKER
             # =================================================
             schedules = WorkerSchedule.query.filter_by(
-                company_id=company_id,
+                company_id=company.id,
                 worker_id=worker.id,
                 weekday=weekday,
                 is_active=True
@@ -68,7 +66,7 @@ class PublicController:
             end_of_day = datetime.combine(selected_date, time.max)
 
             appointments = Schedule.query.filter(
-                Schedule.company_id == company_id,
+                Schedule.company_id == company.id,
                 Schedule.worker_id == worker.id,
                 Schedule.status != "cancelled",
                 Schedule.start_time <= end_of_day,
@@ -76,7 +74,10 @@ class PublicController:
             ).all()
 
             duration = timedelta(minutes=service.duration)
-            slot_interval = timedelta(minutes=PublicController.SLOT_INTERVAL_MINUTES)
+            
+            # Pega o intervalo de slots configurado na empresa (fallback para 30 caso venha nulo)
+            interval_minutes = company.slot_interval if company.slot_interval else 30
+            slot_interval = timedelta(minutes=interval_minutes)
 
             available_slots = []
 
@@ -167,7 +168,7 @@ class PublicController:
                 return jsonify({"error": "Funcionário não pertence ao serviço"}), 400
 
             slots = PublicController.generate_available_slots(
-                company.id,
+                company,
                 worker,
                 service,
                 selected_date
@@ -204,6 +205,7 @@ class PublicController:
             "name": company.name,
             "logo": company.logo_url,
             "about": company.about,
+            "slot_interval": company.slot_interval,
             "colors": {
                 "primary": company.primary_color,
                 "secondary": company.secondary_color,
@@ -214,7 +216,7 @@ class PublicController:
 
 
 
- # =====================================================
+    # =====================================================
     # PRODUTOS
     # =====================================================
     @staticmethod
