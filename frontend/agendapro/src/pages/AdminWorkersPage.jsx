@@ -487,7 +487,7 @@ const AdminWorkersPage = () => {
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
             <div className="bg-[#0f172a] w-full max-w-md p-6 rounded-3xl">
               <div className="flex justify-between mb-6">
-                <h2 className="text-2xl font-bold">Intervalo de Slots</h2>
+                <h2 className="text-2xl font-bold">Intervalo de horários</h2>
                 <button onClick={() => setOpenIntervalModal(false)}>
                   <X />
                 </button>
@@ -620,7 +620,7 @@ const AdminWorkersPage = () => {
                 {/* SCHEDULES */}
                 <div className="bg-[#111827] rounded-2xl p-4 space-y-4">
                   <div className="flex items-center justify-between flex-wrap gap-2">
-                    <h3 className="font-bold">Horários do Funcionário</h3>
+                    <h3 className="font-bold">Seus horários</h3>
 
                     <div className="flex items-center gap-3">
                       {scheduleSuccess && (
