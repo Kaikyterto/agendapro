@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-
 import {
   User,
   Plus,
@@ -10,11 +9,8 @@ import {
   Loader2,
   Clock,
 } from "lucide-react";
-
 import Button from "../components/Button";
-
 import { uploadImage } from "../services/upload";
-
 import {
   getWorkers,
   getServices,
@@ -25,12 +21,9 @@ import {
   createWorkerSchedule,
   updateWorkerSchedule,
   deleteWorkerSchedule,
-} from "../services/workers";
-
-import {
   getCompanySlotInterval,
   updateCompanySlotInterval,
-} from "../services/slotInterval";
+} from "../services/workers";
 
 const initialForm = {
   name: "",
@@ -106,9 +99,7 @@ const AdminWorkersPage = () => {
       }
     } catch (err) {
       console.error(err);
-
       setError("Erro ao carregar dados");
-
       setWorkers([]);
       setServices([]);
     } finally {
@@ -136,14 +127,10 @@ const AdminWorkersPage = () => {
   // =========================================================
   const resetForm = () => {
     setForm(initialForm);
-
     setAvatarFile(null);
-
     setSchedules([]);
     setNewSchedule(initialSchedule);
-
     setEditingWorker(null);
-
     setError("");
     setSuccess("");
   };
@@ -167,9 +154,7 @@ const AdminWorkersPage = () => {
       });
 
       const schedulesRes = await getWorkerSchedules(worker.id);
-
       setSchedules(Array.isArray(schedulesRes) ? schedulesRes : []);
-
       setOpenModal(true);
     } catch (err) {
       console.error(err);
@@ -260,7 +245,6 @@ const AdminWorkersPage = () => {
 
     try {
       setSubmitting(true);
-
       setError("");
       setSuccess("");
 
@@ -268,16 +252,12 @@ const AdminWorkersPage = () => {
 
       if (avatarFile) {
         setUploadingImage(true);
-
         try {
           const upload = await uploadImage(avatarFile, "workers");
-
           avatarUrl = upload.url;
         } catch (err) {
           console.error(err);
-
           setError(err?.response?.data?.message || "Erro ao enviar imagem");
-
           return;
         } finally {
           setUploadingImage(false);
@@ -296,13 +276,10 @@ const AdminWorkersPage = () => {
 
       if (editingWorker) {
         await updateWorker(editingWorker.id, payload);
-
         workerResponse = editingWorker;
-
         setSuccess("Funcionário atualizado!");
       } else {
         workerResponse = await createWorker(payload);
-
         setSuccess("Funcionário criado!");
       }
 
@@ -333,7 +310,6 @@ const AdminWorkersPage = () => {
       }, 600);
     } catch (err) {
       console.error(err);
-
       setError(
         err?.response?.data?.error ||
           err?.message ||
@@ -354,11 +330,9 @@ const AdminWorkersPage = () => {
 
     try {
       await deleteWorker(id);
-
       setWorkers((prev) => prev.filter((w) => w.id !== id));
     } catch (err) {
       console.error(err);
-
       window.alert(err?.message || "Erro ao deletar");
     }
   };
@@ -411,18 +385,16 @@ const AdminWorkersPage = () => {
     <div className="min-h-screen bg-[#07090d] text-white p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
         {/* HEADER */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
           <div className="flex items-center gap-4">
             <User size={32} />
-
             <div>
               <h1 className="text-3xl font-black">Funcionários</h1>
-
               <p className="text-white/50">Gerencie sua equipe</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 w-full md:w-auto">
+          <div className="flex items-center gap-2.5 flex-wrap">
             <Button
               onClick={() => {
                 setIntervalError("");
@@ -444,7 +416,6 @@ const AdminWorkersPage = () => {
         {/* SEARCH */}
         <div className="flex items-center gap-3 mb-6 bg-[#111827] px-4 h-14 rounded-2xl">
           <Search size={18} />
-
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -473,7 +444,6 @@ const AdminWorkersPage = () => {
 
                   <div>
                     <h3 className="font-bold text-lg">{worker.name}</h3>
-
                     <p className="text-white/50 text-sm">{worker.phone}</p>
                   </div>
                 </div>
@@ -509,7 +479,6 @@ const AdminWorkersPage = () => {
             <div className="bg-[#0f172a] w-full max-w-md p-6 rounded-3xl">
               <div className="flex justify-between mb-6">
                 <h2 className="text-2xl font-bold">Intervalo de Slots</h2>
-
                 <button onClick={() => setOpenIntervalModal(false)}>
                   <X />
                 </button>
@@ -595,7 +564,6 @@ const AdminWorkersPage = () => {
                     accept="image/*"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
-
                       if (file) {
                         setAvatarFile(file);
                       }
@@ -762,7 +730,6 @@ const AdminWorkersPage = () => {
                 </div>
 
                 {error && <p className="text-red-400">{error}</p>}
-
                 {success && <p className="text-green-400">{success}</p>}
 
                 <Button
