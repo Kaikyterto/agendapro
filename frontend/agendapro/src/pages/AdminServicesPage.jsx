@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 
 import Button from "../components/Button";
+import { ConfirmModal } from "../components/ConfirmModal";
 
 import { uploadImage } from "../services/upload";
 
@@ -29,7 +30,7 @@ const initialForm = {
   name: "",
   description: "",
   duration: "",
-  price: "", // Alinhado com o backend
+  price: "",
   image_url: "",
 };
 
@@ -51,6 +52,17 @@ const AdminServicesPage = () => {
 
   const [imageFile, setImageFile] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+
+  // Estado para o ConfirmModal customizado
+  const [modalConfig, setModalConfig] = useState({
+    isOpen: false,
+    title: "",
+    message: "",
+    confirmText: "Confirmar",
+    cancelText: "Cancelar",
+    type: "danger",
+    onConfirm: () => {},
+  });
 
   // =========================================================
   // LOAD DATA
@@ -111,7 +123,6 @@ const AdminServicesPage = () => {
   const handleOpenEdit = (service) => {
     setEditingService(service);
 
-    // Mapeia estritamente o que vem do banco
     setForm({
       name: service?.name || "",
       description: service?.description || "",
@@ -179,7 +190,6 @@ const AdminServicesPage = () => {
         }
       }
 
-      // Payload espelhado 1:1 com o request.get_json() do Flask
       const payload = {
         name: form.name.trim(),
         description: form.description.trim(),
@@ -212,17 +222,34 @@ const AdminServicesPage = () => {
   // =========================================================
   // DELETE
   // =========================================================
-  const handleDelete = async (id) => {
-    const confirmed = window.confirm("Deseja realmente remover este serviço?");
-    if (!confirmed) return;
-
-    try {
-      await deleteService(id);
-      setServices((prev) => prev.filter((s) => s.id !== id));
-    } catch (err) {
-      console.error(err);
-      alert("Erro ao remover serviço");
-    }
+  const handleDelete = (id) => {
+    setModalConfig({
+      isOpen: true,
+      title: "Remover serviço?",
+      message:
+        "Deseja realmente remover este serviço? Essa ação não poderá ser desfeita.",
+      confirmText: "Remover",
+      cancelText: "Cancelar",
+      type: "danger",
+      onConfirm: async () => {
+        try {
+          await deleteService(id);
+          setServices((prev) => prev.filter((s) => s.id !== id));
+          setModalConfig((prev) => ({ ...prev, isOpen: false }));
+        } catch (err) {
+          console.error(err);
+          setModalConfig({
+            isOpen: true,
+            title: "Erro",
+            message: "Erro ao remover serviço",
+            confirmText: "OK",
+            type: "alert",
+            onConfirm: () =>
+              setModalConfig((prev) => ({ ...prev, isOpen: false })),
+          });
+        }
+      },
+    });
   };
 
   // =========================================================
@@ -466,6 +493,18 @@ const AdminServicesPage = () => {
           </div>
         )}
       </div>
+
+      {/* Modal de Confirmação Global da Página */}
+      <ConfirmModal
+        isOpen={modalConfig.isOpen}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        confirmText={modalConfig.confirmText}
+        cancelText={modalConfig.cancelText}
+        type={modalConfig.type}
+        onConfirm={modalConfig.onConfirm}
+        onClose={() => setModalConfig((prev) => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 };

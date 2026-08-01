@@ -10,6 +10,7 @@ import {
   Clock,
 } from "lucide-react";
 import Button from "../components/Button";
+import { ConfirmModal } from "../components/ConfirmModal";
 import { uploadImage } from "../services/upload";
 import {
   getWorkers,
@@ -82,6 +83,17 @@ const AdminWorkersPage = () => {
   const [savingInterval, setSavingInterval] = useState(false);
   const [intervalSuccess, setIntervalSuccess] = useState("");
   const [intervalError, setIntervalError] = useState("");
+
+  // Estado para o ConfirmModal customizado
+  const [modalConfig, setModalConfig] = useState({
+    isOpen: false,
+    title: "",
+    message: "",
+    confirmText: "Confirmar",
+    cancelText: "Cancelar",
+    type: "danger",
+    onConfirm: () => {},
+  });
 
   // =========================================================
   // LOAD DATA
@@ -224,7 +236,14 @@ const AdminWorkersPage = () => {
       );
     } catch (err) {
       console.error(err);
-      window.alert("Erro ao remover horário");
+      setModalConfig({
+        isOpen: true,
+        title: "Atenção",
+        message: "Erro ao remover horário",
+        confirmText: "OK",
+        type: "alert",
+        onConfirm: () => setModalConfig((prev) => ({ ...prev, isOpen: false })),
+      });
     }
   };
 
@@ -332,18 +351,34 @@ const AdminWorkersPage = () => {
   // =========================================================
   // DELETE
   // =========================================================
-  const handleDelete = async (id) => {
-    const ok = window.confirm("Deseja realmente remover este funcionário?");
-
-    if (!ok) return;
-
-    try {
-      await deleteWorker(id);
-      setWorkers((prev) => prev.filter((w) => w.id !== id));
-    } catch (err) {
-      console.error(err);
-      window.alert(err?.message || "Erro ao deletar");
-    }
+  const handleDelete = (id) => {
+    setModalConfig({
+      isOpen: true,
+      title: "Remover funcionário?",
+      message:
+        "Deseja realmente remover este funcionário? Essa ação não poderá ser desfeita.",
+      confirmText: "Remover",
+      cancelText: "Cancelar",
+      type: "danger",
+      onConfirm: async () => {
+        try {
+          await deleteWorker(id);
+          setWorkers((prev) => prev.filter((w) => w.id !== id));
+          setModalConfig((prev) => ({ ...prev, isOpen: false }));
+        } catch (err) {
+          console.error(err);
+          setModalConfig({
+            isOpen: true,
+            title: "Erro",
+            message: err?.message || "Erro ao deletar",
+            confirmText: "OK",
+            type: "alert",
+            onConfirm: () =>
+              setModalConfig((prev) => ({ ...prev, isOpen: false })),
+          });
+        }
+      },
+    });
   };
 
   // =========================================================
@@ -769,6 +804,18 @@ const AdminWorkersPage = () => {
           </div>
         )}
       </div>
+
+      {/* Modal de Confirmação Global da Página */}
+      <ConfirmModal
+        isOpen={modalConfig.isOpen}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        confirmText={modalConfig.confirmText}
+        cancelText={modalConfig.cancelText}
+        type={modalConfig.type}
+        onConfirm={modalConfig.onConfirm}
+        onClose={() => setModalConfig((prev) => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 };

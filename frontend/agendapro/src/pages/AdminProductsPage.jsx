@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 
 import Button from "../components/Button";
+import { ConfirmModal } from "../components/ConfirmModal";
 import { uploadImage } from "../services/upload";
 import {
   getProducts,
@@ -55,6 +56,17 @@ const AdminProductsPage = () => {
   const [imageFile, setImageFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
+
+  // Estado para o ConfirmModal customizado
+  const [modalConfig, setModalConfig] = useState({
+    isOpen: false,
+    title: "",
+    message: "",
+    confirmText: "Confirmar",
+    cancelText: "Cancelar",
+    type: "danger",
+    onConfirm: () => {},
+  });
 
   // Preview local da imagem selecionada
   useEffect(() => {
@@ -234,7 +246,7 @@ const AdminProductsPage = () => {
 
       if (editingProduct) {
         await updateProduct(editingProduct.id, payload);
-        setSuccess("Produto updated com sucesso!");
+        setSuccess("Produto atualizado com sucesso!");
       } else {
         await createProduct(payload);
         setSuccess("Produto criado com sucesso!");
@@ -256,18 +268,35 @@ const AdminProductsPage = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    const confirmed = window.confirm("Deseja realmente remover este produto?");
-    if (!confirmed) return;
-
-    try {
-      await deleteProduct(id);
-      setProducts((prev) => prev.filter((product) => product.id !== id));
-      loadData(true);
-    } catch (err) {
-      console.error(err);
-      alert(err?.response?.data?.error || "Erro ao remover produto");
-    }
+  const handleDelete = (id) => {
+    setModalConfig({
+      isOpen: true,
+      title: "Remover produto?",
+      message:
+        "Deseja realmente remover este produto? Essa ação não poderá ser desfeita.",
+      confirmText: "Remover",
+      cancelText: "Cancelar",
+      type: "danger",
+      onConfirm: async () => {
+        try {
+          await deleteProduct(id);
+          setProducts((prev) => prev.filter((product) => product.id !== id));
+          loadData(true);
+          setModalConfig((prev) => ({ ...prev, isOpen: false }));
+        } catch (err) {
+          console.error(err);
+          setModalConfig({
+            isOpen: true,
+            title: "Erro",
+            message: err?.response?.data?.error || "Erro ao remover produto",
+            confirmText: "OK",
+            type: "alert",
+            onConfirm: () =>
+              setModalConfig((prev) => ({ ...prev, isOpen: false })),
+          });
+        }
+      },
+    });
   };
 
   if (loading) {
@@ -659,6 +688,18 @@ const AdminProductsPage = () => {
           </div>
         )}
       </div>
+
+      {/* Modal de Confirmação Global da Página */}
+      <ConfirmModal
+        isOpen={modalConfig.isOpen}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        confirmText={modalConfig.confirmText}
+        cancelText={modalConfig.cancelText}
+        type={modalConfig.type}
+        onConfirm={modalConfig.onConfirm}
+        onClose={() => setModalConfig((prev) => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 };
