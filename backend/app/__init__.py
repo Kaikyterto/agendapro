@@ -124,6 +124,7 @@ def create_app():
     from app.routes.design_routes import design_bp
     from app.routes.sale_routes import sales_bp
     from app.routes.notification_routes import notification_bp
+    from app.routes.company_slot_routes import company_slot_interval_bp
 
     # =====================================================
     # AUTH (PÚBLICO)
@@ -145,7 +146,8 @@ def create_app():
         services_bp,
         design_bp,
         sales_bp,
-        notification_bp,  # 👈 Blueprint adicionado ao laço da API
+        notification_bp,
+        company_slot_interval_bp,  
     ]
 
     for blueprint in api_blueprints:
