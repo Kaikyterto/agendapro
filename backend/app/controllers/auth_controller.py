@@ -64,21 +64,9 @@ class AuthController:
                 company.status = "pending_payment"
                 db.session.commit()
 
+            # Definimos payment como None para evitar o reaproveitamento de faturas passadas
+            # O front-end cuidará de solicitar/gerar um novo PIX limpo automaticamente.
             payment = None
-
-            if company.mercado_pago_payment_id:
-                try:
-                    payment = (
-                        PaymentService
-                        .get_platform_payment(
-                            company.mercado_pago_payment_id
-                        )
-                    )
-                except Exception as e:
-                    print(
-                        "Erro ao recuperar pagamento:",
-                        str(e)
-                    )
 
             return jsonify({
                 "msg": "Pagamento pendente",
