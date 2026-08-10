@@ -4,7 +4,7 @@ from flask_jwt_extended import create_access_token
 from app.models.user import User
 from app.models.company import Company
 from app.database.db import db
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from app.services.payment_service import PaymentService
 
@@ -13,8 +13,7 @@ class AuthController:
 
     @staticmethod
     def company_has_active_subscription(company):
-
-        if company.status != "active":
+        if not company or company.status != "active":
             return False
 
         if not company.expires_at:
@@ -48,15 +47,7 @@ class AuthController:
             email=email
         ).first()
 
-        if not user:
-            return jsonify({
-                "msg": "Usuário ou senha incorretos"
-            }), 401
-
-        # =====================================================
-        # VERIFICA SENHA
-        # =====================================================
-        if not user.check_password(password):
+        if not user or not user.check_password(password):
             return jsonify({
                 "msg": "Usuário ou senha incorretos"
             }), 401
@@ -64,14 +55,18 @@ class AuthController:
         company = user.company
 
         # =====================================================
-        # EMPRESA NÃO ATIVA
+        # EMPRESA NÃO ATIVA / ASSINATURA VENCIDA
         # =====================================================
         if not AuthController.company_has_active_subscription(company):
+
+            # Se a assinatura estava ativa mas a data de expiração passou, atualiza no banco
+            if company.status == "active" and company.expires_at and company.expires_at <= datetime.utcnow():
+                company.status = "pending_payment"
+                db.session.commit()
 
             payment = None
 
             if company.mercado_pago_payment_id:
-
                 try:
                     payment = (
                         PaymentService
@@ -79,7 +74,6 @@ class AuthController:
                             company.mercado_pago_payment_id
                         )
                     )
-
                 except Exception as e:
                     print(
                         "Erro ao recuperar pagamento:",
@@ -101,7 +95,7 @@ class AuthController:
             }), 200
 
         # =====================================================
-        # TOKEN JWT
+        # TOKEN JWT (Apenas para assinaturas ativas)
         # =====================================================
         access_token = create_access_token(
             identity=str(user.id),
@@ -111,7 +105,7 @@ class AuthController:
         )
 
         # =====================================================
-        # RESPOSTA
+        # RESPOSTA DE SUCESSO
         # =====================================================
         return jsonify({
             "access_token": access_token,
@@ -131,7 +125,7 @@ class AuthController:
         }), 200
 
     # =========================================================
-    # REGISTER (Pronto para Cartão e Pix com Antifraude)
+    # REGISTER
     # =========================================================
     @staticmethod
     def register():
@@ -143,17 +137,13 @@ class AuthController:
         password = data.get("password")
         logo = data.get("logo")
         
-        # Dados do pagamento via cartão e antifraude vindos do frontend
         card_token = data.get("cardToken")
-        device_id = data.get("deviceId")  # <--- CAPTURA O DEVICE ID ENVIADO PELO FRONTEND
+        device_id = data.get("deviceId")
         installments = data.get("installments", 1)
 
         if not company_name or not email or not password:
             return jsonify({
-                "msg": (
-                    "Nome da empresa, email e senha "
-                    "são obrigatórios"
-                )
+                "msg": "Nome da empresa, email e senha são obrigatórios"
             }), 400
 
         user_exists = User.query.filter_by(
@@ -178,10 +168,7 @@ class AuthController:
 
         if company_exists:
             return jsonify({
-                "msg": (
-                    "Já existe uma empresa com "
-                    "esse nome no sistema"
-                )
+                "msg": "Já existe uma empresa com esse nome no sistema"
             }), 400
 
         try:
@@ -195,9 +182,6 @@ class AuthController:
             db.session.add(new_company)
             db.session.flush()
 
-            # =================================================
-            # USUÁRIO
-            # =================================================
             new_user = User(
                 email=email,
                 company_id=new_company.id
@@ -207,31 +191,24 @@ class AuthController:
 
             db.session.add(new_user)
 
-            # =================================================
-            # PROCESSAMENTO DO PAGAMENTO (CARTÃO OU PIX)
-            # =================================================
             if card_token:
-                # Se enviou cartão, cria o pagamento por cartão passando o device_id
                 payment = (
                     PaymentService
                     .create_platform_card_payment({
                         "company_id": new_company.id,
                         "amount": 29.90,
                         "token": card_token,
-                        "deviceId": device_id,  # <--- REPASSA O DEVICE ID PARA O SERVIÇO DE PAGAMENTO
+                        "deviceId": device_id,
                         "installments": installments,
                         "email": email,
                         "description": "Assinatura Kromis"
                     })
                 )
                 
-                # Ativa o espaço se o pagamento retornar "approved" na resposta
                 if payment.get("status") == "approved":
                     new_company.status = "active"
-                    from datetime import timedelta
                     new_company.expires_at = datetime.utcnow() + timedelta(days=30)
             else:
-                # Caso contrário, mantém o fallback gerando PIX
                 payment = (
                     PaymentService
                     .create_platform_pix_payment({
