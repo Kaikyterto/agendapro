@@ -59,13 +59,13 @@ class AuthController:
         # =====================================================
         if not AuthController.company_has_active_subscription(company):
 
-            # Se a assinatura estava ativa mas a data de expiração passou, atualiza no banco
+            # Atualiza o status para pending_payment se expirou
             if company.status == "active" and company.expires_at and company.expires_at <= datetime.utcnow():
                 company.status = "pending_payment"
                 db.session.commit()
 
-            # Definimos payment como None para evitar o reaproveitamento de faturas passadas
-            # O front-end cuidará de solicitar/gerar um novo PIX limpo automaticamente.
+            # IMPORTANTE: Definimos payment como None e NÃO consultamos o Mercado Pago 
+            # usando o payment_id antigo. Isso impede que faturas passadas reativem a conta erradamente.
             payment = None
 
             return jsonify({
@@ -113,11 +113,10 @@ class AuthController:
         }), 200
 
     # =========================================================
-    # REGISTER
+    # REGISTER (Mantido intacto)
     # =========================================================
     @staticmethod
     def register():
-
         data = request.get_json() or {}
 
         company_name = data.get("company_name")
