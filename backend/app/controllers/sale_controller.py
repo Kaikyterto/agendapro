@@ -239,6 +239,17 @@ class SaleController:
             if not record:
                 return jsonify({"error": "Pedido não encontrado"}), 404
 
+            # Se o pedido ainda estiver pendente e tivermos um payment_id, consulta o Mercado Pago
+            if record.status == "pending" and record.payment_id:
+                try:
+                    mp_status = PaymentService.get_company_payment(record.company_id, record.payment_id)
+                    
+                    if mp_status and mp_status.get("status") == "approved":
+                        record.status = "paid"
+                        db.session.commit()
+                except Exception as mp_err:
+                    print(f"Aviso: Falha ao consultar status no Mercado Pago: {str(mp_err)}")
+
             return jsonify({
                 "id": record.id,
                 "status": record.status,
