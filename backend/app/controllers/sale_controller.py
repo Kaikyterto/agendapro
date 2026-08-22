@@ -230,3 +230,20 @@ class SaleController:
 
         except Exception as e:
             return jsonify({"error": str(e)}), 500
+        
+
+    @staticmethod
+    def get_sale_status(sale_id):
+        try:
+            record = SalesRecord.query.filter_by(id=sale_id).first()
+            if not record:
+                return jsonify({"error": "Pedido não encontrado"}), 404
+
+            return jsonify({
+                "id": record.id,
+                "status": record.status,
+                "payment_method": record.payment_method
+            }), 200
+
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
