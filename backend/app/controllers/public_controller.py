@@ -278,3 +278,28 @@ class PublicController:
             for w in service.workers
             if w.is_active
         ]), 200
+    
+    # =====================================================
+    # TELEFONES DA EMPRESA (PÚBLICO)
+    # =====================================================
+    @staticmethod
+    @public_company_active
+    def get_company_phones(slug, company):
+        try:
+            # Substitua 'CompanyPhone' pelo nome real do seu Model de telefones se for diferente
+            from app.models.company_phone import CompanyPhone
+            
+            phones = CompanyPhone.query.filter_by(company_id=company.id).all()
+
+            return jsonify([
+                {
+                    "id": p.id,
+                    "owner": p.owner,
+                    "number": p.number
+                }
+                for p in phones
+            ]), 200
+
+        except Exception as e:
+            print("ERRO get_company_phones:", str(e))
+            return jsonify({"error": str(e)}), 500

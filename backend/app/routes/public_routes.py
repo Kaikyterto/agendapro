@@ -32,6 +32,17 @@ public_bp.route(
 )
 
 # =====================================================
+# PHONES (WHATSAPP DE CONTATO)
+# =====================================================
+
+public_bp.route(
+    '/public/company/<string:slug>/phones',
+    methods=['GET']
+)(
+    PublicController.get_company_phones
+)
+
+# =====================================================
 # SERVICES
 # =====================================================
 

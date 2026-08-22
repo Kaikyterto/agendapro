@@ -125,6 +125,7 @@ def create_app():
     from app.routes.sale_routes import sales_bp
     from app.routes.notification_routes import notification_bp
     from app.routes.company_slot_routes import company_slot_interval_bp
+    from app.routes.company_phone_routes import company_phones
 
     # =====================================================
     # AUTH (PÚBLICO)
@@ -147,7 +148,8 @@ def create_app():
         design_bp,
         sales_bp,
         notification_bp,
-        company_slot_interval_bp,  
+        company_slot_interval_bp,
+        company_phones,
     ]
 
     for blueprint in api_blueprints:

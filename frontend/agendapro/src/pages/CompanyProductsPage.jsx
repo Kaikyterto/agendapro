@@ -1,10 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
-import { Plus, X, Loader2, CreditCard, QrCode } from "lucide-react";
+import {
+  Plus,
+  X,
+  Loader2,
+  CreditCard,
+  QrCode,
+  MessageCircle,
+} from "lucide-react";
 import { useParams } from "react-router-dom";
 
 import {
   getCompanyBySlug,
   getCompanyProducts,
+  getPublicCompanyPhones,
 } from "../services/companyService";
 
 import { createSale, getSaleStatus } from "../services/saleService";
@@ -15,6 +23,7 @@ export default function CompanyProductsPage() {
 
   const [company, setCompany] = useState(null);
   const [products, setProducts] = useState([]);
+  const [companyPhones, setCompanyPhones] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [cart, setCart] = useState([]);
@@ -47,6 +56,7 @@ export default function CompanyProductsPage() {
   const [pixData, setPixData] = useState(null);
   const [showPixModal, setShowPixModal] = useState(false);
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
+  const [showWhatsappSelector, setShowWhatsappSelector] = useState(false);
 
   const [expandedDescriptions, setExpandedDescriptions] = useState({});
 
@@ -65,13 +75,15 @@ export default function CompanyProductsPage() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [companyData, productsData] = await Promise.all([
+        const [companyData, productsData, phonesData] = await Promise.all([
           getCompanyBySlug(slug),
           getCompanyProducts(slug),
+          getPublicCompanyPhones(slug).catch(() => []),
         ]);
 
         setCompany(companyData);
         setProducts(productsData || []);
+        setCompanyPhones(phonesData || []);
 
         if (companyData?.colors) {
           document.documentElement.style.setProperty(
@@ -106,6 +118,7 @@ export default function CompanyProductsPage() {
 
           setPaymentConfirmed(true);
           setShowPixModal(false);
+          setShowWhatsappSelector(true);
 
           setCart([]);
           setCustomerName("");
@@ -226,6 +239,11 @@ export default function CompanyProductsPage() {
       setError("Carrinho vazio");
       return;
     }
+
+    const confirmFrete = window.confirm(
+      "Atenção: O valor do frete não está incluso no pagamento e deve ser acertado com o vendedor. Deseja continuar?"
+    );
+    if (!confirmFrete) return;
 
     setError("");
     setIsCartOpen(false);
@@ -350,6 +368,7 @@ export default function CompanyProductsPage() {
           setPaymentConfirmed(true);
           setCart([]);
           setShowCustomerModal(false);
+          setShowWhatsappSelector(true);
         } else if (res.status === "in_process") {
           setError(
             "Pagamento em análise pelo Mercado Pago. Você receberá um e-mail com a confirmação."
@@ -397,7 +416,6 @@ export default function CompanyProductsPage() {
   }
 
   return (
-    // FIX AQUI: O 'transform-gpu' foi removido deste container principal
     <div className="min-h-screen bg-[#07090d] text-white">
       {toast && (
         <div className="fixed top-24 left-1/2 -translate-x-1/2 bg-neutral-900 border border-white/15 px-5 py-3 rounded-2xl text-xs sm:text-sm font-semibold z-[99999] shadow-2xl animate-bounce">
@@ -593,7 +611,6 @@ export default function CompanyProductsPage() {
               Dados e Pagamento
             </h2>
 
-            {/* Apenas esta div rola, mantendo título em cima e botões embaixo sempre visíveis */}
             <div className="flex-1 overflow-y-auto space-y-3 pr-1 custom-scrollbar">
               <div className="space-y-3">
                 <input
@@ -799,7 +816,7 @@ export default function CompanyProductsPage() {
         </div>
       )}
 
-      {paymentConfirmed && (
+      {paymentConfirmed && !showWhatsappSelector && (
         <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-[1001] p-4">
           <div className="bg-[#0d0f14] w-full max-w-sm rounded-2xl p-6 border border-white/10 text-center">
             <div className="text-5xl mb-3">✅</div>
@@ -813,8 +830,59 @@ export default function CompanyProductsPage() {
             </p>
 
             <button
-              onClick={() => setPaymentConfirmed(false)}
+              onClick={() => {
+                setPaymentConfirmed(false);
+                setShowWhatsappSelector(true);
+              }}
               className="w-full mt-6 h-11 rounded-xl bg-[var(--primary)] font-bold hover:opacity-90 transition-all"
+            >
+              Continuar para WhatsApp
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showWhatsappSelector && (
+        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-[1001] p-4">
+          <div className="bg-[#0d0f14] w-full max-w-sm rounded-2xl p-6 border border-white/10 text-center shadow-2xl">
+            <MessageCircle size={48} className="mx-auto text-green-500 mb-4" />
+            <h2 className="text-xl font-bold mb-2">Pedido Realizado!</h2>
+            <p className="text-white/60 text-sm mb-6">
+              Atenção: O valor do frete não está incluso. Fale com nossa equipe
+              para organizar a entrega.
+            </p>
+
+            <div className="space-y-3">
+              {companyPhones.length > 0 ? (
+                companyPhones.map((p) => (
+                  <a
+                    key={p.id}
+                    href={`https://wa.me/${p.number.replace(
+                      /\D/g,
+                      ""
+                    )}?text=Olá! Acabei de finalizar meu pedido na ${
+                      company?.name
+                    }. Poderiam confirmar o valor do frete e a entrega?`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center justify-center gap-2 w-full h-12 rounded-xl bg-green-600 font-bold hover:bg-green-500 transition-all text-white text-xs sm:text-sm"
+                  >
+                    <MessageCircle size={20} />
+                    {companyPhones.length > 1
+                      ? `Falar com ${p.owner}`
+                      : "Confirmar entrega no WhatsApp"}
+                  </a>
+                ))
+              ) : (
+                <p className="text-white/40 text-xs">
+                  Nenhum contato disponível.
+                </p>
+              )}
+            </div>
+
+            <button
+              onClick={() => setShowWhatsappSelector(false)}
+              className="w-full mt-6 text-white/40 hover:text-white text-xs"
             >
               Fechar
             </button>
