@@ -505,6 +505,26 @@ export default function CompanyProductsPage() {
         </div>
       </main>
 
+      {/* Botão Fixo Flutuante do WhatsApp */}
+      {companyPhones.length > 0 && (
+        <a
+          href={`https://wa.me/55${companyPhones[0].number
+            .replace(/\D/g, "")
+            .replace(
+              /^55/,
+              ""
+            )}?text=Olá! Gostaria de tirar algumas dúvidas sobre os produtos da ${
+            company?.name || "loja"
+          }.`}
+          target="_blank"
+          rel="noreferrer"
+          className="fixed bottom-5 right-5 z-40 flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white px-4 py-3 rounded-full shadow-2xl font-bold text-xs sm:text-sm transition-all transform hover:scale-105 active:scale-95"
+        >
+          <MessageCircle size={20} />
+          <span>Falar com o vendedor</span>
+        </a>
+      )}
+
       {isCartOpen && (
         <div className="fixed inset-0 z-50 flex justify-end">
           <div
@@ -588,7 +608,6 @@ export default function CompanyProductsPage() {
                 </span>
               </div>
 
-              {/* Aviso sobre o frete acima do botão finalizar compra */}
               <div className="mb-3 p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-[11px] text-amber-200/90 leading-relaxed">
                 ⚠️ O valor do frete não está incluso no pagamento e deve ser
                 acertado diretamente com o vendedor.
