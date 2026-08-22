@@ -15,3 +15,7 @@ export function getServiceWorkers(slug, serviceId) {
 export function getCompanyProducts(slug) {
   return apiFetch(`/public/company/${slug}/products`);
 }
+
+export function getPublicCompanyPhones(slug) {
+  return apiFetch(`/public/company/${slug}/phones`);
+}
