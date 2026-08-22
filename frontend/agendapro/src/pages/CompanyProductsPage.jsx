@@ -240,11 +240,6 @@ export default function CompanyProductsPage() {
       return;
     }
 
-    const confirmFrete = window.confirm(
-      "Atenção: O valor do frete não está incluso no pagamento e deve ser acertado com o vendedor. Deseja continuar?"
-    );
-    if (!confirmFrete) return;
-
     setError("");
     setIsCartOpen(false);
     setShowCustomerModal(true);
@@ -591,6 +586,12 @@ export default function CompanyProductsPage() {
                 <span className="font-bold text-base">
                   R$ {total.toFixed(2)}
                 </span>
+              </div>
+
+              {/* Aviso sobre o frete acima do botão finalizar compra */}
+              <div className="mb-3 p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-[11px] text-amber-200/90 leading-relaxed">
+                ⚠️ O valor do frete não está incluso no pagamento e deve ser
+                acertado diretamente com o vendedor.
               </div>
 
               <button
